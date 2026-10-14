@@ -296,9 +296,9 @@ class _SettingsFormState extends State<_SettingsForm> {
                 decoration: const InputDecoration(labelText: 'Site address'),
               ),
               const SectionTitle('Temperature limits (°C)'),
-              num('chilledMaxC', 'Chilled — maximum (5°C standard)'),
-              num('frozenMaxC', 'Frozen — maximum (-15°C typical)'),
-              num('hotMinC', 'Hot — minimum (60°C standard)'),
+              num('chilledMaxC', 'Chilled maximum (5°C standard)'),
+              num('frozenMaxC', 'Frozen maximum (-15°C typical)'),
+              num('hotMinC', 'Hot minimum (60°C standard)'),
               num('expiryWarningDays', 'Warn this many days before expiry'),
               const SizedBox(height: 8),
               FilledButton(

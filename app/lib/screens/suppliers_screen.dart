@@ -31,7 +31,7 @@ class SuppliersScreen extends StatelessWidget {
             return const EmptyState(
               icon: Icons.storefront,
               title: 'No suppliers yet',
-              message: 'Keep a list of approved suppliers — only buy food from registered businesses.',
+              message: 'Keep a list of approved suppliers. Only buy food from registered businesses.',
             );
           }
           return ListView.separated(

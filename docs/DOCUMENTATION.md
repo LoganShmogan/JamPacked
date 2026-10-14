@@ -1,4 +1,4 @@
-# NZSafetyHealthApp — Technical & User Documentation
+# NZSafetyHealthApp: Technical & User Documentation
 
 Food safety record-keeping for New Zealand and Australian food businesses. Mobile-first Flutter app
 (Android, iOS, web) backed by Convex. **Goods inwards is the core workflow**: every delivery recorded feeds
@@ -21,7 +21,7 @@ Live: https://foodsafety.savepoint.co.nz
 9. [Authentication, roles & security](#9-authentication-roles--security)
 10. [Audit trail & record integrity](#10-audit-trail--record-integrity)
 11. [Flutter app reference](#11-flutter-app-reference)
-12. [Screens — user guide](#12-screens--user-guide)
+12. [Screens: user guide](#12-screens-user-guide)
 13. [Local development](#13-local-development)
 14. [Deployment (loganserver)](#14-deployment-loganserver)
 15. [Migrating to Clerk](#15-migrating-to-clerk)
@@ -158,8 +158,8 @@ Every document also has Convex's `_id` and `_creationTime`.
 | Field | Default | Notes |
 |---|---|---|
 | businessName | "My Food Business" | |
-| jurisdiction | `NZ` | `NZ` or `AU` — changes labels (MPI vs FSANZ) |
-| registrationNumber, address | — | FCP/NP number (NZ) or council licence (AU) |
+| jurisdiction | `NZ` | `NZ` or `AU`; changes labels (MPI vs FSANZ) |
+| registrationNumber, address | - | FCP/NP number (NZ) or council licence (AU) |
 | chilledMaxC | 5 | Chilled food received/stored at or below |
 | frozenMaxC | -15 | Frozen food received at or below |
 | hotMinC | 60 | Hot food at or above |
@@ -181,7 +181,7 @@ Every document also has Convex's `_id` and `_creationTime`.
 | supplierId, supplierName | Name denormalised so history survives renames |
 | supplierApproved | **Snapshot** of approval status at time of receipt |
 | invoiceNumber?, vehicleClean, vehicleTempC?, notes? | |
-| status | `accepted` (all items) / `partial` / `rejected` (none) — computed server-side |
+| status | `accepted` (all items) / `partial` / `rejected` (none), computed server-side |
 | receivedById, receivedByName | Who received it |
 | voided, voidReason? | See §10 |
 
@@ -190,7 +190,7 @@ Every document also has Convex's `_id` and `_creationTime`.
 |---|---|
 | deliveryId, receivedAt, supplierId | Copied for indexed queries |
 | productId?, productName, barcode? | |
-| batchCode? | Index `by_batch` — used for recalls |
+| batchCode? | Index `by_batch`, used for recalls |
 | quantity, unit | |
 | useBy?, bestBefore? | Date marks (end of selected day, local) |
 | storageType, temperatureC? | |
@@ -207,7 +207,7 @@ Every document also has Convex's `_id` and `_creationTime`.
 | Field | Notes |
 |---|---|
 | templateKey, templateName, standardRef | Copied from template at start |
-| title | e.g. "Goods Receipt & Supplier Verification — 7/10/2026 to 14/10/2026" |
+| title | e.g. "Goods Receipt & Supplier Verification: 7/10/2026 to 14/10/2026" |
 | periodStart, periodEnd | Records in this window feed auto-fill |
 | tzOffsetMinutes? | Client UTC offset, so day boundaries are local |
 | status | `in_progress` → `completed` (locked) |
@@ -246,7 +246,7 @@ Role legend: **any** = any signed-in user, **mgr** = admin or manager, **admin**
 | `me()` | query | any | Current user `{_id,email,name,role}` or null. |
 | `listUsers()` | query | mgr | All users with active status. |
 | `updateUser(userId, role?, active?)` | mutation | admin | Change role / deactivate. Can't change yourself. |
-| `createUserAndSession`, `userByEmail`, `recordLogin` | internal | — | Helpers called by the actions; not callable from clients. |
+| `createUserAndSession`, `userByEmail`, `recordLogin` | internal | - | Helpers called by the actions; not callable from clients. |
 
 ### `settings`
 | `get()` | query | any | Current settings (or defaults). |
@@ -278,7 +278,7 @@ Role legend: **any** = any signed-in user, **mgr** = admin or manager, **admin**
 | `updateNotes(id, notes)` | mutation | any | Before/after logged. |
 | `list(limit?)` | query | any | Newest first, with `itemCount` and `tempIssues` (accepted items out of range). |
 | `get(id)` | query | any | Delivery, items and its audit-log history. |
-| `suggestionsForSupplier(supplierId)` | query | any | Distinct products from that supplier's last 10 deliveries — used as tap-to-add chips. |
+| `suggestionsForSupplier(supplierId)` | query | any | Distinct products from that supplier's last 10 deliveries, used as tap-to-add chips. |
 | `expiring()` | query | any | Accepted, non-void items from the last 90 days whose use-by/best-before falls within `expiryWarningDays` (or has passed). |
 | `trace(search)` | query | any | Exact batch-code match plus substring match on product name / batch / exact barcode across the last 2,000 items. Includes supplier and receiver. |
 
@@ -323,7 +323,7 @@ hot_hold ≥ hotMinC; cooking ≥ 75°C (core); cooling ≤ 21°C (first stage o
 | `complete(id)` | mutation | any | Requires all yes/no answered. Scores, raises a medium CA per "No", locks. |
 
 ### `auditLog`
-`list(entityType?, entityId?, userId?, limit?)` — entity history is readable by any user (used on detail
+`list(entityType?, entityId?, userId?, limit?)`: entity history is readable by any user (used on detail
 screens); the global trail and per-user filters are **mgr** only. Max 1,000 rows. **No write functions exist.**
 
 ### `dashboard`
@@ -392,7 +392,7 @@ type: yesno|number|text, autoFill?, guidance?`).
 **Writing questions:** phrase yes/no questions so **"Yes" = compliant** (scoring and CA-raising rely on it).
 
 **Adding a template:** append to `TEMPLATES` and deploy. It appears in the app automatically. Keep
-existing `key`/question `id`s stable — `refreshAutoFill` matches on them.
+existing `key`/question `id`s stable, because `refreshAutoFill` matches on them.
 
 ---
 
@@ -410,8 +410,8 @@ existing `key`/question `id`s stable — `refreshAutoFill` matches on them.
 | Identify and fix problems (corrective action) | Auto-raised CAs from every source; close-out requires a resolution. |
 | Regular verification / review | Daily, monthly and hygiene audit templates with scores. |
 
-Limits are configurable in **Business settings**. The defaults and templates are a starting point —
-confirm against your registered FCP/National Programme or local council requirements.
+Limits are configurable in **Business settings**. The defaults and templates are a starting point.
+Confirm them against your registered FCP/National Programme or local council requirements.
 
 ---
 
@@ -481,13 +481,13 @@ Note: a Convex admin (dashboard / admin key) can still edit data directly. Prote
 | `context.run(fn, success:)` | Runs a call; shows errors (and optional success) as snackbars; returns null on failure |
 | `context.toast(msg, error:)` | Snackbar |
 | `QueryBuilder(path, args, builder)` | Loads a query, shows spinner/error+retry, refetches on any mutation, pull-to-refresh |
-| `Pill(text, tone:, icon:)` | Status chip — tones `ok`, `warn`, `bad`, `neutral`, `brand` |
+| `Pill(text, tone:, icon:)` | Status chip; tones `ok`, `warn`, `bad`, `neutral`, `brand` |
 | `SectionTitle`, `EmptyState`, `InfoRow`, `Responsive` | Layout helpers; `Responsive` caps width on tablets/web |
 | `promptText(context, ...)` | Text-input dialog |
 | `fmtDateTime`, `fmtDate`, `fmtNum`, `fromMs`, `localDayStartMs` | Formatting |
 | `storageLabels`, `storageIcons`, `allergenList` | Shared constants |
 
-`widgets/audit_history.dart` — `AuditHistory(entries)` timeline and `auditActionIcon(action)`.
+`widgets/audit_history.dart`: `AuditHistory(entries)` timeline and `auditActionIcon(action)`.
 
 ### Theme (`theme.dart`)
 `AppColors`: `orange #F26B21`, `orangeDark #C94E0E`, `orangeLight #FFF1E8`, `ink`, `muted`, `border`,
@@ -528,7 +528,7 @@ http dev), iOS `NSCameraUsageDescription`, web title/theme colour.
 
 ---
 
-## 12. Screens — user guide
+## 12. Screens: user guide
 
 ### Sign in
 Email + password. **Create an account** for new staff; the first account on a fresh deployment becomes
@@ -543,18 +543,18 @@ admin. Others start as staff until an admin promotes them.
 - In-progress audits shortcut.
 
 ### Receive goods (the main workflow)
-1. **Supplier** — pick from list (unapproved ones are labelled, with a warning), or **+** to add one.
+1. **Supplier**: pick from list (unapproved ones are labelled, with a warning), or **+** to add one.
 2. Invoice/docket number, vehicle clean toggle, optional vehicle temperature.
 3. **Add items**:
-   - **Scan** — scans a barcode. The app checks your catalogue, then Open Food Facts, and pre-fills name,
+   - **Scan**: scans a barcode. The app checks your catalogue, then Open Food Facts, and pre-fills name,
      storage type and allergens.
-   - **Add item** — manual entry.
-   - **"Usually from this supplier"** chips — one tap pre-fills a previous product.
+   - **Add item**: manual entry.
+   - **"Usually from this supplier"** chips: one tap pre-fills a previous product.
 4. **Item check** screen: product, quantity/unit, batch code, storage type, probe temperature (required
    unless ambient; tick/cross shows pass/fail against your limits), use-by / best-before, packaging and
    label switches, allergens, then **Accept / Reject**. If there's a problem the app warns you to reject
    and pre-fills the reason.
-5. **Save delivery** — problems automatically become corrective actions.
+5. **Save delivery**: problems automatically become corrective actions.
 
 ### Delivery record
 Header details, every item with temperature/batch/date/allergen pills, rejection reasons,
@@ -565,7 +565,7 @@ Header details, every item with temperature/batch/date/allergen pills, rejection
 - Each question shows guidance, the **evidence** box (orange, ✨) explaining the auto-answer, and the answer.
   Tap Yes/No or tap the field for number/text. Changing an auto-answer is allowed and logged as an override.
 - **Note** adds a comment. **Refresh** re-pulls auto answers you haven't changed (e.g. after more deliveries).
-- **Complete & sign off** — needs all yes/no answered; locks the audit under your name and raises a CA
+- **Complete & sign off**: needs all yes/no answered; locks the audit under your name and raises a CA
   for each "No". Score = % "Yes".
 - **History** tab: all audits with status and score.
 
@@ -581,13 +581,13 @@ enter what you did; a high-severity CA is raised.
 - Suppliers: list with Approved / Not approved / Inactive; managers can edit and see history.
 - Products: searchable catalogue with allergens and NOVA group (4 = ultra-processed).
 - Expiring stock: sorted by date. **DISCARD** = past use-by (unsafe), **PAST BB** = past best-before.
-- Trace & recall: search a batch code, product or barcode to find every receipt — when, from whom, how
+- Trace & recall: search a batch code, product or barcode to find every receipt: when, from whom, how
   much, who received it. Tap through to the delivery.
 
 ### More (admin/manager)
-- **Audit trail** — every action, filter by area, tap for field-level change details.
-- **Users** — admins change roles and deactivate/reactivate accounts.
-- **Business settings** — name, NZ/AU, registration number, address, temperature limits, expiry warning days.
+- **Audit trail**: every action, filter by area, tap for field-level change details.
+- **Users**: admins change roles and deactivate/reactivate accounts.
+- **Business settings**: name, NZ/AU, registration number, address, temperature limits, expiry warning days.
 
 ---
 
@@ -664,7 +664,7 @@ The app is structured so only auth plumbing changes:
    ```
 3. **Backend:** change `getUser` in `lib/session.ts` to use `ctx.auth.getUserIdentity()` and find/create
    the `users` row by Clerk `subject` (add a `clerkId` field + index). `sessionToken` args can then be
-   removed (or ignored) — all permission checks keep working via `requireUser`/`requireRole`.
+   removed (or ignored); all permission checks keep working via `requireUser`/`requireRole`.
 4. **Flutter:** add `clerk_flutter`, replace `AuthService.login/register` with Clerk sign-in, and send the
    Clerk JWT as `Authorization: Bearer <jwt>` in `ConvexClient` (the HTTP API accepts it).
    Screens depend only on `AuthService.user`, so they don't change.
@@ -674,13 +674,13 @@ The app is structured so only auth plumbing changes:
 
 ## 16. Known limitations & roadmap
 
-- **No live push between devices** — data refreshes on any local change or pull-to-refresh.
+- **No live push between devices**: data refreshes on any local change or pull-to-refresh.
   Option: `convex_flutter` WebSocket client (needs Rust toolchain for mobile).
-- **Single business/site** — add an `organizationId` to every table for multi-site / multi-tenant.
-- **No photo evidence** — Convex file storage could hold delivery/damage photos.
-- **No offline mode** — receiving in a walk-in with no signal fails; a local queue would fix it.
-- **Templates are code-defined** — a template editor UI could store custom templates in a table.
-- **Reports/exports** — PDF/CSV export of audits and records for verifiers is a natural next step.
-- **Stock depletion isn't tracked** — "expiring stock" assumes received items are still on hand
+- **Single business/site**: add an `organizationId` to every table for multi-site / multi-tenant.
+- **No photo evidence**: Convex file storage could hold delivery/damage photos.
+- **No offline mode**: receiving in a walk-in with no signal fails; a local queue would fix it.
+- **Templates are code-defined**: a template editor UI could store custom templates in a table.
+- **Reports/exports**: PDF/CSV export of audits and records for verifiers is a natural next step.
+- **Stock depletion isn't tracked**: "expiring stock" assumes received items are still on hand
   (last 90 days). Mark-as-used/discarded would make it exact.
 - Dev-auth gaps listed in §9.

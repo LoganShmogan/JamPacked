@@ -25,7 +25,7 @@ export const record = mutation({
     const settings = await loadSettings(ctx);
     const compliant = unitCompliant(settings, args.unitType, args.temperatureC);
     if (!compliant && !args.correctiveAction?.trim()) {
-      throw new ConvexError("Out of range — record what you did about it (corrective action)");
+      throw new ConvexError("Out of range. Record what you did about it (corrective action)");
     }
     const id = await ctx.db.insert("temperatureLogs", {
       ...args,

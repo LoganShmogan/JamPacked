@@ -77,7 +77,7 @@ export const start = mutation({
       templateKey,
       templateName: template.name,
       standardRef: template.standardRef,
-      title: `${template.name} — ${day(periodStart)}${template.defaultPeriodDays > 1 ? ` to ${day(periodEnd)}` : ""}`,
+      title: `${template.name}: ${day(periodStart)}${template.defaultPeriodDays > 1 ? ` to ${day(periodEnd)}` : ""}`,
       periodStart,
       periodEnd,
       tzOffsetMinutes: tz,
@@ -174,7 +174,7 @@ export const complete = mutation({
     for (const f of fails) {
       const caId = await ctx.db.insert("correctiveActions", {
         title: `Audit finding: ${f.text}`,
-        description: [f.evidence, f.notes].filter(Boolean).join(" — ") || undefined,
+        description: [f.evidence, f.notes].filter(Boolean).join(". ") || undefined,
         source: "audit",
         sourceId: id,
         severity: "medium",
@@ -201,7 +201,7 @@ export const complete = mutation({
       action: "complete",
       entityType: "audit",
       entityId: id,
-      summary: `Completed ${audit.templateName} — score ${score}% (${fails.length} finding(s))`,
+      summary: `Completed ${audit.templateName}, score ${score}% (${fails.length} finding(s))`,
     });
   },
 });

@@ -81,7 +81,7 @@ class _TraceScreenState extends State<TraceScreen> {
                                 ),
                                 subtitle: Text(
                                   '${it['supplierName']} · ${fmtDateTime(it['receivedAt'])}\n'
-                                  'Batch ${it['batchCode'] ?? '—'} · ${fmtNum(it['quantity'])} ${it['unit']} · by ${it['receivedByName']}',
+                                  'Batch ${it['batchCode'] ?? '-'} · ${fmtNum(it['quantity'])} ${it['unit']} · by ${it['receivedByName']}',
                                 ),
                                 isThreeLine: true,
                                 trailing: it['voided'] == true

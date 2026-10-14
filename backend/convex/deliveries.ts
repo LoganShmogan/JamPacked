@@ -164,14 +164,14 @@ export const create = mutation({
       action: "create",
       entityType: "delivery",
       entityId: deliveryId,
-      summary: `Goods received from ${supplier.name}: ${items.length} item(s), ${status}${issues.length ? ` — ${issues.join("; ")}` : ""}`,
+      summary: `Goods received from ${supplier.name}: ${items.length} item(s), ${status}${issues.length ? `. ${issues.join("; ")}` : ""}`,
       changes: { ...args, items },
     });
     return deliveryId;
   },
 });
 
-/** Records are never deleted — a manager voids them with a reason, which stays in the trail. */
+/** Records are never deleted. A manager voids them with a reason, which stays in the trail. */
 export const voidDelivery = mutation({
   args: { sessionToken: v.string(), id: v.id("deliveries"), reason: v.string() },
   handler: async (ctx, { sessionToken, id, reason }) => {

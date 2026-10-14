@@ -138,8 +138,8 @@ class _TemperatureScreenState extends State<TemperatureScreen> {
     if (r != null && mounted) {
       context.toast(
         r['compliant']
-            ? 'Recorded — within limits'
-            : 'Recorded — OUT OF RANGE, corrective action raised',
+            ? 'Recorded: within limits'
+            : 'Recorded: OUT OF RANGE, corrective action raised',
         error: !r['compliant'],
       );
     }
@@ -184,7 +184,7 @@ class _TemperatureScreenState extends State<TemperatureScreen> {
                       ),
                     ),
                     title: Text(
-                      '${l['unitName']} — ${fmtNum(l['temperatureC'])}°C',
+                      '${l['unitName']}: ${fmtNum(l['temperatureC'])}°C',
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     subtitle: Text(

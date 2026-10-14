@@ -1,4 +1,4 @@
-# NZSafetyHealthApp — food safety records for NZ & AU businesses
+# NZSafetyHealthApp: food safety records for NZ & AU businesses
 
 Mobile-first Flutter app (Android, iOS, web) with a Convex backend. Goods inwards is the core workflow:
 every delivery you record feeds the audits, corrective actions, expiry alerts and recall tracing.

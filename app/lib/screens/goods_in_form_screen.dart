@@ -117,7 +117,7 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
               .toList(),
         };
       }
-      if (mounted) context.toast('Barcode not recognised — enter details');
+      if (mounted) context.toast('Barcode not recognised, enter details');
     } catch (_) {}
     return base;
   }
@@ -214,7 +214,7 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
                   const Padding(
                     padding: EdgeInsets.only(top: 8),
                     child: Pill(
-                      'Not on approved supplier list — a corrective action will be raised',
+                      'Not on approved supplier list. A corrective action will be raised',
                       tone: Tone.warn,
                       icon: Icons.warning_amber,
                     ),
@@ -274,7 +274,7 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
                   ],
                 ),
                 if (_suggestions.isNotEmpty) ...[
-                  const SectionTitle('Usually from this supplier — tap to add'),
+                  const SectionTitle('Usually from this supplier (tap to add)'),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,

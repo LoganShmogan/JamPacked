@@ -91,7 +91,7 @@ export async function computeFacts(
     },
     "gi.rejectionsHandled": {
       value: rejectedNoReason.length === 0,
-      evidence: rejected.length ? `${rejected.length} rejected: ${list(rejected.map((i) => `${i.productName} — ${i.rejectionReason ?? "no reason"}`))}` : "No rejections",
+      evidence: rejected.length ? `${rejected.length} rejected: ${list(rejected.map((i) => `${i.productName} (${i.rejectionReason ?? "no reason"})`))}` : "No rejections",
     },
     "gi.rejectionRate": {
       value: items.length ? Math.round((rejected.length / items.length) * 1000) / 10 : 0,

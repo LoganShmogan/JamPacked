@@ -63,7 +63,7 @@ export const TEMPLATES: Template[] = [
   {
     key: "monthly_review",
     name: "Monthly Food Safety Review",
-    description: "Monthly verification that the plan is working — pulls a month of records automatically.",
+    description: "Monthly verification that the plan is working. Pulls a month of records automatically.",
     standardRef: "MPI FCP 'Checking for problems' / verification · FSANZ 3.2.2A cl.10 (records)",
     defaultPeriodDays: 30,
     questions: [

@@ -48,15 +48,15 @@ final _dt = DateFormat('d MMM yyyy, h:mm a');
 final _d = DateFormat('d MMM yyyy');
 DateTime fromMs(dynamic ms) =>
     DateTime.fromMillisecondsSinceEpoch((ms as num).toInt());
-String fmtDateTime(dynamic ms) => ms == null ? '—' : _dt.format(fromMs(ms));
-String fmtDate(dynamic ms) => ms == null ? '—' : _d.format(fromMs(ms));
+String fmtDateTime(dynamic ms) => ms == null ? '-' : _dt.format(fromMs(ms));
+String fmtDate(dynamic ms) => ms == null ? '-' : _d.format(fromMs(ms));
 int localDayStartMs() {
   final n = DateTime.now();
   return DateTime(n.year, n.month, n.day).millisecondsSinceEpoch;
 }
 
 String fmtNum(dynamic n) {
-  if (n == null) return '—';
+  if (n == null) return '-';
   final d = (n as num).toDouble();
   return d == d.roundToDouble() ? d.toInt().toString() : d.toStringAsFixed(1);
 }

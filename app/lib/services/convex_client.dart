@@ -14,7 +14,7 @@ class ConvexException implements Exception {
 /// Calls are named "module:function", e.g. `query('deliveries:list', {...})`.
 ///
 /// Any successful mutation/action bumps [changes], which [QueryBuilder] widgets listen to so
-/// open screens refetch — a lightweight stand-in for Convex's reactive subscriptions.
+/// open screens refetch, a lightweight stand-in for Convex's reactive subscriptions.
 class ConvexClient {
   ConvexClient(this.baseUrl);
   final String baseUrl;

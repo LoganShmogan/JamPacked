@@ -80,11 +80,11 @@ class DeliveryDetailScreen extends StatelessWidget {
                               'Supplier approved',
                               d['supplierApproved']
                                   ? 'Yes'
-                                  : 'No — not on approved list',
+                                  : 'No (not on approved list)',
                             ),
                             InfoRow(
                               'Invoice / docket',
-                              d['invoiceNumber'] ?? '—',
+                              d['invoiceNumber'] ?? '-',
                             ),
                             InfoRow(
                               'Vehicle clean',
@@ -95,7 +95,7 @@ class DeliveryDetailScreen extends StatelessWidget {
                                 'Vehicle temp',
                                 '${fmtNum(d['vehicleTempC'])}°C',
                               ),
-                            InfoRow('Notes', d['notes'] ?? '—'),
+                            InfoRow('Notes', d['notes'] ?? '-'),
                           ],
                         ),
                       ),
