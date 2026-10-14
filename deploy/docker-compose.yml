@@ -1,0 +1,40 @@
+# NZSafetyHealthApp on loganserver: self-hosted Convex + nginx serving the Flutter web build.
+# nginx serves the app and proxies /api/* to Convex, so one hostname covers both.
+# The shared Caddy proxy (~/caddy) routes foodsafety.savepoint.co.nz -> foodsafe:80 over the `web` network.
+services:
+  convex:
+    image: ghcr.io/get-convex/convex-backend:latest
+    container_name: foodsafe-convex
+    restart: unless-stopped
+    stop_grace_period: 10s
+    volumes:
+      - convex-data:/convex/data
+    environment:
+      - INSTANCE_NAME=foodsafe
+      - CONVEX_CLOUD_ORIGIN=https://foodsafety.savepoint.co.nz
+      - CONVEX_SITE_ORIGIN=https://foodsafety.savepoint.co.nz/http
+    ports:
+      - "127.0.0.1:3210:3210" # loopback only: used to push functions over an SSH tunnel
+    networks: [internal]
+    healthcheck:
+      test: curl -f http://localhost:3210/version
+      interval: 5s
+      start_period: 10s
+
+  web:
+    image: nginx:1.27-alpine
+    container_name: foodsafe
+    restart: unless-stopped
+    depends_on: [convex]
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [internal, web]
+
+networks:
+  internal:
+  web:
+    external: true
+
+volumes:
+  convex-data:

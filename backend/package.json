@@ -1,0 +1,17 @@
+{
+  "name": "foodsafe-backend",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy",
+    "typecheck": "tsc -p convex --noEmit"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "convex": "^1.46.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "private": true
+}
