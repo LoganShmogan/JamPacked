@@ -19,6 +19,8 @@ class GoodsInScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Goods Inwards')),
       floatingActionButton: FloatingActionButton.extended(
+        // Unique tag: HomeShell keeps every tab's FAB alive in one route.
+        heroTag: 'goods-in-fab',
         onPressed: () => Navigator.of(context)
             .push(MaterialPageRoute(builder: (_) => const GoodsInFormScreen())),
         icon: const Icon(Icons.add),

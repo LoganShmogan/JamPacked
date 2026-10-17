@@ -25,6 +25,17 @@ flutter run --dart-define=CONVEX_URL=https://<your-deployment>.convex.cloud     
 Create an account on the sign-in screen. **The first account becomes admin**; later sign-ups are `staff`
 until an admin changes their role (More → Users).
 
+## Tests
+
+Backend (Vitest + convex-test) and app (flutter_test) unit tests, both with 100% coverage enforced:
+
+```bash
+cd backend && npm test                  # or: npm run test:coverage
+cd app && flutter test                  # or: flutter test --coverage && dart run tool/check_coverage.dart
+```
+
+See [`docs/TESTING.md`](docs/TESTING.md) for how the tests are organised and how to add new ones.
+
 ## What's in it
 
 | Area | What it does |

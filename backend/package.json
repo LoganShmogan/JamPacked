@@ -4,14 +4,21 @@
   "scripts": {
     "dev": "convex dev",
     "deploy": "convex deploy",
-    "typecheck": "tsc -p convex --noEmit"
+    "typecheck": "tsc -p convex --noEmit && tsc -p tests --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "type": "commonjs",
   "dependencies": {
     "convex": "^1.46.0"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "@edge-runtime/vm": "^5.0.0",
+    "@vitest/coverage-v8": "^5.0.5",
+    "convex-test": "^0.0.62",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   },
   "private": true
 }

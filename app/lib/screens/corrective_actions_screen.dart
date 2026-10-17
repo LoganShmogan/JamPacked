@@ -100,6 +100,8 @@ class CorrectiveActionsScreen extends StatelessWidget {
           ),
         ),
         floatingActionButton: FloatingActionButton(
+          // Unique tag: HomeShell keeps every tab's FAB alive in one route.
+          heroTag: 'corrective-actions-fab',
           onPressed: () => _new(context),
           child: const Icon(Icons.add),
         ),

@@ -122,7 +122,7 @@ export const lookupBarcode = action({
     const cats: string[] = p.categories_tags ?? [];
     const guessStorage = cats.some((c) => c.includes("frozen"))
       ? "frozen"
-      : cats.some((c) => /dairy|meat|fish|seafood|chilled|yogurt|cheese/.test(c))
+      : cats.some((c) => /dair(y|ies)|meat|fish|seafood|chilled|yogurt|cheese/.test(c))
         ? "chilled"
         : "ambient";
     return {

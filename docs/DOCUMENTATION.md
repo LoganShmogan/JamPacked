@@ -93,8 +93,11 @@ Live: https://foodsafety.savepoint.co.nz
 NZSafetyHealthApp/
 ├── README.md                    Quick start
 ├── docs/DOCUMENTATION.md        This file
+├── docs/TESTING.md              Unit tests: running, structure, helpers, coverage
 ├── backend/                     Convex project (TypeScript)
-│   ├── package.json             scripts: dev, deploy, typecheck
+│   ├── package.json             scripts: dev, deploy, typecheck, test, test:coverage
+│   ├── vitest.config.mts        Test runner + 100% coverage thresholds
+│   ├── tests/                   Vitest + convex-test unit tests (see docs/TESTING.md)
 │   └── convex/
 │       ├── schema.ts            Tables, indexes, shared validators
 │       ├── auth.ts              Register / login / logout / me / users
@@ -117,6 +120,8 @@ NZSafetyHealthApp/
 │       └── _generated/          Convex codegen (committed, do not edit)
 ├── app/                         Flutter app
 │   ├── pubspec.yaml
+│   ├── test/                    Unit & widget tests (see docs/TESTING.md)
+│   ├── tool/check_coverage.dart Fails unless line coverage is 100%
 │   └── lib/
 │       ├── main.dart            Providers, MaterialApp, auth gate
 │       ├── config.dart          CONVEX_URL (dart-define)
@@ -607,6 +612,9 @@ flutter run -d <iphone>     --dart-define=CONVEX_URL=http://<your-LAN-ip>:3210
 
 - `CONVEX_URL` defaults to `http://127.0.0.1:3210` (`app/lib/config.dart`).
 - Backend type check: `cd backend && npm run typecheck`. App lints: `cd app && flutter analyze`.
+- Unit tests (100% coverage enforced): `cd backend && npm run test:coverage` and
+  `cd app && flutter test --coverage && dart run tool/check_coverage.dart`. See
+  [TESTING.md](TESTING.md) for structure, helpers and how to add tests.
 - Calling functions by hand:
   ```bash
   curl -X POST http://127.0.0.1:3210/api/query -H 'content-type: application/json' \
