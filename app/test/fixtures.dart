@@ -66,10 +66,17 @@ Map<String, dynamic> summary({
   int expiring = 0,
   int expired = 0,
   int inProgress = 0,
+  int stockLines = 4,
+  int onHold = 0,
+  int lowStock = 0,
   String jurisdiction = 'NZ',
 }) => {
   'businessName': 'Kai Cafe',
   'jurisdiction': jurisdiction,
+  'programme': 'NP2',
+  'stockLines': stockLines,
+  'onHold': onHold,
+  'lowStock': lowStock,
   'deliveriesToday': deliveries,
   'rejectionsToday': rejections,
   'tempChecksToday': temps,
@@ -158,7 +165,13 @@ Map<String, Handler> baseHandlers() => {
   'dashboard:summary': (_) => summary(),
   'deliveries:list': (_) => [delivery()],
   'deliveries:get': (_) => null,
-  'deliveries:expiring': (_) => [],
+  'stock:expiring': (_) => [],
+  'stock:onHand': (_) => [],
+  'stock:lowStock': (_) => [],
+  'stock:lot': (_) => null,
+  'stocktakes:list': (_) => [],
+  'stocktakes:get': (_) => null,
+  'locations:list': (_) => [],
   'deliveries:trace': (_) => [],
   'deliveries:suggestionsForSupplier': (_) => [],
   'audits:templates': (_) => templates,
@@ -178,3 +191,36 @@ Map<String, Handler> baseHandlers() => {
 
 FakeConvex fakeWith([Map<String, Handler> overrides = const {}]) =>
     FakeConvex({...baseHandlers(), ...overrides});
+
+Map<String, dynamic> lot({
+  String id = 'l1',
+  String name = 'Milk 2L',
+  String status = 'available',
+  num qty = 6,
+  int? useBy,
+  int? bestBefore,
+  bool expiringSoon = false,
+  String? location,
+  String? holdReason,
+}) => {
+  '_id': id,
+  'productName': name,
+  'storageType': 'chilled',
+  'unit': 'ea',
+  'qtyReceived': 6,
+  'qtyOnHand': qty,
+  'status': status,
+  'batchCode': 'B1',
+  'supplierName': 'Fresh Foods',
+  'receivedAt': t0,
+  'useBy': ?useBy,
+  'bestBefore': ?bestBefore,
+  'expiringSoon': expiringSoon,
+  'locationName': ?location,
+  'holdReason': ?holdReason,
+};
+
+final locations = [
+  {'_id': 'loc1', 'name': 'Chiller 1', 'kind': 'chiller', 'active': true},
+  {'_id': 'loc2', 'name': 'Old shelf', 'kind': 'dry', 'active': false},
+];

@@ -38,6 +38,8 @@ export const create = mutation({
     novaGroup: v.optional(v.number()),
     imageUrl: v.optional(v.string()),
     defaultSupplierId: v.optional(v.id("suppliers")),
+    parLevel: v.optional(v.number()),
+    reorderQty: v.optional(v.number()),
   },
   handler: async (ctx, { sessionToken, businessId, ...data }) => {
     const { user } = await requireMember(ctx, sessionToken, businessId);
@@ -66,6 +68,8 @@ export const update = mutation({
     allergens: v.optional(v.array(v.string())),
     ingredients: v.optional(v.string()),
     defaultSupplierId: v.optional(v.id("suppliers")),
+    parLevel: v.optional(v.number()),
+    reorderQty: v.optional(v.number()),
     active: v.optional(v.boolean()),
   },
   handler: async (ctx, { sessionToken, businessId, id, ...patch }) => {

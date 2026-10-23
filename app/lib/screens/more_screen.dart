@@ -6,6 +6,7 @@ import '../theme.dart';
 import '../widgets/business_form.dart';
 import '../widgets/common.dart';
 import 'admin_screens.dart';
+import 'corrective_actions_screen.dart';
 import 'business_picker_screen.dart';
 import 'expiring_screen.dart';
 import 'products_screen.dart';
@@ -109,6 +110,13 @@ class MoreScreen extends StatelessWidget {
                 Card(
                   child: Column(
                     children: [
+                      tile(
+                        Icons.report_problem,
+                        'Corrective actions',
+                        'Problems and how they were fixed',
+                        const CorrectiveActionsScreen(),
+                      ),
+                      const Divider(),
                       tile(
                         Icons.thermostat,
                         'Temperature checks',

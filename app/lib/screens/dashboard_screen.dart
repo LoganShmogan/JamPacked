@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
 import '../theme.dart';
+import '../widgets/business_form.dart';
 import '../widgets/common.dart';
+import 'corrective_actions_screen.dart';
 import 'expiring_screen.dart';
 import 'goods_in_form_screen.dart';
 import 'home_shell.dart';
@@ -30,7 +32,8 @@ class DashboardScreen extends StatelessWidget {
               SliverToBoxAdapter(
                 child: _Header(
                   name: user.name,
-                  business: d['businessName'],
+                  business:
+                      '${d['businessName']} · ${programmeLabel(d['programme'])}',
                   jurisdiction: d['jurisdiction'],
                 ),
               ),
@@ -85,7 +88,8 @@ class DashboardScreen extends StatelessWidget {
                                   ? Tone.warn
                                   : Tone.ok,
                               icon: Icons.report_problem,
-                              onTap: () => shell.go(3),
+                              onTap: () =>
+                                  push(const CorrectiveActionsScreen()),
                             ),
                             _Kpi(
                               label: 'Expiring soon',
@@ -100,6 +104,39 @@ class DashboardScreen extends StatelessWidget {
                                   : Tone.ok,
                               icon: Icons.event_busy,
                               onTap: () => push(const ExpiringScreen()),
+                            ),
+                          ],
+                        ),
+                        const SectionTitle('Stock'),
+                        _KpiGrid(
+                          children: [
+                            _Kpi(
+                              label: 'On hand',
+                              value: fmtNum(d['stockLines']),
+                              sub: 'lots in stock',
+                              tone: Tone.neutral,
+                              icon: Icons.inventory_2,
+                              onTap: () => shell.go(2),
+                            ),
+                            _Kpi(
+                              label: 'On hold',
+                              value: fmtNum(d['onHold']),
+                              sub: d['onHold'] > 0
+                                  ? 'Needs a decision'
+                                  : 'Nothing held',
+                              tone: d['onHold'] > 0 ? Tone.bad : Tone.ok,
+                              icon: Icons.block,
+                              onTap: () => shell.go(2),
+                            ),
+                            _Kpi(
+                              label: 'Low stock',
+                              value: fmtNum(d['lowStock']),
+                              sub: d['lowStock'] > 0
+                                  ? 'Below par: reorder'
+                                  : 'All above par',
+                              tone: d['lowStock'] > 0 ? Tone.warn : Tone.ok,
+                              icon: Icons.trending_down,
+                              onTap: () => shell.go(2),
                             ),
                           ],
                         ),
@@ -119,9 +156,14 @@ class DashboardScreen extends StatelessWidget {
                                   push(const TemperatureScreen(autoOpen: true)),
                             ),
                             _Tile(
+                              'Stock',
+                              Icons.inventory_2,
+                              () => shell.go(2),
+                            ),
+                            _Tile(
                               'Start audit',
                               Icons.fact_check,
-                              () => shell.go(2),
+                              () => shell.go(3),
                             ),
                             _Tile(
                               'Trace / recall',
@@ -152,7 +194,7 @@ class DashboardScreen extends StatelessWidget {
                                 '${fmtNum(d['inProgressAudits'])} audit(s) in progress',
                               ),
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () => shell.go(2),
+                              onTap: () => shell.go(3),
                             ),
                           ),
                         ],

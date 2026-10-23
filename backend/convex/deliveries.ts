@@ -4,6 +4,7 @@ import { MutationCtx, mutation, query } from "./_generated/server";
 import { logAudit } from "./lib/audit";
 import { isTempCompliant } from "./lib/settings";
 import { inBusiness, requireMember, scoped } from "./lib/session";
+import { createLot, recordMovement } from "./lib/stock";
 import { storageType } from "./schema";
 
 const itemInput = v.object({
@@ -22,6 +23,7 @@ const itemInput = v.object({
   allergens: v.array(v.string()),
   accepted: v.boolean(),
   rejectionReason: v.optional(v.string()),
+  locationId: v.optional(v.id("locations")), // where accepted stock is put away
 });
 
 async function raiseCA(
@@ -70,6 +72,7 @@ export const create = mutation({
       if (!item.accepted && !item.rejectionReason?.trim()) {
         throw new ConvexError(`Give a reason for rejecting ${item.productName}`);
       }
+      if (item.locationId) inBusiness(await ctx.db.get(item.locationId), businessId, "Location");
     }
     const acceptedCount = items.filter((i) => i.accepted).length;
     const status =
@@ -88,7 +91,7 @@ export const create = mutation({
     });
 
     const issues: string[] = [];
-    for (const item of items) {
+    for (const { locationId, ...item } of items) {
       // Auto-create catalogue entries so future deliveries/audits can pre-fill from them.
       let productId: Id<"products"> | undefined = item.productId;
       if (!productId) {
@@ -109,7 +112,7 @@ export const create = mutation({
           }));
       }
       const temperatureCompliant = isTempCompliant(settings, item.storageType, item.temperatureC);
-      await ctx.db.insert("deliveryItems", {
+      const deliveryItemId = await ctx.db.insert("deliveryItems", {
         ...item,
         businessId,
         productId,
@@ -119,6 +122,26 @@ export const create = mutation({
         temperatureCompliant,
         voided: false,
       });
+      // Accepted goods go into stock as a lot that can be traced, rotated, used and recalled.
+      if (item.accepted) {
+        await createLot(ctx, user, {
+          businessId,
+          productId,
+          productName: item.productName,
+          barcode: item.barcode,
+          deliveryId,
+          deliveryItemId,
+          supplierName: supplier.name,
+          batchCode: item.batchCode,
+          useBy: item.useBy,
+          bestBefore: item.bestBefore,
+          locationId,
+          storageType: item.storageType,
+          unit: item.unit,
+          qtyReceived: item.quantity,
+          receivedAt,
+        });
+      }
 
       const expired = item.useBy !== undefined && item.useBy < receivedAt;
       if (item.accepted && temperatureCompliant === false) {
@@ -186,7 +209,14 @@ export const voidDelivery = mutation({
     if (delivery.voided) return;
     await ctx.db.patch(id, { voided: true, voidReason: reason });
     const items = await ctx.db.query("deliveryItems").withIndex("by_delivery", (q) => q.eq("deliveryId", id)).collect();
-    for (const item of items) await ctx.db.patch(item._id, { voided: true });
+    for (const item of items) {
+      await ctx.db.patch(item._id, { voided: true });
+      // Take whatever is left of its stock out, with the reason in the lot's history.
+      const lot = await ctx.db.query("stockLots").withIndex("by_deliveryItem", (q) => q.eq("deliveryItemId", item._id)).unique();
+      if (lot && lot.status !== "depleted") {
+        await recordMovement(ctx, user, lot, { type: "void", qty: -lot.qtyOnHand, reason: `Delivery voided: ${reason}` }, { status: "depleted" });
+      }
+    }
     await logAudit(ctx, user, {
       businessId,
       action: "void",
@@ -280,25 +310,6 @@ export const suggestionsForSupplier = query({
   },
 });
 
-/** Stock received and accepted that is close to (or past) its use-by / best-before. */
-export const expiring = query({
-  args: scoped,
-  handler: async (ctx, { sessionToken, businessId }) => {
-    const { business: settings } = await requireMember(ctx, sessionToken, businessId);
-    const now = Date.now();
-    const horizon = now + settings.expiryWarningDays * 86_400_000;
-    const recent = await ctx.db
-      .query("deliveryItems")
-      .withIndex("by_business_receivedAt", (q) => q.eq("businessId", businessId).gt("receivedAt", now - 90 * 86_400_000))
-      .collect();
-    return recent
-      .filter((i) => i.accepted && !i.voided)
-      .map((i) => ({ ...i, expiresAt: i.useBy ?? i.bestBefore }))
-      .filter((i) => i.expiresAt !== undefined && i.expiresAt <= horizon)
-      .sort((a, b) => a.expiresAt! - b.expiresAt!);
-  },
-});
-
 /** Traceability / recall: find every receipt of a batch code or product. */
 export const trace = query({
   args: { ...scoped, search: v.string() },
@@ -326,7 +337,20 @@ export const trace = query({
     const out = [];
     for (const i of matches.values()) {
       const d = await ctx.db.get(i.deliveryId);
-      out.push({ ...i, supplierName: d?.supplierName ?? "", receivedByName: d?.receivedByName ?? "" });
+      // One step forward: what happened to the stock, and who it was dispatched to.
+      const lot = await ctx.db.query("stockLots").withIndex("by_deliveryItem", (q) => q.eq("deliveryItemId", i._id)).unique();
+      const movements = lot ? await ctx.db.query("stockMovements").withIndex("by_lot", (q) => q.eq("lotId", lot._id)).collect() : [];
+      out.push({
+        ...i,
+        supplierName: d?.supplierName ?? "",
+        receivedByName: d?.receivedByName ?? "",
+        lot: lot && {
+          _id: lot._id,
+          status: lot.status,
+          qtyOnHand: lot.qtyOnHand,
+          dispatched: movements.filter((m) => m.type === "dispatch").map((m) => ({ customer: m.customer!, qty: -m.qty, at: m.at })),
+        },
+      });
     }
     return out.sort((a, b) => b.receivedAt - a.receivedAt);
   },

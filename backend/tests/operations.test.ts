@@ -136,6 +136,9 @@ describe("dashboard:summary", () => {
       highSeverityOpen: 0,
       expiringSoon: 0,
       expired: 0,
+      stockLines: 0,
+      onHold: 0,
+      lowStock: 0,
       inProgressAudits: 0,
     });
   });
@@ -170,6 +173,9 @@ describe("dashboard:summary", () => {
       highSeverityOpen: 2,
       expiringSoon: 2, // past use-by + best-before tomorrow; default use-by (5 days) is outside the 3-day window
       expired: 1,
+      stockLines: 4, // the rejected and voided lines never became stock
+      onHold: 0,
+      lowStock: 0,
       inProgressAudits: 1,
     });
   });

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'audits_screen.dart';
-import 'corrective_actions_screen.dart';
 import 'dashboard_screen.dart';
 import 'goods_in_screen.dart';
 import 'more_screen.dart';
+import 'stock_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -31,14 +31,14 @@ class HomeShellState extends State<HomeShell> {
       label: 'Goods In',
     ),
     NavigationDestination(
-      icon: Icon(Icons.fact_check_outlined),
-      selectedIcon: Icon(Icons.fact_check),
-      label: 'Audits',
+      icon: Icon(Icons.inventory_2_outlined),
+      selectedIcon: Icon(Icons.inventory_2),
+      label: 'Stock',
     ),
     NavigationDestination(
-      icon: Icon(Icons.report_problem_outlined),
-      selectedIcon: Icon(Icons.report_problem),
-      label: 'Actions',
+      icon: Icon(Icons.fact_check_outlined),
+      selectedIcon: Icon(Icons.fact_check),
+      label: 'Checks',
     ),
     NavigationDestination(icon: Icon(Icons.menu), label: 'More'),
   ];
@@ -48,8 +48,8 @@ class HomeShellState extends State<HomeShell> {
     final pages = const [
       DashboardScreen(),
       GoodsInScreen(),
+      StockScreen(),
       AuditsScreen(),
-      CorrectiveActionsScreen(),
       MoreScreen(),
     ];
     final wide = MediaQuery.sizeOf(context).width >= 900;

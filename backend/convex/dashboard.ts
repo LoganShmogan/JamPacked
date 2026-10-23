@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { requireMember, scoped } from "./lib/session";
+import { belowPar, expiryOf, lotsOnHand } from "./lib/stock";
 
 export const summary = query({
   // dayStart: start of "today" in the user's local time zone (the server runs in UTC)
@@ -15,11 +16,9 @@ export const summary = query({
     const todayTemps = await ctx.db.query("temperatureLogs").withIndex("by_business_checkedAt", (q) => q.eq("businessId", businessId).gte("checkedAt", startOfDay)).collect();
     const openCAs = await ctx.db.query("correctiveActions").withIndex("by_business_status", (q) => q.eq("businessId", businessId).eq("status", "open")).collect();
     const horizon = now + settings.expiryWarningDays * 86_400_000;
-    const stock = (
-      await ctx.db.query("deliveryItems").withIndex("by_business_receivedAt", (q) => q.eq("businessId", businessId).gt("receivedAt", now - 90 * 86_400_000)).collect()
-    ).filter((i) => i.accepted && !i.voided);
-    const expiring = stock.filter((i) => {
-      const e = i.useBy ?? i.bestBefore;
+    const stock = await lotsOnHand(ctx, businessId);
+    const expiring = stock.filter((l) => {
+      const e = expiryOf(l);
       return e !== undefined && e <= horizon;
     });
     const inProgressAudits = (await ctx.db.query("audits").withIndex("by_business_startedAt", (q) => q.eq("businessId", businessId)).order("desc").take(50)).filter(
@@ -37,6 +36,9 @@ export const summary = query({
       highSeverityOpen: openCAs.filter((c) => c.severity === "high").length,
       expiringSoon: expiring.length,
       expired: expiring.filter((i) => (i.useBy ?? Infinity) < now).length,
+      stockLines: stock.length,
+      onHold: stock.filter((l) => l.status === "hold").length,
+      lowStock: (await belowPar(ctx, businessId)).length,
       inProgressAudits,
     };
   },

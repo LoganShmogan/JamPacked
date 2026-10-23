@@ -211,11 +211,9 @@ describe("deliveries queries", () => {
     const voided = await t.mutation(api.deliveries.create, {
       sessionToken: token, businessId, supplierId, vehicleClean: true, items: [item({ productName: "Voided", useBy: now })],
     });
-    await t.run(async (ctx) => {
-      const its = await ctx.db.query("deliveryItems").withIndex("by_delivery", (q) => q.eq("deliveryId", voided)).collect();
-      for (const i of its) await ctx.db.patch(i._id, { voided: true });
-    });
-    const res = await t.query(api.deliveries.expiring, { sessionToken: token, businessId });
+    const mgr = await signIn(t, "manager");
+    await t.mutation(api.deliveries.voidDelivery, { sessionToken: mgr.token, businessId, id: voided, reason: "Entered twice" });
+    const res = await t.query(api.stock.expiring, { sessionToken: token, businessId });
     expect(res.map((r) => r.productName)).toEqual(["Past", "BB soon", "Soon"]);
     expect(res[1].expiresAt).toBe(now + DAY);
   });

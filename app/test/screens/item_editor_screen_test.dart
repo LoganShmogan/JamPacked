@@ -10,6 +10,7 @@ import '../helpers.dart';
 Future<List<Map<String, dynamic>?>> openEditor(
   WidgetTester tester, [
   Map<String, dynamic>? initial,
+  List<Map<String, dynamic>> locs = const [],
 ]) async {
   final popped = <Map<String, dynamic>?>[];
   await pumpScreen(
@@ -29,6 +30,7 @@ Future<List<Map<String, dynamic>?>> openEditor(
         ),
       ),
     ),
+    convex: fakeWith({'locations:list': (_) => locs}),
     size: const Size(800, 2400),
   );
   await tester.tap(find.text('open'));
@@ -232,5 +234,30 @@ void main() {
       [useBy.year, useBy.month, useBy.day, 23, 59],
     );
     expect(popped.single!['bestBefore'], isA<int>());
+  });
+
+  testWidgets('accepted items can be put away to a location', (tester) async {
+    final popped = await openEditor(tester, {
+      'productName': 'Milk',
+      'storageType': 'ambient',
+    }, locations.where((l) => l['active'] == true).toList());
+    await tapOn(tester, find.text('Not set'));
+    await tapOn(tester, find.text('Chiller 1').last);
+    await done(tester);
+    expect(popped.single!['locationId'], 'loc1');
+  });
+
+  testWidgets('rejected items have no put-away location', (tester) async {
+    final popped = await openEditor(tester, {
+      'productName': 'Milk',
+      'storageType': 'ambient',
+      'locationId': 'loc1',
+    }, locations.where((l) => l['active'] == true).toList());
+    expect(find.text('Put away to'), findsOneWidget);
+    await tapOn(tester, find.text('Reject'));
+    expect(find.text('Put away to'), findsNothing);
+    await tester.enterText(field('Reason for rejection'), 'Damaged');
+    await done(tester);
+    expect(popped.single!.containsKey('locationId'), isFalse);
   });
 }

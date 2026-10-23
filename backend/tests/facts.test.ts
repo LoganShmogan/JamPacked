@@ -87,7 +87,9 @@ describe("computeFacts", () => {
     expect(f["gi.rejectionsHandled"]).toEqual({ value: true, evidence: "No rejections" });
     expect(f["gi.rejectionRate"].value).toBe(0);
     expect(f["gi.allergens"].value).toBe("None recorded");
-    expect(f["stock.noExpired"]).toEqual({ value: true, evidence: "No received stock is past its use-by" });
+    expect(f["stock.noExpired"]).toEqual({ value: true, evidence: "No stock on hand is past its use-by" });
+    expect(f["stock.noneOnHold"]).toEqual({ value: true, evidence: "Nothing on hold" });
+    expect(f["stock.stocktakeDone"]).toEqual({ value: false, evidence: "No stocktake completed in this period" });
     expect(f["temp.count"].value).toBe(0);
     expect(f["temp.daily"].value).toBe(false);
     expect(f["ca.allClosed"]).toEqual({ value: true, evidence: "No open corrective actions" });
@@ -144,6 +146,16 @@ describe("computeFacts", () => {
         businessId,
         checkedAt: at, unitName: "F2", unitType: "freezer", temperatureC: 0, compliant: false, checkedById: userId, checkedByName: "S",
       });
+      const lot = { businessId, productName: "Expired", storageType: "chilled" as const, unit: "ea", qtyReceived: 1, qtyOnHand: 1, receivedAt: at };
+      await ctx.db.insert("stockLots", { ...lot, useBy: at - DAY, status: "available" });
+      await ctx.db.insert("stockLots", { ...lot, productName: "Suspect", status: "hold", holdReason: "Supplier recall" });
+      await ctx.db.insert("stockLots", { ...lot, productName: "Gone", useBy: at - DAY, qtyOnHand: 0, status: "depleted" });
+      await ctx.db.insert("stocktakes", {
+        businessId, title: "Stocktake", status: "completed", startedAt: at, startedByName: "S", completedAt: at, lines: [],
+      });
+      await ctx.db.insert("stocktakes", {
+        businessId, title: "Unfinished", status: "in_progress", startedAt: at, startedByName: "S", lines: [],
+      });
       await ctx.db.insert("correctiveActions", {
         businessId,
         title: "Open one", source: "manual", severity: "low", status: "open", raisedAt: at, raisedById: userId, raisedByName: "S",
@@ -165,6 +177,9 @@ describe("computeFacts", () => {
     expect(f["gi.rejectionRate"]).toEqual({ value: 22.2, evidence: "2 of 9 line items rejected" });
     expect(f["stock.noExpired"].value).toBe(false);
     expect(f["stock.noExpired"].evidence).toMatch(/^Past use-by: Expired \(\d{4}-\d{2}-\d{2}\)$/);
+    expect(f["stock.noneOnHold"]).toEqual({ value: false, evidence: "On hold: Suspect (Supplier recall)" });
+    expect(f["stock.stocktakeDone"].value).toBe(true);
+    expect(f["stock.stocktakeDone"].evidence).toMatch(/^1 stocktake\(s\) completed, last \d{4}-\d{2}-\d{2}$/);
     expect(f["temp.compliant"]).toEqual({ value: false, evidence: "Out of range: F1 -2°C → Moved stock; F2 0°C → " });
     expect(f["temp.count"]).toEqual({ value: 2, evidence: "2 checks, 2 out of range" });
     expect(f["ca.allClosed"]).toEqual({ value: false, evidence: "1 open: Open one" });

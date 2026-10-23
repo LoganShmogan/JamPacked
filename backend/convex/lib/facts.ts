@@ -1,5 +1,6 @@
 import { Doc } from "../_generated/dataModel";
 import { QueryCtx } from "../_generated/server";
+import { lotsOnHand } from "./stock";
 
 export type Fact = { value: string | number | boolean | null; evidence: string };
 
@@ -43,11 +44,15 @@ export async function computeFacts(
   const allergens = [...new Set(accepted.flatMap((i) => i.allergens))].sort();
 
   const now = Date.now();
-  const recentStock = await ctx.db
-    .query("deliveryItems")
-    .withIndex("by_business_receivedAt", (q) => q.eq("businessId", businessId).gt("receivedAt", now - 90 * 86_400_000))
-    .collect();
-  const expiredOnHand = recentStock.filter((i) => i.accepted && !i.voided && i.useBy !== undefined && i.useBy < now);
+  const onHand = await lotsOnHand(ctx, businessId);
+  const expiredOnHand = onHand.filter((l) => l.useBy !== undefined && l.useBy < now);
+  const held = onHand.filter((l) => l.status === "hold");
+  const stocktakes = (
+    await ctx.db
+      .query("stocktakes")
+      .withIndex("by_business_startedAt", (q) => q.eq("businessId", businessId).gte("startedAt", start).lte("startedAt", end))
+      .collect()
+  ).filter((s) => s.status === "completed");
 
   const days = new Set(temps.map((t) => fmtDate(t.checkedAt, tz)));
   const missingDays: string[] = [];
@@ -105,7 +110,15 @@ export async function computeFacts(
     },
     "stock.noExpired": {
       value: expiredOnHand.length === 0,
-      evidence: expiredOnHand.length ? `Past use-by: ${list(expiredOnHand.map((i) => `${i.productName} (${fmtDate(i.useBy!, tz)})`))}` : "No received stock is past its use-by",
+      evidence: expiredOnHand.length ? `Past use-by: ${list(expiredOnHand.map((i) => `${i.productName} (${fmtDate(i.useBy!, tz)})`))}` : "No stock on hand is past its use-by",
+    },
+    "stock.noneOnHold": {
+      value: held.length === 0,
+      evidence: held.length ? `On hold: ${list(held.map((l) => `${l.productName} (${l.holdReason})`))}` : "Nothing on hold",
+    },
+    "stock.stocktakeDone": {
+      value: stocktakes.length > 0,
+      evidence: stocktakes.length ? `${stocktakes.length} stocktake(s) completed, last ${fmtDate(Math.max(...stocktakes.map((s) => s.completedAt!)), tz)}` : "No stocktake completed in this period",
     },
     "temp.count": { value: temps.length, evidence: `${temps.length} checks, ${tempLogBad.length} out of range` },
     "temp.compliant": temps.length === 0 ? none("temperature checks") : {

@@ -10,6 +10,28 @@ export const storageType = v.union(
   v.literal("ambient"),
 );
 
+export const locationKind = v.union(
+  v.literal("chiller"),
+  v.literal("freezer"),
+  v.literal("dry"),
+  v.literal("display"),
+  v.literal("other"),
+);
+
+export const movementType = v.union(
+  v.literal("receive"),
+  v.literal("use"),
+  v.literal("sell"),
+  v.literal("dispatch"),
+  v.literal("waste"),
+  v.literal("adjust"),
+  v.literal("stocktake"),
+  v.literal("transfer"),
+  v.literal("hold"),
+  v.literal("release"),
+  v.literal("void"),
+);
+
 export const answerValue = v.union(v.string(), v.number(), v.boolean(), v.null());
 
 export const programmeKey = v.union(v.literal("NP1"), v.literal("NP2"), v.literal("NP3"), v.literal("custom"));
@@ -113,6 +135,8 @@ export default defineSchema({
     novaGroup: v.optional(v.number()), // 1-4 (ultra-processed = 4), from Open Food Facts
     imageUrl: v.optional(v.string()),
     defaultSupplierId: v.optional(v.id("suppliers")),
+    parLevel: v.optional(v.number()), // reorder when on hand falls below this
+    reorderQty: v.optional(v.number()),
     active: v.boolean(),
     createdAt: v.number(),
   })
@@ -166,6 +190,80 @@ export default defineSchema({
     .index("by_business_receivedAt", ["businessId", "receivedAt"])
     .index("by_business_batch", ["businessId", "batchCode"])
     .index("by_product", ["productId", "receivedAt"]),
+
+  // ---- Stock: lots on hand, where they are and everything that happened to them ----
+  locations: defineTable({
+    businessId: v.id("businesses"),
+    name: v.string(),
+    kind: locationKind,
+    active: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_business", ["businessId"]),
+
+  // One lot per accepted delivery line (or opening stock). FIFO by use-by / best-before.
+  stockLots: defineTable({
+    businessId: v.id("businesses"),
+    productId: v.optional(v.id("products")),
+    productName: v.string(),
+    barcode: v.optional(v.string()),
+    deliveryId: v.optional(v.id("deliveries")),
+    deliveryItemId: v.optional(v.id("deliveryItems")),
+    supplierName: v.optional(v.string()),
+    batchCode: v.optional(v.string()),
+    useBy: v.optional(v.number()),
+    bestBefore: v.optional(v.number()),
+    locationId: v.optional(v.id("locations")),
+    storageType,
+    unit: v.string(),
+    qtyReceived: v.number(),
+    qtyOnHand: v.number(),
+    status: v.union(v.literal("available"), v.literal("hold"), v.literal("depleted")),
+    holdReason: v.optional(v.string()),
+    receivedAt: v.number(),
+  })
+    .index("by_business_status", ["businessId", "status"])
+    .index("by_business_product", ["businessId", "productId"])
+    .index("by_business_batch", ["businessId", "batchCode"])
+    .index("by_deliveryItem", ["deliveryItemId"]),
+
+  // Append-only: qty is the signed change to the lot's on-hand quantity.
+  stockMovements: defineTable({
+    businessId: v.id("businesses"),
+    lotId: v.id("stockLots"),
+    productName: v.string(),
+    type: movementType,
+    qty: v.number(),
+    qtyAfter: v.number(),
+    reason: v.optional(v.string()),
+    customer: v.optional(v.string()), // dispatch: who the food went to (NP tracing "one step forward")
+    toLocationId: v.optional(v.id("locations")),
+    at: v.number(),
+    byId: v.id("users"),
+    byName: v.string(),
+  })
+    .index("by_lot", ["lotId", "at"])
+    .index("by_business_at", ["businessId", "at"]),
+
+  stocktakes: defineTable({
+    businessId: v.id("businesses"),
+    locationId: v.optional(v.id("locations")),
+    title: v.string(),
+    status: v.union(v.literal("in_progress"), v.literal("completed")),
+    startedAt: v.number(),
+    startedByName: v.string(),
+    completedAt: v.optional(v.number()),
+    completedByName: v.optional(v.string()),
+    lines: v.array(
+      v.object({
+        lotId: v.id("stockLots"),
+        productName: v.string(),
+        batchCode: v.optional(v.string()),
+        unit: v.string(),
+        expected: v.number(),
+        counted: v.union(v.number(), v.null()),
+      }),
+    ),
+  }).index("by_business_startedAt", ["businessId", "startedAt"]),
 
   // ---- Temperature monitoring ----
   temperatureLogs: defineTable({
@@ -230,6 +328,7 @@ export default defineSchema({
       v.literal("goods_inward"),
       v.literal("temperature"),
       v.literal("audit"),
+      v.literal("stock"),
       v.literal("manual"),
     ),
     sourceId: v.optional(v.string()),

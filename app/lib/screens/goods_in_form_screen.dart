@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'stock_screen.dart';
 import 'scanner_screen.dart';
 import 'suppliers_screen.dart';
 
@@ -450,6 +451,7 @@ class _ItemEditorScreenState extends State<ItemEditorScreen> {
           : double.tryParse(_temp.text),
       'allergens': _allergens,
       'rejectionReason': i['accepted'] ? null : _reason.text.trim(),
+      'locationId': i['accepted'] ? i['locationId'] : null,
     }..removeWhere((k, v) => v == null);
     Navigator.pop(context, out);
   }
@@ -678,6 +680,14 @@ class _ItemEditorScreenState extends State<ItemEditorScreen> {
                       }
                     }),
                   ),
+                  if (i['accepted'] == true) ...[
+                    const SizedBox(height: 12),
+                    LocationPicker(
+                      label: 'Put away to',
+                      value: i['locationId'],
+                      onChanged: (v) => i['locationId'] = v,
+                    ),
+                  ],
                   if (i['accepted'] == false) ...[
                     const SizedBox(height: 12),
                     TextFormField(
