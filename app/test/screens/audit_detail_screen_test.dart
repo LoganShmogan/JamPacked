@@ -132,6 +132,7 @@ void main() {
       expect(convex.callsTo('auditLog:list').single.args, {
         'entityType': 'audit',
         'entityId': 'a1',
+        'businessId': 'b1',
         'sessionToken': 'tok',
       });
     },
@@ -184,6 +185,7 @@ void main() {
       'questionId': 'q1',
       'value': true,
       'notes': 'Checked list',
+      'businessId': 'b1',
       'sessionToken': 'tok',
     });
   });

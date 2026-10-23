@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'config.dart';
+import 'screens/business_picker_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
@@ -36,7 +37,9 @@ class NzSafetyHealthApp extends StatelessWidget {
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : auth.user == null
           ? const LoginScreen()
-          : HomeShell(key: ValueKey(auth.user!.id)),
+          : auth.business == null
+          ? const BusinessPickerScreen()
+          : HomeShell(key: ValueKey(auth.business!.id)),
     );
   }
 }

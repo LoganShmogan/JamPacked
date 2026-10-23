@@ -231,6 +231,7 @@ void main() {
       expect(convex.callsTo('deliveries:updateNotes').single.args, {
         'id': 'd1',
         'notes': 'Driver late',
+        'businessId': 'b1',
         'sessionToken': 'tok',
       });
       expect(find.text('Notes saved'), findsOneWidget);
@@ -259,6 +260,7 @@ void main() {
       expect(convex.callsTo('deliveries:voidDelivery').single.args, {
         'id': 'd1',
         'reason': 'Duplicate',
+        'businessId': 'b1',
         'sessionToken': 'tok',
       });
       expect(find.text('Record voided'), findsOneWidget);

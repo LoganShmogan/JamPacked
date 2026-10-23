@@ -342,6 +342,7 @@ void main() {
         isTrue,
       );
       expect(convex.callsTo('products:lookupBarcode').single.args, {
+        'businessId': 'b1',
         'sessionToken': 'tok',
         'barcode': '9400002',
       });

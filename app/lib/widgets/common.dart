@@ -11,13 +11,21 @@ extension AppContext on BuildContext {
   AuthService get auth => read<AuthService>();
   String get token => read<AuthService>().token ?? '';
 
-  /// Shorthands that add the session token to every call.
+  /// Id of the business being worked in, or null on the business picker.
+  String? get businessId => read<AuthService>().business?.id;
+
+  /// Shorthands that add the session token, and the current business, to every call.
+  Map<String, dynamic> _scoped(Map<String, dynamic> args) => {
+    'businessId': ?businessId,
+    ...args,
+    'sessionToken': token,
+  };
   Future<dynamic> q(String path, [Map<String, dynamic> args = const {}]) =>
-      convex.query(path, {...args, 'sessionToken': token});
+      convex.query(path, _scoped(args));
   Future<dynamic> m(String path, [Map<String, dynamic> args = const {}]) =>
-      convex.mutation(path, {...args, 'sessionToken': token});
+      convex.mutation(path, _scoped(args));
   Future<dynamic> a(String path, [Map<String, dynamic> args = const {}]) =>
-      convex.action(path, {...args, 'sessionToken': token});
+      convex.action(path, _scoped(args));
 
   void toast(String msg, {bool error = false}) {
     ScaffoldMessenger.of(this)

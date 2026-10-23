@@ -12,12 +12,18 @@ export const storageType = v.union(
 
 export const answerValue = v.union(v.string(), v.number(), v.boolean(), v.null());
 
+export const programmeKey = v.union(v.literal("NP1"), v.literal("NP2"), v.literal("NP3"), v.literal("custom"));
+
+// Every record belongs to one business. Optional only so existing single-business data still
+// validates until `migrations:toMultiBusiness` has stamped it; all writes set it.
+const businessId = v.optional(v.id("businesses"));
+
 export default defineSchema({
   // ---- Accounts (local dev auth; to be replaced by Clerk) ----
   users: defineTable({
     email: v.string(),
     name: v.string(),
-    role,
+    role: v.optional(role), // legacy single-business role; roles now live on memberships
     passwordHash: v.string(),
     passwordSalt: v.string(),
     active: v.boolean(),
@@ -30,7 +36,47 @@ export default defineSchema({
     expiresAt: v.number(),
   }).index("by_token", ["token"]),
 
-  // ---- Business settings (single row) ----
+  // ---- Businesses: one account can own or work at several ----
+  businesses: defineTable({
+    name: v.string(),
+    jurisdiction: v.union(v.literal("NZ"), v.literal("AU")),
+    registrationNumber: v.optional(v.string()), // NZ FCP/NP registration or AU council licence
+    address: v.optional(v.string()),
+    chilledMaxC: v.number(),
+    frozenMaxC: v.number(),
+    hotMinC: v.number(),
+    expiryWarningDays: v.number(),
+    programme: programmeKey, // the standard this business follows (convex/lib/programmes.ts)
+    sectors: v.array(v.string()), // programme sectors that apply, e.g. "ece", "transport"
+    ownerId: v.id("users"),
+    archived: v.boolean(), // businesses are archived, never deleted (records kept 7 years)
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  memberships: defineTable({
+    userId: v.id("users"),
+    businessId: v.id("businesses"),
+    role,
+    active: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_business", ["businessId"])
+    .index("by_user_business", ["userId", "businessId"]),
+
+  // Staff invited by email before they have an account; claimed when they register.
+  invites: defineTable({
+    businessId: v.id("businesses"),
+    email: v.string(),
+    role,
+    invitedByName: v.string(),
+    createdAt: v.number(),
+    acceptedAt: v.optional(v.number()),
+  })
+    .index("by_email", ["email"])
+    .index("by_business", ["businessId"]),
+
+  // Legacy single-row settings, read once by migrations:toMultiBusiness.
   settings: defineTable({
     businessName: v.string(),
     jurisdiction: v.union(v.literal("NZ"), v.literal("AU")),
@@ -43,6 +89,7 @@ export default defineSchema({
   }),
 
   suppliers: defineTable({
+    businessId,
     name: v.string(),
     contactName: v.optional(v.string()),
     phone: v.optional(v.string()),
@@ -53,9 +100,10 @@ export default defineSchema({
     approvalNotes: v.optional(v.string()),
     active: v.boolean(),
     createdAt: v.number(),
-  }).index("by_name", ["name"]),
+  }).index("by_business_name", ["businessId", "name"]),
 
   products: defineTable({
+    businessId,
     name: v.string(),
     brand: v.optional(v.string()),
     barcode: v.optional(v.string()),
@@ -68,11 +116,12 @@ export default defineSchema({
     active: v.boolean(),
     createdAt: v.number(),
   })
-    .index("by_barcode", ["barcode"])
-    .index("by_name", ["name"]),
+    .index("by_business_barcode", ["businessId", "barcode"])
+    .index("by_business_name", ["businessId", "name"]),
 
   // ---- Goods inwards (receiving) ----
   deliveries: defineTable({
+    businessId,
     receivedAt: v.number(),
     supplierId: v.id("suppliers"),
     supplierName: v.string(),
@@ -87,10 +136,11 @@ export default defineSchema({
     voided: v.boolean(),
     voidReason: v.optional(v.string()),
   })
-    .index("by_receivedAt", ["receivedAt"])
+    .index("by_business_receivedAt", ["businessId", "receivedAt"])
     .index("by_supplier", ["supplierId", "receivedAt"]),
 
   deliveryItems: defineTable({
+    businessId,
     deliveryId: v.id("deliveries"),
     receivedAt: v.number(),
     supplierId: v.id("suppliers"),
@@ -113,12 +163,13 @@ export default defineSchema({
     voided: v.boolean(),
   })
     .index("by_delivery", ["deliveryId"])
-    .index("by_receivedAt", ["receivedAt"])
-    .index("by_batch", ["batchCode"])
+    .index("by_business_receivedAt", ["businessId", "receivedAt"])
+    .index("by_business_batch", ["businessId", "batchCode"])
     .index("by_product", ["productId", "receivedAt"]),
 
   // ---- Temperature monitoring ----
   temperatureLogs: defineTable({
+    businessId,
     checkedAt: v.number(),
     unitName: v.string(),
     unitType: v.union(
@@ -133,10 +184,11 @@ export default defineSchema({
     correctiveAction: v.optional(v.string()),
     checkedById: v.id("users"),
     checkedByName: v.string(),
-  }).index("by_checkedAt", ["checkedAt"]),
+  }).index("by_business_checkedAt", ["businessId", "checkedAt"]),
 
-    // ---- Audits / inspections (templates live in convex/lib/templates.ts) ----
+  // ---- Audits / inspections (templates live in convex/lib/templates.ts) ----
   audits: defineTable({
+    businessId,
     templateKey: v.string(),
     templateName: v.string(),
     standardRef: v.string(),
@@ -167,10 +219,11 @@ export default defineSchema({
         answeredAt: v.optional(v.number()),
       }),
     ),
-  }).index("by_startedAt", ["startedAt"]),
+  }).index("by_business_startedAt", ["businessId", "startedAt"]),
 
   // ---- Corrective actions / non-conformances ----
   correctiveActions: defineTable({
+    businessId,
     title: v.string(),
     description: v.optional(v.string()),
     source: v.union(
@@ -188,10 +241,13 @@ export default defineSchema({
     closedAt: v.optional(v.number()),
     closedByName: v.optional(v.string()),
     resolution: v.optional(v.string()),
-  }).index("by_status", ["status", "raisedAt"]),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_business_status", ["businessId", "status", "raisedAt"]),
 
   // ---- Immutable audit trail: who did what, when ----
   auditLog: defineTable({
+    businessId,
     at: v.number(),
     userId: v.optional(v.id("users")),
     userName: v.string(),
@@ -201,7 +257,7 @@ export default defineSchema({
     summary: v.string(),
     changes: v.optional(v.any()),
   })
-    .index("by_at", ["at"])
+    .index("by_business_at", ["businessId", "at"])
     .index("by_entity", ["entityType", "entityId", "at"])
-    .index("by_user", ["userId", "at"]),
+    .index("by_business_user", ["businessId", "userId", "at"]),
 });

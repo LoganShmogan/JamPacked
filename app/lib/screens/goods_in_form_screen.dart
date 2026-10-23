@@ -99,10 +99,7 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
       }
       if (!mounted) return base;
       context.toast('Looking up barcode…');
-      final off = await context.convex.action('products:lookupBarcode', {
-        'sessionToken': context.token,
-        'barcode': code,
-      });
+      final off = await context.a('products:lookupBarcode', {'barcode': code});
       if (off != null && (off['name'] as String).isNotEmpty) {
         if (mounted) context.toast('Found: ${off['name']}');
         return {

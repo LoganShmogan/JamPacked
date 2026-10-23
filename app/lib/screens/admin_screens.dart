@@ -129,29 +129,86 @@ class _AuditTrailScreenState extends State<AuditTrailScreen> {
   }
 }
 
-class UsersScreen extends StatelessWidget {
-  const UsersScreen({super.key});
+/// People in the current business: their role here, and email invites for new staff.
+class MembersScreen extends StatelessWidget {
+  const MembersScreen({super.key});
+
+  Future<void> _invite(BuildContext context) async {
+    final email = TextEditingController();
+    var role = 'staff';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => StatefulBuilder(
+        builder: (c, set) => AlertDialog(
+          title: const Text('Invite someone'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: email,
+                autofocus: true,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'Email'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: role,
+                decoration: const InputDecoration(labelText: 'Role'),
+                items: [
+                  for (final r in ['staff', 'manager', 'admin'])
+                    DropdownMenuItem(value: r, child: Text(r)),
+                ],
+                onChanged: (v) => set(() => role = v!),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Invite'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final res = await context.run(
+      () => context.m('businesses:invite', {
+        'email': email.text.trim(),
+        'role': role,
+      }),
+    );
+    if (res != null && context.mounted) {
+      context.toast(
+        res['added']
+            ? 'Added to the business'
+            : 'Invited. They join when they create an account with that email.',
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final me = context.watch<AuthService>().user!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Users')),
+      appBar: AppBar(title: const Text('Members')),
+      floatingActionButton: me.isAdmin
+          ? FloatingActionButton.extended(
+              onPressed: () => _invite(context),
+              icon: const Icon(Icons.person_add),
+              label: const Text('Invite'),
+            )
+          : null,
       body: QueryBuilder(
-        path: 'auth:listUsers',
+        path: 'businesses:members',
         builder: (context, data) => ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
-            const Responsive(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'New staff create their own account from the sign-in screen, then an admin sets their role.',
-                  style: TextStyle(color: AppColors.muted),
-                ),
-              ),
-            ),
-            for (final u in data as List)
+            for (final u in data['members'] as List)
               Responsive(
                 child: Card(
                   margin: const EdgeInsets.only(bottom: 8),
@@ -164,7 +221,7 @@ class UsersScreen extends StatelessWidget {
                       ),
                     ),
                     subtitle: Text(
-                      '${u['email']}${u['active'] ? '' : ' · deactivated'}',
+                      '${u['email']}${u['active'] ? '' : ' · removed'}',
                     ),
                     trailing: me.isAdmin && u['_id'] != me.id
                         ? PopupMenuButton<String>(
@@ -173,13 +230,13 @@ class UsersScreen extends StatelessWidget {
                               tone: Tone.brand,
                             ),
                             onSelected: (v) => context.run(
-                              () => context.m('auth:updateUser', {
+                              () => context.m('businesses:updateMember', {
                                 'userId': u['_id'],
                                 if (v.startsWith('role:'))
                                   'role': v.substring(5),
                                 if (v == 'toggle') 'active': !u['active'],
                               }),
-                              success: 'User updated',
+                              success: 'Member updated',
                             ),
                             itemBuilder: (_) => [
                               for (final r in ['admin', 'manager', 'staff'])
@@ -190,7 +247,9 @@ class UsersScreen extends StatelessWidget {
                               PopupMenuItem(
                                 value: 'toggle',
                                 child: Text(
-                                  u['active'] ? 'Deactivate' : 'Reactivate',
+                                  u['active']
+                                      ? 'Remove from business'
+                                      : 'Restore access',
                                 ),
                               ),
                             ],
@@ -199,6 +258,23 @@ class UsersScreen extends StatelessWidget {
                   ),
                 ),
               ),
+            if ((data['invites'] as List).isNotEmpty) ...[
+              const Responsive(child: SectionTitle('Invited')),
+              for (final i in data['invites'] as List)
+                Responsive(
+                  child: Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: const Icon(Icons.mail_outline),
+                      title: Text(i['email']),
+                      subtitle: Text(
+                        'Invited by ${i['invitedByName']} on ${fmtDate(i['createdAt'])}',
+                      ),
+                      trailing: Pill(i['role'].toUpperCase()),
+                    ),
+                  ),
+                ),
+            ],
           ],
         ),
       ),
@@ -313,6 +389,48 @@ class _SettingsFormState extends State<_SettingsForm> {
                 ),
                 child: const Text('Save'),
               ),
+              const SectionTitle('Archive'),
+              const Text(
+                'Archiving hides this business from the business list. Nothing is deleted: '
+                'every record is kept and you can restore it at any time.',
+                style: TextStyle(color: AppColors.muted),
+              ),
+              const SizedBox(height: 8),
+              if (s['archived'] == true)
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.unarchive_outlined),
+                  label: const Text('Restore this business'),
+                  onPressed: () async {
+                    final auth = context.auth;
+                    final done = await context.run(() async {
+                      await context.m('businesses:setArchived', {
+                        'archived': false,
+                      });
+                      return true;
+                    }, success: 'Business restored');
+                    if (done == null) return;
+                    setState(() => s['archived'] = false);
+                    await auth.loadBusinesses();
+                  },
+                )
+              else
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.archive_outlined),
+                  label: const Text('Archive this business'),
+                  onPressed: () async {
+                    final auth = context.auth;
+                    final nav = Navigator.of(context);
+                    final done = await context.run(() async {
+                      await context.m('businesses:setArchived', {
+                        'archived': true,
+                      });
+                      return true;
+                    });
+                    if (done == null) return;
+                    nav.popUntil((r) => r.isFirst);
+                    await auth.switchBusiness();
+                  },
+                ),
             ],
           ),
         ),

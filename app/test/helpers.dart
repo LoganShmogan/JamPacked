@@ -78,15 +78,27 @@ Handler fails(String message) =>
 AppUser userWith(String role, {String id = 'u1', String name = 'Sam Cook'}) =>
     AppUser(id, name, 'sam@example.com', role);
 
-/// A signed-in [AuthService] backed by [convex] (no network, no prefs).
+Business businessWith(
+  String role, {
+  String id = 'b1',
+  String name = 'Kai Cafe',
+}) => Business(id, name, 'NP2', role);
+
+/// A signed-in [AuthService] backed by [convex] (no network, no prefs), working in
+/// business `b1` with [role].
 AuthService signedIn(
   ConvexClient convex, {
   String role = 'admin',
   AppUser? user,
-}) => AuthService(convex)
-  ..token = 'tok'
-  ..user = user ?? userWith(role)
-  ..loading = false;
+}) {
+  final b = businessWith(user?.role ?? role);
+  return AuthService(convex)
+    ..token = 'tok'
+    ..user = user ?? userWith(role)
+    ..businesses = [b]
+    ..business = b
+    ..loading = false;
+}
 
 /// [child] inside the app's providers, theme and a [MaterialApp].
 Widget wrapProviders(ConvexClient convex, AuthService auth, Widget child) =>

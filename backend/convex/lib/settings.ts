@@ -1,8 +1,6 @@
 import { Doc } from "../_generated/dataModel";
-import { QueryCtx } from "../_generated/server";
 
 export const DEFAULT_SETTINGS = {
-  businessName: "My Food Business",
   jurisdiction: "NZ" as const,
   // NZ MPI Food Control Plan & FSANZ Std 3.2.2 cl.5: chilled ≤5°C, hot ≥60°C, frozen received frozen hard.
   chilledMaxC: 5,
@@ -11,14 +9,8 @@ export const DEFAULT_SETTINGS = {
   expiryWarningDays: 3,
 };
 
-export type Settings = Omit<Doc<"settings">, "_id" | "_creationTime">;
-
-export async function loadSettings(ctx: QueryCtx): Promise<Settings> {
-  const row = await ctx.db.query("settings").first();
-  if (!row) return DEFAULT_SETTINGS;
-  const { _id, _creationTime, ...rest } = row;
-  return rest;
-}
+/** Temperature limits and alerts now live on each business. */
+export type Settings = Pick<Doc<"businesses">, "chilledMaxC" | "frozenMaxC" | "hotMinC" | "expiryWarningDays">;
 
 /** null when the storage type has no temperature requirement. */
 export function isTempCompliant(

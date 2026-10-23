@@ -12,29 +12,29 @@ async function ready(role: "admin" | "manager" | "staff" = "staff") {
 
 describe("deliveries:create", () => {
   test("requires items and an existing supplier", async () => {
-    const { t, token, supplierId } = await ready();
+    const { t, token, supplierId, businessId } = await ready();
     await expect(
-      t.mutation(api.deliveries.create, { sessionToken: token, supplierId, vehicleClean: true, items: [] }),
+      t.mutation(api.deliveries.create, { sessionToken: token, businessId, supplierId, vehicleClean: true, items: [] }),
     ).rejects.toThrow("Add at least one item");
     await t.run((ctx) => ctx.db.delete(supplierId));
     await expect(
-      t.mutation(api.deliveries.create, { sessionToken: token, supplierId, vehicleClean: true, items: [item()] }),
+      t.mutation(api.deliveries.create, { sessionToken: token, businessId, supplierId, vehicleClean: true, items: [item()] }),
     ).rejects.toThrow("Supplier not found");
   });
 
   test("rejected items need a reason", async () => {
-    const { t, token, supplierId } = await ready();
+    const { t, token, supplierId, businessId } = await ready();
     await expect(
       t.mutation(api.deliveries.create, {
-        sessionToken: token, supplierId, vehicleClean: true, items: [item({ accepted: false, rejectionReason: "  " })],
+        sessionToken: token, businessId, supplierId, vehicleClean: true, items: [item({ accepted: false, rejectionReason: "  " })],
       }),
     ).rejects.toThrow("Give a reason for rejecting Milk 2L");
   });
 
   test("a clean delivery is accepted, catalogues the product and raises nothing", async () => {
-    const { t, token, supplierId } = await ready();
+    const { t, token, supplierId, businessId } = await ready();
     const id = await t.mutation(api.deliveries.create, {
-      sessionToken: token, supplierId, vehicleClean: true, invoiceNumber: "INV1", receivedAt: 1000, items: [item()],
+      sessionToken: token, businessId, supplierId, vehicleClean: true, invoiceNumber: "INV1", receivedAt: 1000, items: [item()],
     });
     const d = await getDoc(t, id);
     expect(d).toMatchObject({ status: "accepted", supplierName: "Fresh Foods Ltd", supplierApproved: true, receivedAt: 1000, voided: false });
@@ -48,9 +48,9 @@ describe("deliveries:create", () => {
   });
 
   test("reuses catalogue products by barcode, by name, or by explicit productId", async () => {
-    const { t, token, supplierId } = await ready();
+    const { t, token, supplierId, businessId } = await ready();
     const send = (items: ReturnType<typeof item>[]) =>
-      t.mutation(api.deliveries.create, { sessionToken: token, supplierId, vehicleClean: true, items });
+      t.mutation(api.deliveries.create, { sessionToken: token, businessId, supplierId, vehicleClean: true, items });
     await send([item({ barcode: "123" }), item({ productName: "Eggs", allergens: ["egg"] })]);
     await send([item({ barcode: "123", productName: "Renamed milk" }), item({ productName: "Eggs" })]);
     const products = await t.run((ctx) => ctx.db.query("products").collect());
@@ -60,11 +60,11 @@ describe("deliveries:create", () => {
   });
 
   test("problems raise corrective actions and set status; partial vs rejected", async () => {
-    const { t, token } = await ready();
+    const { t, token, businessId } = await ready();
     const unapproved = await addSupplier(t, { name: "Shady Co", approved: false });
     const now = Date.now();
     const id = await t.mutation(api.deliveries.create, {
-      sessionToken: token,
+      sessionToken: token, businessId,
       supplierId: unapproved,
       vehicleClean: false,
       receivedAt: now,
@@ -96,31 +96,31 @@ describe("deliveries:create", () => {
     );
 
     const all = await t.mutation(api.deliveries.create, {
-      sessionToken: token, supplierId: unapproved, vehicleClean: true,
+      sessionToken: token, businessId, supplierId: unapproved, vehicleClean: true,
       items: [item({ accepted: false, rejectionReason: "Warm" })],
     });
     expect((await getDoc(t, all))?.status).toBe("rejected");
   });
 
   test("defaults receivedAt to now", async () => {
-    const { t, token, supplierId } = await ready();
+    const { t, token, supplierId, businessId } = await ready();
     const before = Date.now();
-    const id = await t.mutation(api.deliveries.create, { sessionToken: token, supplierId, vehicleClean: true, items: [item()] });
+    const id = await t.mutation(api.deliveries.create, { sessionToken: token, businessId, supplierId, vehicleClean: true, items: [item()] });
     expect((await getDoc(t, id))!.receivedAt).toBeGreaterThanOrEqual(before);
   });
 });
 
 describe("deliveries:voidDelivery / updateNotes", () => {
   test("voids a delivery and its items with a reason (manager only, idempotent)", async () => {
-    const { t, token, supplierId } = await ready("manager");
+    const { t, token, supplierId, businessId } = await ready("manager");
     const staff = await signIn(t, "staff");
-    const id = await t.mutation(api.deliveries.create, { sessionToken: token, supplierId, vehicleClean: true, items: [item(), item()] });
-    await expect(t.mutation(api.deliveries.voidDelivery, { sessionToken: staff.token, id, reason: "x" })).rejects.toThrow("requires");
-    await expect(t.mutation(api.deliveries.voidDelivery, { sessionToken: token, id, reason: " " })).rejects.toThrow(
+    const id = await t.mutation(api.deliveries.create, { sessionToken: token, businessId, supplierId, vehicleClean: true, items: [item(), item()] });
+    await expect(t.mutation(api.deliveries.voidDelivery, { sessionToken: staff.token, businessId: staff.businessId, id, reason: "x" })).rejects.toThrow("requires");
+    await expect(t.mutation(api.deliveries.voidDelivery, { sessionToken: token, businessId, id, reason: " " })).rejects.toThrow(
       "A reason is required",
     );
-    await t.mutation(api.deliveries.voidDelivery, { sessionToken: token, id, reason: "Duplicate" });
-    await t.mutation(api.deliveries.voidDelivery, { sessionToken: token, id, reason: "Again" });
+    await t.mutation(api.deliveries.voidDelivery, { sessionToken: token, businessId, id, reason: "Duplicate" });
+    await t.mutation(api.deliveries.voidDelivery, { sessionToken: token, businessId, id, reason: "Again" });
     expect(await getDoc(t, id)).toMatchObject({ voided: true, voidReason: "Duplicate" });
     const items = await t.run((ctx) => ctx.db.query("deliveryItems").collect());
     expect(items.every((i) => i.voided)).toBe(true);
@@ -128,23 +128,23 @@ describe("deliveries:voidDelivery / updateNotes", () => {
     expect(voids.map((l) => l.summary)).toEqual(["Voided delivery from Fresh Foods Ltd: Duplicate"]);
 
     await t.run((ctx) => ctx.db.delete(id));
-    await expect(t.mutation(api.deliveries.voidDelivery, { sessionToken: token, id, reason: "x" })).rejects.toThrow(
+    await expect(t.mutation(api.deliveries.voidDelivery, { sessionToken: token, businessId, id, reason: "x" })).rejects.toThrow(
       "Delivery not found",
     );
   });
 
   test("updateNotes records from/to in the trail", async () => {
-    const { t, token, supplierId } = await ready();
-    const id = await t.mutation(api.deliveries.create, { sessionToken: token, supplierId, vehicleClean: true, items: [item()] });
-    await t.mutation(api.deliveries.updateNotes, { sessionToken: token, id, notes: "first" });
-    await t.mutation(api.deliveries.updateNotes, { sessionToken: token, id, notes: "second" });
+    const { t, token, supplierId, businessId } = await ready();
+    const id = await t.mutation(api.deliveries.create, { sessionToken: token, businessId, supplierId, vehicleClean: true, items: [item()] });
+    await t.mutation(api.deliveries.updateNotes, { sessionToken: token, businessId, id, notes: "first" });
+    await t.mutation(api.deliveries.updateNotes, { sessionToken: token, businessId, id, notes: "second" });
     const log = (await auditLog(t)).filter((l) => l.action === "update");
     expect(log.map((l) => l.changes)).toEqual([
       { notes: { from: null, to: "first" } },
       { notes: { from: "first", to: "second" } },
     ]);
     await t.run((ctx) => ctx.db.delete(id));
-    await expect(t.mutation(api.deliveries.updateNotes, { sessionToken: token, id, notes: "x" })).rejects.toThrow(
+    await expect(t.mutation(api.deliveries.updateNotes, { sessionToken: token, businessId, id, notes: "x" })).rejects.toThrow(
       "Delivery not found",
     );
   });
@@ -152,39 +152,39 @@ describe("deliveries:voidDelivery / updateNotes", () => {
 
 describe("deliveries queries", () => {
   test("list newest first with item counts and accepted temperature issues", async () => {
-    const { t, token, supplierId } = await ready();
-    await t.mutation(api.deliveries.create, { sessionToken: token, supplierId, vehicleClean: true, receivedAt: 1, items: [item()] });
+    const { t, token, supplierId, businessId } = await ready();
+    await t.mutation(api.deliveries.create, { sessionToken: token, businessId, supplierId, vehicleClean: true, receivedAt: 1, items: [item()] });
     await t.mutation(api.deliveries.create, {
-      sessionToken: token, supplierId, vehicleClean: true, receivedAt: 2,
+      sessionToken: token, businessId, supplierId, vehicleClean: true, receivedAt: 2,
       items: [item({ temperatureC: 10 }), item({ temperatureC: 10, accepted: false, rejectionReason: "warm" })],
     });
-    const list = await t.query(api.deliveries.list, { sessionToken: token });
+    const list = await t.query(api.deliveries.list, { sessionToken: token, businessId });
     expect(list.map((d) => [d.receivedAt, d.itemCount, d.tempIssues])).toEqual([
       [2, 2, 1],
       [1, 1, 0],
     ]);
-    expect(await t.query(api.deliveries.list, { sessionToken: token, limit: 1 })).toHaveLength(1);
+    expect(await t.query(api.deliveries.list, { sessionToken: token, businessId, limit: 1 })).toHaveLength(1);
   });
 
   test("get returns delivery, items and history, or null", async () => {
-    const { t, token, supplierId } = await ready();
-    const id = await t.mutation(api.deliveries.create, { sessionToken: token, supplierId, vehicleClean: true, items: [item()] });
-    const res = await t.query(api.deliveries.get, { sessionToken: token, id });
+    const { t, token, supplierId, businessId } = await ready();
+    const id = await t.mutation(api.deliveries.create, { sessionToken: token, businessId, supplierId, vehicleClean: true, items: [item()] });
+    const res = await t.query(api.deliveries.get, { sessionToken: token, businessId, id });
     expect(res?.items).toHaveLength(1);
     expect(res?.history.map((h) => h.action)).toEqual(["create"]);
     await t.run((ctx) => ctx.db.delete(id));
-    expect(await t.query(api.deliveries.get, { sessionToken: token, id })).toBeNull();
+    expect(await t.query(api.deliveries.get, { sessionToken: token, businessId, id })).toBeNull();
   });
 
   test("suggestionsForSupplier returns each product once, most recent first", async () => {
-    const { t, token, supplierId } = await ready();
+    const { t, token, supplierId, businessId } = await ready();
     await t.mutation(api.deliveries.create, {
-      sessionToken: token, supplierId, vehicleClean: true, receivedAt: 1, items: [item({ quantity: 1 }), item({ productName: "Eggs" })],
+      sessionToken: token, businessId, supplierId, vehicleClean: true, receivedAt: 1, items: [item({ quantity: 1 }), item({ productName: "Eggs" })],
     });
     await t.mutation(api.deliveries.create, {
-      sessionToken: token, supplierId, vehicleClean: true, receivedAt: 2, items: [item({ quantity: 12, barcode: "94" })],
+      sessionToken: token, businessId, supplierId, vehicleClean: true, receivedAt: 2, items: [item({ quantity: 12, barcode: "94" })],
     });
-    const s = await t.query(api.deliveries.suggestionsForSupplier, { sessionToken: token, supplierId });
+    const s = await t.query(api.deliveries.suggestionsForSupplier, { sessionToken: token, businessId, supplierId });
     expect(s.map((x) => [x.productName, x.quantity])).toEqual([
       ["Milk 2L", 12],
       ["Eggs", 6],
@@ -195,10 +195,10 @@ describe("deliveries queries", () => {
   });
 
   test("expiring returns accepted, non-voided stock within the warning window, soonest first", async () => {
-    const { t, token, supplierId } = await ready();
+    const { t, token, supplierId, businessId } = await ready();
     const now = Date.now();
     await t.mutation(api.deliveries.create, {
-      sessionToken: token, supplierId, vehicleClean: true,
+      sessionToken: token, businessId, supplierId, vehicleClean: true,
       items: [
         item({ productName: "Soon", useBy: now + 2 * DAY }),
         item({ productName: "Past", useBy: now - DAY }),
@@ -209,27 +209,27 @@ describe("deliveries queries", () => {
       ],
     });
     const voided = await t.mutation(api.deliveries.create, {
-      sessionToken: token, supplierId, vehicleClean: true, items: [item({ productName: "Voided", useBy: now })],
+      sessionToken: token, businessId, supplierId, vehicleClean: true, items: [item({ productName: "Voided", useBy: now })],
     });
     await t.run(async (ctx) => {
       const its = await ctx.db.query("deliveryItems").withIndex("by_delivery", (q) => q.eq("deliveryId", voided)).collect();
       for (const i of its) await ctx.db.patch(i._id, { voided: true });
     });
-    const res = await t.query(api.deliveries.expiring, { sessionToken: token });
+    const res = await t.query(api.deliveries.expiring, { sessionToken: token, businessId });
     expect(res.map((r) => r.productName)).toEqual(["Past", "BB soon", "Soon"]);
     expect(res[1].expiresAt).toBe(now + DAY);
   });
 
   test("trace matches batch code exactly, plus name/batch substring and exact barcode", async () => {
-    const { t, token, supplierId } = await ready();
+    const { t, token, supplierId, businessId } = await ready();
     await t.mutation(api.deliveries.create, {
-      sessionToken: token, supplierId, vehicleClean: true, receivedAt: 1,
+      sessionToken: token, businessId, supplierId, vehicleClean: true, receivedAt: 1,
       items: [item({ batchCode: "LOT-42" }), item({ productName: "Cheese", batchCode: undefined, barcode: "9400" })],
     });
     await t.mutation(api.deliveries.create, {
-      sessionToken: token, supplierId, vehicleClean: true, receivedAt: 2, items: [item({ productName: "Butter", batchCode: "lot-43" })],
+      sessionToken: token, businessId, supplierId, vehicleClean: true, receivedAt: 2, items: [item({ productName: "Butter", batchCode: "lot-43" })],
     });
-    const trace = (search: string) => t.query(api.deliveries.trace, { sessionToken: token, search });
+    const trace = (search: string) => t.query(api.deliveries.trace, { sessionToken: token, businessId, search });
     expect(await trace("   ")).toEqual([]);
     expect((await trace("LOT-42")).map((r) => r.productName)).toEqual(["Milk 2L"]);
     expect((await trace("lot-4")).map((r) => r.productName)).toEqual(["Butter", "Milk 2L"]);
@@ -239,10 +239,10 @@ describe("deliveries queries", () => {
   });
 
   test("trace tolerates an item whose delivery row is missing", async () => {
-    const { t, token, supplierId } = await ready();
-    const id = await t.mutation(api.deliveries.create, { sessionToken: token, supplierId, vehicleClean: true, items: [item()] });
+    const { t, token, supplierId, businessId } = await ready();
+    const id = await t.mutation(api.deliveries.create, { sessionToken: token, businessId, supplierId, vehicleClean: true, items: [item()] });
     await t.run((ctx) => ctx.db.delete(id as Id<"deliveries">));
-    expect(await t.query(api.deliveries.trace, { sessionToken: token, search: "milk" })).toMatchObject([
+    expect(await t.query(api.deliveries.trace, { sessionToken: token, businessId, search: "milk" })).toMatchObject([
       { supplierName: "", receivedByName: "" },
     ]);
   });

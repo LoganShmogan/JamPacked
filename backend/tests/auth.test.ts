@@ -1,9 +1,9 @@
 import { describe, expect, test } from "vitest";
 import { api, internal } from "../convex/_generated/api";
-import { Id } from "../convex/_generated/dataModel";
-import { auditLog, getDoc, setup, signIn } from "./helpers";
+import { auditLog, setup, signIn } from "./helpers";
 
-const creds = { email: "  Alice@Example.com ", name: " Alice ", password: "password123" };
+const business = (o: Record<string, unknown> = {}) => ({ name: "Kai Cafe", programme: "NP2" as const, sectors: ["ece"], ...o });
+const creds = { email: "  Alice@Example.com ", name: " Alice ", password: "password123", business: business() };
 
 describe("auth:register", () => {
   test.each([
@@ -15,35 +15,77 @@ describe("auth:register", () => {
     await expect(t.action(api.auth.register, { ...creds, ...patch })).rejects.toThrow(message);
   });
 
-  test("first account is admin, later accounts are staff; emails are normalised", async () => {
+  test("creates the account and its main business, with the creator as admin; emails are normalised", async () => {
     const t = setup();
     const { token } = await t.action(api.auth.register, creds);
-    expect(await t.query(api.auth.me, { sessionToken: token })).toMatchObject({
-      email: "alice@example.com",
-      name: "Alice",
-      role: "admin",
+    const me = await t.query(api.auth.me, { sessionToken: token });
+    expect(me).toMatchObject({ email: "alice@example.com", name: "Alice" });
+    const [b] = await t.run((ctx) => ctx.db.query("businesses").collect());
+    expect(b).toMatchObject({
+      name: "Kai Cafe", programme: "NP2", sectors: ["ece"], jurisdiction: "NZ", chilledMaxC: 5, ownerId: me!._id, archived: false,
     });
-    const second = await t.action(api.auth.register, { ...creds, email: "bob@example.com", name: "Bob" });
-    expect((await t.query(api.auth.me, { sessionToken: second.token }))?.role).toBe("staff");
-
-    const log = await auditLog(t);
-    expect(log.map((l) => l.summary)).toEqual([
-      "Account created for alice@example.com (admin)",
-      "Account created for bob@example.com (staff)",
+    const [m] = await t.run((ctx) => ctx.db.query("memberships").collect());
+    expect(m).toMatchObject({ userId: me!._id, businessId: b._id, role: "admin", active: true });
+    expect((await auditLog(t)).map((l) => l.summary)).toEqual([
+      "Account created for alice@example.com",
+      "Business Kai Cafe created (NP2)",
     ]);
   });
 
-  test("rejects a duplicate email", async () => {
+  test("needs a business unless the person was invited", async () => {
+    const t = setup();
+    await expect(t.action(api.auth.register, { ...creds, business: undefined })).rejects.toThrow(
+      "Set up your business to create an account",
+    );
+    expect(await t.run((ctx) => ctx.db.query("users").collect())).toHaveLength(0);
+  });
+
+  test("an invited person joins the inviting business with the invited role", async () => {
+    const t = setup();
+    const { businessId } = await signIn(t, "admin");
+    await t.run((ctx) =>
+      ctx.db.insert("invites", { businessId, email: "alice@example.com", role: "manager", invitedByName: "Admin 0", createdAt: 0 }),
+    );
+    const { token } = await t.action(api.auth.register, { ...creds, business: undefined });
+    const me = (await t.query(api.auth.me, { sessionToken: token }))!;
+    const mine = await t.run((ctx) => ctx.db.query("memberships").withIndex("by_user", (q) => q.eq("userId", me._id)).collect());
+    expect(mine).toMatchObject([{ businessId, role: "manager", active: true }]);
+    expect((await t.run((ctx) => ctx.db.query("invites").first()))?.acceptedAt).toEqual(expect.any(Number));
+    expect((await auditLog(t)).at(-1)?.summary).toBe("Alice joined as manager (invited by Admin 0)");
+  });
+
+  test("an invite that was already accepted is not claimed again", async () => {
+    const t = setup();
+    const { businessId } = await signIn(t, "admin");
+    await t.run((ctx) =>
+      ctx.db.insert("invites", { businessId, email: "bob@x.com", role: "staff", invitedByName: "A", createdAt: 0, acceptedAt: 1 }),
+    );
+    await t.mutation(internal.auth.createUserAndSession, {
+      email: "bob@x.com", name: "Bob", passwordHash: "", passwordSalt: "", token: "t2", business: business(),
+    });
+    const bob = (await t.query(api.auth.me, { sessionToken: "t2" }))!;
+    const mine = await t.run((ctx) => ctx.db.query("memberships").withIndex("by_user", (q) => q.eq("userId", bob._id)).collect());
+    expect(mine).toHaveLength(1);
+    expect(mine[0].businessId).not.toBe(businessId);
+  });
+
+  test("rejects a duplicate email and sectors from another programme", async () => {
     const t = setup();
     await t.action(api.auth.register, creds);
     await expect(t.action(api.auth.register, creds)).rejects.toThrow("already exists");
+    await expect(
+      t.action(api.auth.register, { ...creds, email: "b@x.com", business: business({ sectors: ["honey"] }) }),
+    ).rejects.toThrow("Not a NP2 sector: honey");
+    await expect(
+      t.action(api.auth.register, { ...creds, email: "c@x.com", business: business({ name: "  " }) }),
+    ).rejects.toThrow("Business name is required");
   });
 
   test("me does not leak password fields", async () => {
     const t = setup();
     const { token } = await t.action(api.auth.register, creds);
     const me = await t.query(api.auth.me, { sessionToken: token });
-    expect(Object.keys(me!).sort()).toEqual(["_id", "email", "name", "role"]);
+    expect(Object.keys(me!).sort()).toEqual(["_id", "email", "name"]);
   });
 });
 
@@ -92,7 +134,7 @@ describe("auth:login", () => {
 describe("auth:logout", () => {
   test("deletes the session and logs it; unknown tokens are a no-op", async () => {
     const t = setup();
-    const { token } = await signIn(t);
+    const { token, businessId } = await signIn(t);
     await t.mutation(api.auth.logout, { sessionToken: "unknown" });
     expect(await auditLog(t)).toHaveLength(0);
 
@@ -103,72 +145,9 @@ describe("auth:logout", () => {
 
   test("still logs out when the user record no longer exists", async () => {
     const t = setup();
-    const { userId, token } = await signIn(t);
+    const { userId, token, businessId } = await signIn(t);
     await t.run((ctx) => ctx.db.delete(userId));
     await t.mutation(api.auth.logout, { sessionToken: token });
     expect((await auditLog(t))[0].summary).toBe("User signed out");
-  });
-});
-
-describe("auth:listUsers / updateUser", () => {
-  test("listUsers is for admins and managers only", async () => {
-    const t = setup();
-    const admin = await signIn(t, "admin");
-    const manager = await signIn(t, "manager");
-    const staff = await signIn(t, "staff");
-    const users = await t.query(api.auth.listUsers, { sessionToken: manager.token });
-    expect(users).toHaveLength(3);
-    expect(users[0]).toEqual({
-      _id: admin.userId,
-      email: "admin0@example.com",
-      name: "Admin 0",
-      role: "admin",
-      active: true,
-      createdAt: expect.any(Number),
-    });
-    await expect(t.query(api.auth.listUsers, { sessionToken: staff.token })).rejects.toThrow("requires");
-  });
-
-  test("admin can change another user's role and active flag", async () => {
-    const t = setup();
-    const admin = await signIn(t, "admin");
-    const staff = await signIn(t, "staff");
-    await t.mutation(api.auth.updateUser, { sessionToken: admin.token, userId: staff.userId, role: "manager", active: false });
-    expect(await getDoc(t, staff.userId)).toMatchObject({ role: "manager", active: false });
-    const summary = (await auditLog(t))[0].summary;
-    expect(summary).toMatch(/^Updated Staff 1: /);
-    expect(summary).toContain("role=manager");
-    expect(summary).toContain("active=false");
-
-    await t.mutation(api.auth.updateUser, { sessionToken: admin.token, userId: staff.userId, active: true });
-    expect((await auditLog(t))[1].summary).toBe("Updated Staff 1: active=true");
-  });
-
-  test("guards: admin only, user must exist, cannot demote or deactivate yourself", async () => {
-    const t = setup();
-    const admin = await signIn(t, "admin");
-    const manager = await signIn(t, "manager");
-    await expect(
-      t.mutation(api.auth.updateUser, { sessionToken: manager.token, userId: admin.userId, role: "staff" }),
-    ).rejects.toThrow("requires");
-
-    const ghost = await t.run(async (ctx) => {
-      const id = await ctx.db.insert("users", {
-        email: "g@x.com", name: "G", role: "staff", passwordHash: "", passwordSalt: "", active: true, createdAt: 0,
-      });
-      await ctx.db.delete(id);
-      return id as Id<"users">;
-    });
-    await expect(t.mutation(api.auth.updateUser, { sessionToken: admin.token, userId: ghost })).rejects.toThrow(
-      "User not found",
-    );
-    await expect(
-      t.mutation(api.auth.updateUser, { sessionToken: admin.token, userId: admin.userId, role: "staff" }),
-    ).rejects.toThrow("can't change your own role");
-    await expect(
-      t.mutation(api.auth.updateUser, { sessionToken: admin.token, userId: admin.userId, active: false }),
-    ).rejects.toThrow("can't change your own role");
-    // Re-affirming yourself as active is harmless.
-    await t.mutation(api.auth.updateUser, { sessionToken: admin.token, userId: admin.userId, active: true });
   });
 });

@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
 import '../theme.dart';
+import '../widgets/business_form.dart';
 import '../widgets/common.dart';
 import 'admin_screens.dart';
+import 'business_picker_screen.dart';
 import 'expiring_screen.dart';
 import 'products_screen.dart';
 import 'suppliers_screen.dart';
@@ -16,7 +18,9 @@ class MoreScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthService>().user!;
+    final auth = context.watch<AuthService>();
+    final user = auth.user!;
+    final business = auth.business!;
     void push(Widget w) =>
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => w));
     Widget tile(IconData icon, String title, String sub, Widget page) =>
@@ -54,6 +58,51 @@ class MoreScreen extends StatelessWidget {
                     ),
                     subtitle: Text(user.email),
                     trailing: Pill(user.role.toUpperCase(), tone: Tone.brand),
+                  ),
+                ),
+                const SectionTitle('Business'),
+                Card(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(
+                          Icons.storefront,
+                          color: AppColors.orange,
+                        ),
+                        title: Text(
+                          business.name,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        subtitle: const Text('Working in today'),
+                        trailing: Pill(
+                          programmeLabel(business.programme),
+                          tone: Tone.brand,
+                        ),
+                      ),
+                      const Divider(),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.swap_horiz,
+                          color: AppColors.orange,
+                        ),
+                        title: const Text(
+                          'Switch business',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          '${auth.businesses.length} business${auth.businesses.length == 1 ? '' : 'es'}',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.auth.switchBusiness(),
+                      ),
+                      const Divider(),
+                      tile(
+                        Icons.add_business,
+                        'Add another business',
+                        'You will be its admin',
+                        const AddBusinessScreen(),
+                      ),
+                    ],
                   ),
                 ),
                 const SectionTitle('Records'),
@@ -111,9 +160,9 @@ class MoreScreen extends StatelessWidget {
                         const Divider(),
                         tile(
                           Icons.group,
-                          'Users',
-                          'Staff accounts & roles',
-                          const UsersScreen(),
+                          'Members',
+                          'Staff, roles & invites',
+                          const MembersScreen(),
                         ),
                         if (user.isAdmin) ...[
                           const Divider(),

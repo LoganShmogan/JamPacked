@@ -75,6 +75,7 @@ void main() {
       'unitType': 'freezer',
       'temperatureC': -18.0,
       'correctiveAction': null,
+      'businessId': 'b1',
       'sessionToken': 'tok',
     });
     expect(find.text('Recorded: within limits'), findsOneWidget);

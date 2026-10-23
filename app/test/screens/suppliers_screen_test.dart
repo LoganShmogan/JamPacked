@@ -122,6 +122,7 @@ void main() {
           'registrationNumber': null,
           'approvalNotes': null,
           'approved': false,
+          'businessId': 'b1',
           'sessionToken': 'tok',
         });
         expect(popped, ['new-id']);
@@ -175,6 +176,7 @@ void main() {
         expect(convex.callsTo('auditLog:list').single.args, {
           'entityType': 'supplier',
           'entityId': 's1',
+          'businessId': 'b1',
           'sessionToken': 'tok',
         });
         await tester.tap(find.text('Active'));

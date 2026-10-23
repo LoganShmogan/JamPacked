@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodsafe/config.dart';
 import 'package:foodsafe/main.dart' as app;
+import 'package:foodsafe/screens/business_picker_screen.dart';
 import 'package:foodsafe/screens/home_shell.dart';
 import 'package:foodsafe/screens/login_screen.dart';
 import 'package:foodsafe/services/auth_service.dart';
@@ -45,6 +46,17 @@ void main() {
     testWidgets('login screen when signed out', (tester) async {
       await pumpGate(tester, AuthService(fakeWith())..loading = false);
       expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
+    testWidgets('business picker when signed in without a business today', (
+      tester,
+    ) async {
+      final auth = signedIn(fakeWith())..business = null;
+      await pumpGate(tester, auth);
+      expect(find.byType(BusinessPickerScreen), findsOneWidget);
+      await tester.tap(find.text('Kai Cafe'));
+      await tester.pumpAndSettle();
+      expect(find.byType(HomeShell), findsOneWidget);
     });
 
     testWidgets('home shell when signed in, swapping back on sign-out', (

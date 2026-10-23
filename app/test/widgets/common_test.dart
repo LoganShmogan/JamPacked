@@ -75,9 +75,9 @@ void main() {
       expect(await ctx.m('x:m'), 'm');
       expect(await ctx.a('x:a'), 'a');
       expect(convex.calls.map((c) => c.args), [
-        {'id': 1, 'sessionToken': 'tok'},
-        {'sessionToken': 'tok'},
-        {'sessionToken': 'tok'},
+        {'id': 1, 'businessId': 'b1', 'sessionToken': 'tok'},
+        {'businessId': 'b1', 'sessionToken': 'tok'},
+        {'businessId': 'b1', 'sessionToken': 'tok'},
       ]);
     });
 
@@ -154,7 +154,11 @@ void main() {
       await pumpScreen(tester, qb(args: {'n': 1}), convex: convex);
       expect(find.text('data: hello 1'), findsOneWidget);
       expect(find.byType(RefreshIndicator), findsOneWidget);
-      expect(convex.calls.single.args, {'n': 1, 'sessionToken': 'tok'});
+      expect(convex.calls.single.args, {
+        'n': 1,
+        'businessId': 'b1',
+        'sessionToken': 'tok',
+      });
     });
 
     testWidgets('spinner is visible before the first response', (tester) async {

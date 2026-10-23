@@ -2,31 +2,33 @@ import { ConvexError, v } from "convex/values";
 import { api } from "./_generated/api";
 import { action, mutation, query } from "./_generated/server";
 import { diff, logAudit } from "./lib/audit";
-import { requireRole, requireUser } from "./lib/session";
+import { inBusiness, requireMember, scoped } from "./lib/session";
 import { storageType } from "./schema";
 
 export const list = query({
-  args: { sessionToken: v.string() },
-  handler: async (ctx, { sessionToken }) => {
-    await requireUser(ctx, sessionToken);
-    return (await ctx.db.query("products").withIndex("by_name").collect()).filter((p) => p.active);
+  args: scoped,
+  handler: async (ctx, { sessionToken, businessId }) => {
+    await requireMember(ctx, sessionToken, businessId);
+    return (
+      await ctx.db.query("products").withIndex("by_business_name", (q) => q.eq("businessId", businessId)).collect()
+    ).filter((p) => p.active);
   },
 });
 
 export const byBarcode = query({
-  args: { sessionToken: v.string(), barcode: v.string() },
-  handler: async (ctx, { sessionToken, barcode }) => {
-    await requireUser(ctx, sessionToken);
+  args: { ...scoped, barcode: v.string() },
+  handler: async (ctx, { sessionToken, businessId, barcode }) => {
+    await requireMember(ctx, sessionToken, businessId);
     return await ctx.db
       .query("products")
-      .withIndex("by_barcode", (q) => q.eq("barcode", barcode))
+      .withIndex("by_business_barcode", (q) => q.eq("businessId", businessId).eq("barcode", barcode))
       .first();
   },
 });
 
 export const create = mutation({
   args: {
-    sessionToken: v.string(),
+    ...scoped,
     name: v.string(),
     brand: v.optional(v.string()),
     barcode: v.optional(v.string()),
@@ -37,11 +39,12 @@ export const create = mutation({
     imageUrl: v.optional(v.string()),
     defaultSupplierId: v.optional(v.id("suppliers")),
   },
-  handler: async (ctx, { sessionToken, ...data }) => {
-    const user = await requireUser(ctx, sessionToken);
+  handler: async (ctx, { sessionToken, businessId, ...data }) => {
+    const { user } = await requireMember(ctx, sessionToken, businessId);
     if (!data.name.trim()) throw new ConvexError("Product name is required");
-    const id = await ctx.db.insert("products", { ...data, active: true, createdAt: Date.now() });
+    const id = await ctx.db.insert("products", { ...data, businessId, active: true, createdAt: Date.now() });
     await logAudit(ctx, user, {
+      businessId,
       action: "create",
       entityType: "product",
       entityId: id,
@@ -54,7 +57,7 @@ export const create = mutation({
 
 export const update = mutation({
   args: {
-    sessionToken: v.string(),
+    ...scoped,
     id: v.id("products"),
     name: v.optional(v.string()),
     brand: v.optional(v.string()),
@@ -65,13 +68,13 @@ export const update = mutation({
     defaultSupplierId: v.optional(v.id("suppliers")),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, { sessionToken, id, ...patch }) => {
-    const user = await requireRole(ctx, sessionToken, ["admin", "manager"]);
-    const before = await ctx.db.get(id);
-    if (!before) throw new ConvexError("Product not found");
+  handler: async (ctx, { sessionToken, businessId, id, ...patch }) => {
+    const { user } = await requireMember(ctx, sessionToken, businessId, ["admin", "manager"]);
+    const before = inBusiness(await ctx.db.get(id), businessId, "Product");
     const changes = diff(before, patch);
     await ctx.db.patch(id, patch);
     await logAudit(ctx, user, {
+      businessId,
       action: "update",
       entityType: "product",
       entityId: id,
@@ -107,9 +110,9 @@ type BarcodeLookup = {
 
 /** Looks a barcode up on Open Food Facts to pre-fill product details (name, allergens, NOVA/UPF group). */
 export const lookupBarcode = action({
-  args: { sessionToken: v.string(), barcode: v.string() },
-  handler: async (ctx, { sessionToken, barcode }): Promise<BarcodeLookup | null> => {
-    if (!(await ctx.runQuery(api.auth.me, { sessionToken }))) throw new ConvexError("Not signed in");
+  args: { ...scoped, barcode: v.string() },
+  handler: async (ctx, { sessionToken, businessId, barcode }): Promise<BarcodeLookup | null> => {
+    await ctx.runQuery(api.settings.get, { sessionToken, businessId }); // throws unless a member
     if (!/^\d{6,14}$/.test(barcode)) return null;
     const res = await fetch(
       `https://world.openfoodfacts.org/api/v2/product/${barcode}.json?fields=product_name,brands,allergens_tags,ingredients_text,nova_group,image_front_small_url,categories_tags`,

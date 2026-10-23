@@ -1,5 +1,5 @@
+import { Doc } from "../_generated/dataModel";
 import { QueryCtx } from "../_generated/server";
-import { loadSettings } from "./settings";
 
 export type Fact = { value: string | number | boolean | null; evidence: string };
 
@@ -10,21 +10,23 @@ const list = (xs: string[], max = 5) =>
 /** Computes auto-fill answers for an audit period from goods inwards & other records. */
 export async function computeFacts(
   ctx: QueryCtx,
+  business: Doc<"businesses">,
   start: number,
   end: number,
   tz = 0, // client UTC offset in minutes
 ): Promise<Record<string, Fact>> {
-  const settings = await loadSettings(ctx);
+  const settings = business;
+  const businessId = business._id;
   const deliveries = (
-    await ctx.db.query("deliveries").withIndex("by_receivedAt", (q) => q.gte("receivedAt", start).lte("receivedAt", end)).collect()
+    await ctx.db.query("deliveries").withIndex("by_business_receivedAt", (q) => q.eq("businessId", businessId).gte("receivedAt", start).lte("receivedAt", end)).collect()
   ).filter((d) => !d.voided);
   const items = (
-    await ctx.db.query("deliveryItems").withIndex("by_receivedAt", (q) => q.gte("receivedAt", start).lte("receivedAt", end)).collect()
+    await ctx.db.query("deliveryItems").withIndex("by_business_receivedAt", (q) => q.eq("businessId", businessId).gte("receivedAt", start).lte("receivedAt", end)).collect()
   ).filter((i) => !i.voided);
   const accepted = items.filter((i) => i.accepted);
   const rejected = items.filter((i) => !i.accepted);
-  const temps = await ctx.db.query("temperatureLogs").withIndex("by_checkedAt", (q) => q.gte("checkedAt", start).lte("checkedAt", end)).collect();
-  const openCAs = await ctx.db.query("correctiveActions").withIndex("by_status", (q) => q.eq("status", "open")).collect();
+  const temps = await ctx.db.query("temperatureLogs").withIndex("by_business_checkedAt", (q) => q.eq("businessId", businessId).gte("checkedAt", start).lte("checkedAt", end)).collect();
+  const openCAs = await ctx.db.query("correctiveActions").withIndex("by_business_status", (q) => q.eq("businessId", businessId).eq("status", "open")).collect();
 
   const noDeliveries = deliveries.length === 0;
   const none = (what: string): Fact => ({ value: null, evidence: `No ${what} recorded in this period` });
@@ -43,7 +45,7 @@ export async function computeFacts(
   const now = Date.now();
   const recentStock = await ctx.db
     .query("deliveryItems")
-    .withIndex("by_receivedAt", (q) => q.gt("receivedAt", now - 90 * 86_400_000))
+    .withIndex("by_business_receivedAt", (q) => q.eq("businessId", businessId).gt("receivedAt", now - 90 * 86_400_000))
     .collect();
   const expiredOnHand = recentStock.filter((i) => i.accepted && !i.voided && i.useBy !== undefined && i.useBy < now);
 

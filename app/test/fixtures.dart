@@ -14,6 +14,48 @@ Map<String, dynamic> settings({String jurisdiction = 'NZ'}) => {
   'expiryWarningDays': 3,
 };
 
+Map<String, dynamic> business({
+  String id = 'b1',
+  String name = 'Kai Cafe',
+  String programme = 'NP2',
+  String role = 'admin',
+  bool archived = false,
+  int openCAs = 0,
+}) => {
+  '_id': id,
+  'name': name,
+  'programme': programme,
+  'sectors': <String>[],
+  'archived': archived,
+  'isOwner': true,
+  'role': role,
+  'openCorrectiveActions': openCAs,
+};
+
+final programmes = [
+  {
+    'key': 'NP1',
+    'name': 'National Programme 1',
+    'risk': 'Lowest risk',
+    'whoFor': ['Store or transport food only'],
+    'sectors': [
+      {'key': 'transport', 'label': 'Transport and distribution'},
+    ],
+    'source': 'MPI',
+  },
+  {
+    'key': 'NP2',
+    'name': 'National Programme 2',
+    'risk': 'Low to medium risk',
+    'whoFor': ['Sell chilled or frozen foods'],
+    'sectors': [
+      {'key': 'ece', 'label': 'Early Childhood Centre (ECE)'},
+      {'key': 'bread', 'label': 'Bread'},
+    ],
+    'source': 'MPI',
+  },
+];
+
 Map<String, dynamic> summary({
   int deliveries = 2,
   int rejections = 0,
@@ -129,7 +171,9 @@ Map<String, Handler> baseHandlers() => {
   'temperature:list': (_) => [],
   'temperature:units': (_) => [],
   'auditLog:list': (_) => [],
-  'auth:listUsers': (_) => [],
+  'businesses:members': (_) => {'members': [], 'invites': []},
+  'businesses:mine': (_) => [business()],
+  'businesses:programmes': (_) => programmes,
 };
 
 FakeConvex fakeWith([Map<String, Handler> overrides = const {}]) =>

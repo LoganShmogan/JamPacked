@@ -9,20 +9,21 @@ type ItemRow = Partial<Omit<Doc<"deliveryItems">, "_id" | "_creationTime">>;
 
 async function world() {
   const t = setup();
-  const { userId } = await signIn(t, "staff");
+  const { userId, businessId } = await signIn(t, "staff");
   const supplierId = await addSupplier(t);
   const now = Date.now();
-  return { t, userId, supplierId, now };
+  return { t, userId, businessId, supplierId, now };
 }
 
 async function delivery(
   t: T,
-  base: { userId: Id<"users">; supplierId: Id<"suppliers"> },
+  base: { userId: Id<"users">; businessId: Id<"businesses">; supplierId: Id<"suppliers"> },
   opts: { receivedAt: number; supplierName?: string; supplierApproved?: boolean; vehicleClean?: boolean; voided?: boolean },
   items: ItemRow[] = [],
 ) {
   return await t.run(async (ctx) => {
     const deliveryId = await ctx.db.insert("deliveries", {
+      businessId: base.businessId,
       supplierId: base.supplierId,
       supplierName: opts.supplierName ?? "Fresh Foods",
       supplierApproved: opts.supplierApproved ?? true,
@@ -35,6 +36,7 @@ async function delivery(
     });
     for (const i of items) {
       await ctx.db.insert("deliveryItems", {
+        businessId: base.businessId,
         deliveryId,
         receivedAt: opts.receivedAt,
         supplierId: base.supplierId,
@@ -57,7 +59,8 @@ async function delivery(
   });
 }
 
-const facts = (t: T, start: number, end: number, tz?: number) => t.run((ctx) => computeFacts(ctx, start, end, tz));
+const facts = (t: T, start: number, end: number, tz?: number) =>
+  t.run(async (ctx) => computeFacts(ctx, (await ctx.db.query("businesses").first())!, start, end, tz));
 
 describe("computeFacts", () => {
   test("produces a fact for every auto-fill key used by the templates", async () => {
@@ -91,14 +94,15 @@ describe("computeFacts", () => {
   });
 
   test("a clean period passes every check", async () => {
-    const { t, userId, supplierId, now } = await world();
-    await delivery(t, { userId, supplierId }, { receivedAt: now - 1000 }, [
+    const { t, userId, businessId, supplierId, now } = await world();
+    await delivery(t, { userId, businessId, supplierId }, { receivedAt: now - 1000 }, [
       { allergens: ["milk"] },
       { productName: "Flour", storageType: "ambient", temperatureC: undefined, temperatureCompliant: null, allergens: ["gluten", "milk"], useBy: undefined, bestBefore: now + 90 * DAY },
     ]);
-    await delivery(t, { userId, supplierId }, { receivedAt: now - 500, voided: true }, [{ productName: "Voided" }]);
+    await delivery(t, { userId, businessId, supplierId }, { receivedAt: now - 500, voided: true }, [{ productName: "Voided" }]);
     await t.run((ctx) =>
       ctx.db.insert("temperatureLogs", {
+        businessId,
         checkedAt: now - 100, unitName: "C1", unitType: "chiller", temperatureC: 3, compliant: true, checkedById: userId, checkedByName: "S",
       }),
     );
@@ -117,9 +121,9 @@ describe("computeFacts", () => {
   });
 
   test("a problem period fails each check with evidence naming the culprits", async () => {
-    const { t, userId, supplierId, now } = await world();
+    const { t, userId, businessId, supplierId, now } = await world();
     const at = now - 1000;
-    await delivery(t, { userId, supplierId }, { receivedAt: at, supplierName: "Shady", supplierApproved: false, vehicleClean: false }, [
+    await delivery(t, { userId, businessId, supplierId }, { receivedAt: at, supplierName: "Shady", supplierApproved: false, vehicleClean: false }, [
       { productName: "NoTemp", temperatureC: undefined, temperatureCompliant: false },
       { productName: "Warm", temperatureC: 9, temperatureCompliant: false },
       { productName: "Torn", packagingOk: false },
@@ -132,13 +136,16 @@ describe("computeFacts", () => {
     ]);
     await t.run(async (ctx) => {
       await ctx.db.insert("temperatureLogs", {
+        businessId,
         checkedAt: at, unitName: "F1", unitType: "freezer", temperatureC: -2, compliant: false, correctiveAction: "Moved stock",
         checkedById: userId, checkedByName: "S",
       });
       await ctx.db.insert("temperatureLogs", {
+        businessId,
         checkedAt: at, unitName: "F2", unitType: "freezer", temperatureC: 0, compliant: false, checkedById: userId, checkedByName: "S",
       });
       await ctx.db.insert("correctiveActions", {
+        businessId,
         title: "Open one", source: "manual", severity: "low", status: "open", raisedAt: at, raisedById: userId, raisedByName: "S",
       });
     });
@@ -164,10 +171,10 @@ describe("computeFacts", () => {
   });
 
   test("long lists are truncated after five names", async () => {
-    const { t, userId, supplierId, now } = await world();
+    const { t, userId, businessId, supplierId, now } = await world();
     await delivery(
       t,
-      { userId, supplierId },
+      { userId, businessId, supplierId },
       { receivedAt: now - 1000 },
       ["A", "B", "C", "D", "E", "F", "G"].map((productName) => ({ productName, packagingOk: false })),
     );
@@ -176,10 +183,11 @@ describe("computeFacts", () => {
   });
 
   test("temp.daily lists missing local days, using the time zone offset", async () => {
-    const { t, userId } = await world();
+    const { t, userId, businessId } = await world();
     const start = Date.UTC(2020, 0, 1);
     await t.run((ctx) =>
       ctx.db.insert("temperatureLogs", {
+        businessId,
         checkedAt: start + 11 * 3_600_000, // 11:00 UTC on 1 Jan = 00:00 on 2 Jan at UTC+13
         unitName: "C", unitType: "chiller", temperatureC: 2, compliant: true, checkedById: userId, checkedByName: "S",
       }),

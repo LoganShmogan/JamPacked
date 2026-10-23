@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodsafe/main.dart';
 import 'package:foodsafe/screens/admin_screens.dart';
+import 'package:foodsafe/screens/business_picker_screen.dart';
 import 'package:foodsafe/screens/expiring_screen.dart';
 import 'package:foodsafe/screens/login_screen.dart';
 import 'package:foodsafe/screens/more_screen.dart';
@@ -39,7 +40,40 @@ void main() {
     expect(find.text('Audit trail'), findsNothing);
   });
 
-  testWidgets('managers see audit trail and users but not settings', (
+  testWidgets('shows the business being worked in with its programme', (
+    tester,
+  ) async {
+    await pumpScreen(tester, const MoreScreen(), convex: fakeWith());
+    expect(find.text('Kai Cafe'), findsOneWidget);
+    expect(find.text('NP2'), findsOneWidget);
+    expect(find.text('1 business'), findsOneWidget);
+  });
+
+  testWidgets('switch business goes back to the picker', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final convex = fakeWith({
+      'businesses:mine': (_) => [
+        business(),
+        business(id: 'b2', name: 'Bakery'),
+      ],
+    });
+    final auth = signedIn(convex);
+    await pumpScreen(
+      tester,
+      const NzSafetyHealthApp(),
+      convex: convex,
+      auth: auth,
+      size: const Size(400, 1400),
+    );
+    await tester.tap(find.text('More'));
+    await tester.pumpAndSettle();
+    await tapOn(tester, find.text('Switch business'));
+    expect(auth.business, isNull);
+    expect(find.byType(BusinessPickerScreen), findsOneWidget);
+    expect(find.text('Bakery'), findsOneWidget);
+  });
+
+  testWidgets('managers see audit trail and members but not settings', (
     tester,
   ) async {
     await pumpScreen(
@@ -49,7 +83,7 @@ void main() {
       role: 'manager',
     );
     expect(find.text('Audit trail'), findsOneWidget);
-    expect(find.text('Users'), findsOneWidget);
+    expect(find.text('Members'), findsOneWidget);
     expect(find.text('Business settings'), findsNothing);
   });
 
@@ -60,7 +94,8 @@ void main() {
     ('Expiring stock', ExpiringScreen),
     ('Trace & recall', TraceScreen),
     ('Audit trail', AuditTrailScreen),
-    ('Users', UsersScreen),
+    ('Members', MembersScreen),
+    ('Add another business', AddBusinessScreen),
     ('Business settings', SettingsScreen),
   ]) {
     testWidgets('admin: "$label" opens $screen', (tester) async {

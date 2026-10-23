@@ -87,6 +87,7 @@ void main() {
     expect(convex.callsTo('correctiveActions:close').single.args, {
       'id': 'c1',
       'resolution': 'Binned it',
+      'businessId': 'b1',
       'sessionToken': 'tok',
     });
     expect(find.text('Closed'), findsWidgets);
@@ -116,6 +117,7 @@ void main() {
       'title': 'Pest sighting',
       'description': 'Called exterminator',
       'severity': 'high',
+      'businessId': 'b1',
       'sessionToken': 'tok',
     });
     expect(find.text('Corrective action raised'), findsOneWidget);
