@@ -19,16 +19,27 @@ const RECORD_TABLES = [
 /**
  * One-off: turns a single-business install into the first business of the multi-business model.
  * The old settings row becomes the business, each user's role becomes a membership and every
- * existing record is stamped with the business id. Safe to re-run: it stops once a business exists.
+ * existing record is stamped with the business id. Safe to re-run: it stops once no legacy users
+ * or records are left, and accounts created after the upgrade are left alone.
  *
  *   npx convex run migrations:toMultiBusiness '{"programme":"NP2","sectors":["retail_chilled_frozen"]}'
  */
 export const toMultiBusiness = internalMutation({
   args: { programme: programmeKey, sectors: v.optional(v.array(v.string())) },
   handler: async (ctx, { programme, sectors = [] }) => {
-    if (await ctx.db.query("businesses").first()) return { migrated: false };
+    // Legacy data: users from before memberships existed, and records with no business. Keyed on
+    // that (not on "no businesses yet") so someone signing up before this runs doesn't block it.
+    const users = [];
+    for (const u of await ctx.db.query("users").collect()) {
+      const m = await ctx.db.query("memberships").withIndex("by_user", (q) => q.eq("userId", u._id)).first();
+      if (!m) users.push(u);
+    }
+    const legacyRows = [];
+    for (const table of RECORD_TABLES) {
+      for (const r of await ctx.db.query(table).collect()) if (r.businessId === undefined) legacyRows.push({ table, id: r._id });
+    }
+    if (users.length === 0 && legacyRows.length === 0) return { migrated: false };
     checkSectors(programme, sectors);
-    const users = await ctx.db.query("users").collect();
     const owner = users.filter((u) => u.role === "admin").sort((a, b) => a.createdAt - b.createdAt)[0];
     if (!owner) throw new ConvexError("No admin user to own the business");
     const settings = await ctx.db.query("settings").first();
@@ -57,12 +68,10 @@ export const toMultiBusiness = internalMutation({
         createdAt: u.createdAt,
       });
     }
-    const counts: Record<string, number> = {};
-    for (const table of RECORD_TABLES) {
-      const rows = await ctx.db.query(table).collect();
-      const legacy = rows.filter((r) => r.businessId === undefined);
-      for (const r of legacy) await ctx.db.patch(r._id, { businessId });
-      counts[table] = legacy.length;
+    const counts: Record<string, number> = Object.fromEntries(RECORD_TABLES.map((t) => [t, 0]));
+    for (const { table, id } of legacyRows) {
+      await ctx.db.patch(id, { businessId });
+      counts[table]++;
     }
     await logAudit(ctx, null, {
       businessId,

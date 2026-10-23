@@ -698,7 +698,9 @@ cd backend && CONVEX_DEPLOYMENT= CONVEX_SELF_HOSTED_URL=http://127.0.0.1:3299 \
   npx convex run migrations:toMultiBusiness '{"programme":"NP2","sectors":["retail_chilled_frozen"]}'
 ```
 It turns the old settings row into the first business (owned by the earliest admin), each user's role into
-a membership, and stamps every existing record. Re-running does nothing once a business exists. Try it on a
+a membership, and stamps every existing record. It only touches data from before the upgrade (users with
+no membership, records with no business), so accounts created in the meantime are left alone, and
+re-running does nothing once that data is migrated. Try it on a
 copy first (restore a backup into a local deployment). Once it has run, `businessId` can be made required
 in `schema.ts` and the legacy `settings` table and `users.role` field removed.
 

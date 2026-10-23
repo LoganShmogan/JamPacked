@@ -4,7 +4,7 @@ Both halves of the project have unit tests with a **100% coverage gate**:
 
 | Part | Framework | Tests | Coverage (enforced) |
 |---|---|---|---|
-| Backend (`backend/`) | Vitest + [`convex-test`](https://www.npmjs.com/package/convex-test) | 189 | 100% statements, branches, functions and lines |
+| Backend (`backend/`) | Vitest + [`convex-test`](https://www.npmjs.com/package/convex-test) | 190 | 100% statements, branches, functions and lines |
 | App (`app/`) | `flutter_test` (unit + widget tests) | 266 | 100% lines (the Dart VM reports lines only) |
 
 No test needs a running Convex deployment, a network connection, a device or a camera.
@@ -83,7 +83,7 @@ Tests live in `backend/tests/`, outside `convex/`, so `npx convex deploy` never 
 | `programmes.test.ts` | Module consistency and sector filtering for NP1/NP2/NP3, `failures`, the `current` module, the **Due** list for each kind of schedule item, programme records (validation, limits → CAs, void), receiving checks on deliveries, programme checklists and record-based facts. |
 | `customProgrammes.test.ts` | Validation of custom parts, building the schedule, create blank / copy, assign, edit, reuse across businesses, ownership. |
 | `retention.test.ts` | Nothing in the backend source deletes records (only sign-out removes a session), every business table is exported, and admin-only paginated export. |
-| `migrations.test.ts` | Single-business install → first business: settings, memberships from roles, every record stamped; re-running is a no-op. |
+| `migrations.test.ts` | Single-business install → first business: settings, memberships from roles, every record stamped; accounts created after the upgrade are left alone; re-running is a no-op. |
 | `operations.test.ts` | Temperature checks (compliant, out of range, units), corrective actions (create, list, close), the audit log query (per entity, full trail, filters) and the dashboard summary. |
 | `audits.test.ts` | Templates, list, get, start (pre-fill, periods, titles), answer (overrides, locking), refresh auto-fill (keeps manual answers), complete (scoring, findings raise CAs). |
 | `facts.test.ts` | The audit auto-fill engine `computeFacts`, fed raw rows: empty period, clean period, a period where every check fails, list truncation and time-zone-aware "missing days". |
@@ -289,5 +289,6 @@ Fixed while the tests were being written:
 | `backend/convex/products.ts` (`lookupBarcode`) | The storage guess matched `/dairy/`, but Open Food Facts tags dairy as `en:dairies`, so dairy products were guessed as `ambient`. | The pattern now matches `dair(y\|ies)`. |
 | `backend/convex/settings.ts` (`update`) | Saving settings without a new business name patched `name: undefined`, which Convex treats as "remove the field". | Only fields that were given are patched. |
 | `app/lib/screens/business_picker_screen.dart` | Signing out from the picker rebuilt it before the auth gate swapped it out, crashing on `user!`; and pull-to-refresh did nothing with only a few businesses (the list couldn't scroll). | Null-safe greeting; the list is always scrollable. |
+| `backend/convex/migrations.ts` | The migration skipped itself once any business existed, so a sign-up between deploying and migrating would have left the old data invisible. Found by the end-to-end run against a real local backend. | It now looks for legacy users and records instead. |
 | `app/lib/screens/custom_programme_editor.dart` | Setting a yes/no field's problem rule back to "Never" kept the old rule. | The old rule is dropped before the new one is built. |
 

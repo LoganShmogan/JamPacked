@@ -53,8 +53,38 @@ describe("migrations:toMultiBusiness", () => {
     expect(await t.mutation(internal.migrations.toMultiBusiness, { programme: "NP1" })).toEqual({ migrated: false });
   });
 
+  test("still runs if someone signed up after the upgrade, and leaves their business alone", async () => {
+    const t = setup();
+    const ids = await t.run(async (ctx) => {
+      const owner = await ctx.db.insert("users", user("owner@x.com", "admin", 1));
+      await ctx.db.insert("suppliers", { name: "Old supplier", approved: true, active: true, createdAt: 0 });
+      // A new account and business created after deploying, before the migration ran.
+      const newcomer = await ctx.db.insert("users", user("new@x.com", undefined, 9));
+      const theirs = await ctx.db.insert("businesses", {
+        ...DEFAULT_SETTINGS, name: "New Co", programme: "NP1", sectors: [], ownerId: newcomer, archived: false, createdAt: 9,
+      });
+      await ctx.db.insert("memberships", { userId: newcomer, businessId: theirs, role: "admin", active: true, createdAt: 9 });
+      await ctx.db.insert("suppliers", { businessId: theirs, name: "Their supplier", approved: true, active: true, createdAt: 9 });
+      return { owner, newcomer, theirs };
+    });
+    const res = await t.mutation(internal.migrations.toMultiBusiness, { programme: "NP3" });
+    expect(res).toMatchObject({ migrated: true, counts: { suppliers: 1 } });
+    const all = await t.run(async (ctx) => ({
+      memberships: await ctx.db.query("memberships").collect(),
+      suppliers: await ctx.db.query("suppliers").collect(),
+    }));
+    expect(all.memberships.filter((m) => m.userId === ids.newcomer).map((m) => m.businessId)).toEqual([ids.theirs]);
+    expect(all.memberships.find((m) => m.userId === ids.owner)?.businessId).toBe(res.businessId);
+    expect(all.suppliers.find((x) => x.name === "Their supplier")?.businessId).toBe(ids.theirs);
+    expect(all.suppliers.find((x) => x.name === "Old supplier")?.businessId).toBe(res.businessId);
+    expect(await t.mutation(internal.migrations.toMultiBusiness, { programme: "NP3" })).toEqual({ migrated: false });
+  });
+
   test("uses default settings when none were saved; needs an admin; checks sectors", async () => {
     const t = setup();
+    // Nothing from before the upgrade: nothing to do.
+    expect(await t.mutation(internal.migrations.toMultiBusiness, { programme: "NP1" })).toEqual({ migrated: false });
+    await t.run((ctx) => ctx.db.insert("users", user("s@x.com", "staff", 0)));
     await expect(t.mutation(internal.migrations.toMultiBusiness, { programme: "NP1", sectors: ["ece"] })).rejects.toThrow(
       "Not a NP1 sector: ece",
     );
