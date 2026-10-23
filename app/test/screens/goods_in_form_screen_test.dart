@@ -391,4 +391,57 @@ void main() {
       expect(find.text('Barcode 456'), findsOneWidget);
     });
   });
+
+  group('programme receiving checks', () {
+    final prompts = [
+      {'key': 'attended', 'text': 'Someone was there', 'guidance': 'Be there'},
+      {'key': 'order', 'text': 'Put away in order'},
+      {'key': 'allergen', 'text': 'Allergen info on file'},
+    ];
+
+    testWidgets('must all be answered; answers (incl. N/A) are sent', (
+      tester,
+    ) async {
+      final (convex, popped) = await openForm(tester, {
+        'programmes:current': (_) => programme(prompts: prompts),
+      });
+      expect(find.text('PROGRAMME CHECKS'), findsOneWidget);
+      expect(find.text('Be there'), findsOneWidget);
+      await chooseSupplier(tester, 'Fresh Foods');
+      await addItem(tester, 'Flour');
+      await tapOn(tester, find.textContaining('Save delivery'));
+      expect(find.text('Answer the programme checks'), findsOneWidget);
+      expect(convex.callsTo('deliveries:create'), isEmpty);
+
+      await tapOn(tester, find.widgetWithText(ChoiceChip, 'Yes').at(0));
+      await tapOn(tester, find.widgetWithText(ChoiceChip, 'No').at(1));
+      await tapOn(tester, find.widgetWithText(ChoiceChip, 'N/A').at(2));
+      await tapOn(tester, find.textContaining('Save delivery'));
+      expect(
+        convex.callsTo('deliveries:create').single.args['programmeAnswers'],
+        [
+          {'key': 'attended', 'value': true},
+          {'key': 'order', 'value': false},
+          {'key': 'allergen', 'value': null},
+        ],
+      );
+      expect(popped, hasLength(1));
+    });
+
+    testWidgets('no programme checks: nothing extra is sent', (tester) async {
+      final (convex, _) = await openForm(tester);
+      expect(find.text('PROGRAMME CHECKS'), findsNothing);
+      await chooseSupplier(tester, 'Fresh Foods');
+      await addItem(tester, 'Flour');
+      await tapOn(tester, find.textContaining('Save delivery'));
+      expect(
+        convex
+            .callsTo('deliveries:create')
+            .single
+            .args
+            .containsKey('programmeAnswers'),
+        isFalse,
+      );
+    });
+  });
 }

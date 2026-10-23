@@ -11,6 +11,7 @@ class CorrectiveActionsScreen extends StatelessWidget {
     'temperature': 'Temperature',
     'audit': 'Audit',
     'stock': 'Stock',
+    'record': 'Programme record',
     'manual': 'Manual',
   };
 

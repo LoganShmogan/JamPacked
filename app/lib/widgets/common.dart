@@ -27,6 +27,12 @@ extension AppContext on BuildContext {
   Future<dynamic> a(String path, [Map<String, dynamic> args = const {}]) =>
       convex.action(path, _scoped(args));
 
+  /// For functions that belong to the user rather than a business (e.g. their custom programmes).
+  Future<dynamic> userQ(String path, [Map<String, dynamic> args = const {}]) =>
+      convex.query(path, {...args, 'sessionToken': token});
+  Future<dynamic> userM(String path, [Map<String, dynamic> args = const {}]) =>
+      convex.mutation(path, {...args, 'sessionToken': token});
+
   void toast(String msg, {bool error = false}) {
     ScaffoldMessenger.of(this)
       ..hideCurrentSnackBar()
@@ -77,11 +83,15 @@ class QueryBuilder extends StatefulWidget {
     this.args = const {},
     required this.builder,
     this.refreshable = true,
+    this.userScoped = false,
   });
   final String path;
   final Map<String, dynamic> args;
   final Widget Function(BuildContext context, dynamic data) builder;
   final bool refreshable;
+
+  /// Query belongs to the user, not the current business (no businessId is sent).
+  final bool userScoped;
 
   @override
   State<QueryBuilder> createState() => _QueryBuilderState();
@@ -118,7 +128,9 @@ class _QueryBuilderState extends State<QueryBuilder> {
 
   Future<void> _load() async {
     try {
-      final d = await context.q(widget.path, widget.args);
+      final d = widget.userScoped
+          ? await context.userQ(widget.path, widget.args)
+          : await context.q(widget.path, widget.args);
       if (mounted) setState(() => (_data = d, _error = null, _loading = false));
     } on ConvexException catch (e) {
       if (mounted) setState(() => (_error = e.message, _loading = false));

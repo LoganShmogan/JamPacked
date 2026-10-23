@@ -3,14 +3,14 @@ import { mutation, query } from "./_generated/server";
 import { logAudit } from "./lib/audit";
 import { computeFacts } from "./lib/facts";
 import { inBusiness, requireMember, scoped } from "./lib/session";
-import { TEMPLATES } from "./lib/templates";
+import { allTemplates, loadModule } from "./lib/module";
 import { answerValue } from "./schema";
 
 export const templates = query({
   args: scoped,
   handler: async (ctx, { sessionToken, businessId }) => {
-    await requireMember(ctx, sessionToken, businessId);
-    return TEMPLATES.map(({ questions, ...t }) => ({
+    const { business } = await requireMember(ctx, sessionToken, businessId);
+    return allTemplates(await loadModule(ctx, business)).map(({ questions, ...t }) => ({
       ...t,
       questionCount: questions.length,
       autoFillCount: questions.filter((q) => q.autoFill).length,
@@ -55,7 +55,7 @@ export const start = mutation({
   },
   handler: async (ctx, { sessionToken, businessId, templateKey, tzOffsetMinutes, ...p }) => {
     const { user, business } = await requireMember(ctx, sessionToken, businessId);
-    const template = TEMPLATES.find((t) => t.key === templateKey);
+    const template = allTemplates(await loadModule(ctx, business)).find((t) => t.key === templateKey);
     if (!template) throw new ConvexError("Unknown audit template");
     const periodEnd = p.periodEnd ?? Date.now();
     const periodStart = p.periodStart ?? periodEnd - template.defaultPeriodDays * 86_400_000;
@@ -142,11 +142,12 @@ export const refreshAutoFill = mutation({
     const { user, business } = await requireMember(ctx, sessionToken, businessId);
     const audit = inBusiness(await ctx.db.get(id), businessId, "Audit");
     if (audit.status === "completed") throw new ConvexError("Completed audits are locked");
-    const template = TEMPLATES.find((t) => t.key === audit.templateKey)!;
+    // A template can disappear if the business changes programme: then nothing auto-fills.
+    const template = allTemplates(await loadModule(ctx, business)).find((t) => t.key === audit.templateKey);
     const facts = await computeFacts(ctx, business, audit.periodStart, Date.now(), audit.tzOffsetMinutes);
     let changed = 0;
     const answers = audit.answers.map((a) => {
-      const key = template.questions.find((q) => q.id === a.questionId)?.autoFill;
+      const key = template?.questions.find((q) => q.id === a.questionId)?.autoFill;
       const isManual = !a.autoFilled && a.answeredByName && a.answeredByName !== "Auto-filled";
       if (!key || isManual) return a;
       const f = facts[key];

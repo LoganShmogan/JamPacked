@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodsafe/screens/delivery_detail_screen.dart';
 import 'package:foodsafe/screens/goods_in_form_screen.dart';
@@ -195,6 +196,43 @@ void main() {
       expect(find.text('Yes'), findsNWidgets(2));
       expect(find.text('Late'), findsOneWidget);
       expect(find.text('Vehicle temp'), findsNothing);
+    });
+
+    testWidgets('shows the programme checks answered on receipt', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        const DeliveryDetailScreen(id: 'd1'),
+        convex: fakeWith({
+          'deliveries:get': (_) => detail(
+            extra: {
+              'programmeAnswers': [
+                {'key': 'a', 'text': 'Someone was there', 'value': true},
+                {'key': 'b', 'text': 'Put away in order', 'value': false},
+                {'key': 'c', 'text': 'Allergen info', 'value': null},
+              ],
+            },
+          ),
+        }),
+      );
+      expect(find.text('PROGRAMME CHECKS'), findsOneWidget);
+      expect(
+        find.widgetWithText(ListTile, 'Someone was there'),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: find.byType(ListTile), matching: find.text('N/A')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: find.byType(ListTile), matching: find.text('No')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: find.byType(ListTile), matching: find.text('Yes')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('voided records show the reason and cannot be edited', (

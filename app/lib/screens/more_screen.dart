@@ -7,6 +7,7 @@ import '../widgets/business_form.dart';
 import '../widgets/common.dart';
 import 'admin_screens.dart';
 import 'corrective_actions_screen.dart';
+import 'programme_screen.dart';
 import 'business_picker_screen.dart';
 import 'expiring_screen.dart';
 import 'products_screen.dart';
@@ -95,6 +96,13 @@ class MoreScreen extends StatelessWidget {
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => context.auth.switchBusiness(),
+                      ),
+                      const Divider(),
+                      tile(
+                        Icons.verified,
+                        'Programme',
+                        'What your programme asks for',
+                        const ProgrammeScreen(),
                       ),
                       const Divider(),
                       tile(

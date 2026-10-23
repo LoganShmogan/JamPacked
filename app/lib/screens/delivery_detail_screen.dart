@@ -100,6 +100,25 @@ class DeliveryDetailScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (d['programmeAnswers'] != null) ...[
+                      const SectionTitle('Programme checks'),
+                      Card(
+                        child: Column(
+                          children: [
+                            for (final a in d['programmeAnswers'])
+                              ListTile(
+                                dense: true,
+                                title: Text(a['text']),
+                                trailing: switch (a['value']) {
+                                  true => const Pill('Yes', tone: Tone.ok),
+                                  false => const Pill('No', tone: Tone.bad),
+                                  _ => const Pill('N/A'),
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                     SectionTitle('Items (${items.length})'),
                     for (final i in items) ...[
                       _ItemCard(item: i),

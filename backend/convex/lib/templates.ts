@@ -2,7 +2,10 @@
 // and AU (FSANZ Food Standards Code Std 3.2.2, 3.2.2A). Questions with `autoFill` are answered from
 // goods inwards, temperature logs and corrective actions for the audit period.
 
-export type Question = {
+/** Limits an item to businesses in (or not in) certain programme sectors. */
+export type SectorScoped = { sectors?: string[]; excludeSectors?: string[] };
+
+export type Question = SectorScoped & {
   id: string;
   section: string;
   text: string;
@@ -11,6 +14,8 @@ export type Question = {
   guidance?: string;
 };
 
+export type Frequency = "daily" | "weekly" | "monthly" | "yearly";
+
 export type Template = {
   key: string;
   name: string;
@@ -18,6 +23,8 @@ export type Template = {
   standardRef: string;
   defaultPeriodDays: number;
   questions: Question[];
+  /** How often a programme expects it; drives the "Due" list. */
+  frequency?: Frequency;
 };
 
 export const TEMPLATES: Template[] = [

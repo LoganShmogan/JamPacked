@@ -32,6 +32,45 @@ export const movementType = v.union(
   v.literal("void"),
 );
 
+export const frequency = v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"), v.literal("yearly"));
+
+/** A custom programme's parts, shaped like the built-in modules in convex/lib/programmes.ts. */
+export const customField = v.object({
+  key: v.string(),
+  label: v.string(),
+  type: v.union(v.literal("yesno"), v.literal("number"), v.literal("text"), v.literal("date")),
+  required: v.optional(v.boolean()),
+  unit: v.optional(v.string()),
+  failIf: v.optional(
+    v.object({ equals: v.optional(v.boolean()), above: v.optional(v.number()), below: v.optional(v.number()), message: v.string() }),
+  ),
+});
+export const customRecordType = v.object({
+  key: v.string(),
+  name: v.string(),
+  description: v.string(),
+  fields: v.array(customField),
+  frequency: v.optional(frequency),
+});
+export const customPrompt = v.object({ key: v.string(), text: v.string(), guidance: v.optional(v.string()) });
+export const customChecklist = v.object({
+  key: v.string(),
+  name: v.string(),
+  description: v.string(),
+  defaultPeriodDays: v.number(),
+  frequency: v.optional(frequency),
+  questions: v.array(
+    v.object({
+      id: v.string(),
+      section: v.string(),
+      text: v.string(),
+      type: v.union(v.literal("yesno"), v.literal("number"), v.literal("text")),
+      guidance: v.optional(v.string()),
+      autoFill: v.optional(v.string()), // kept when copied from a built-in checklist
+    }),
+  ),
+});
+
 export const answerValue = v.union(v.string(), v.number(), v.boolean(), v.null());
 
 export const programmeKey = v.union(v.literal("NP1"), v.literal("NP2"), v.literal("NP3"), v.literal("custom"));
@@ -69,10 +108,24 @@ export default defineSchema({
     hotMinC: v.number(),
     expiryWarningDays: v.number(),
     programme: programmeKey, // the standard this business follows (convex/lib/programmes.ts)
+    customProgrammeId: v.optional(v.id("customProgrammes")), // when programme is "custom"
     sectors: v.array(v.string()), // programme sectors that apply, e.g. "ece", "transport"
     ownerId: v.id("users"),
     archived: v.boolean(), // businesses are archived, never deleted (records kept 7 years)
     createdAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  // Programmes people build themselves; owned by a user so they can reuse them across businesses.
+  customProgrammes: defineTable({
+    ownerId: v.id("users"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    dailyChilledCheck: v.boolean(),
+    receivingPrompts: v.array(customPrompt),
+    recordTypes: v.array(customRecordType),
+    templates: v.array(customChecklist),
+    createdAt: v.number(),
+    updatedAt: v.number(),
   }).index("by_owner", ["ownerId"]),
 
   memberships: defineTable({
@@ -155,6 +208,10 @@ export default defineSchema({
     vehicleTempC: v.optional(v.number()),
     status: v.union(v.literal("accepted"), v.literal("partial"), v.literal("rejected")),
     notes: v.optional(v.string()),
+    // The programme's extra receiving checks (true / false / null = not applicable)
+    programmeAnswers: v.optional(
+      v.array(v.object({ key: v.string(), text: v.string(), value: v.union(v.boolean(), v.null()) })),
+    ),
     receivedById: v.id("users"),
     receivedByName: v.string(),
     voided: v.boolean(),
@@ -265,6 +322,24 @@ export default defineSchema({
     ),
   }).index("by_business_startedAt", ["businessId", "startedAt"]),
 
+  // ---- Programme records: pest checks, calibration, training, mock recalls, cooking... ----
+  // One generic table; what fields each record type has comes from the business's programme.
+  records: defineTable({
+    businessId: v.id("businesses"),
+    programme: v.string(),
+    recordType: v.string(),
+    recordName: v.string(),
+    values: v.record(v.string(), answerValue),
+    issues: v.array(v.string()), // limits this record failed; each raised a corrective action
+    at: v.number(),
+    byId: v.id("users"),
+    byName: v.string(),
+    voided: v.boolean(),
+    voidReason: v.optional(v.string()),
+  })
+    .index("by_business_at", ["businessId", "at"])
+    .index("by_business_type", ["businessId", "recordType", "at"]),
+
   // ---- Temperature monitoring ----
   temperatureLogs: defineTable({
     businessId,
@@ -329,6 +404,7 @@ export default defineSchema({
       v.literal("temperature"),
       v.literal("audit"),
       v.literal("stock"),
+      v.literal("record"),
       v.literal("manual"),
     ),
     sourceId: v.optional(v.string()),

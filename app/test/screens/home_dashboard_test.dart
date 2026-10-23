@@ -7,6 +7,7 @@ import 'package:foodsafe/screens/goods_in_form_screen.dart';
 import 'package:foodsafe/screens/goods_in_screen.dart';
 import 'package:foodsafe/screens/home_shell.dart';
 import 'package:foodsafe/screens/more_screen.dart';
+import 'package:foodsafe/screens/programme_screen.dart';
 import 'package:foodsafe/screens/stock_screen.dart';
 import 'package:foodsafe/screens/suppliers_screen.dart';
 import 'package:foodsafe/screens/temperature_screen.dart';
@@ -210,6 +211,19 @@ void main() {
         expect(find.byType(screen), findsOneWidget);
       });
     }
+
+    testWidgets('lists what is due; the Programme link opens the programme', (
+      tester,
+    ) async {
+      await pumpDash(tester, summary());
+      expect(find.text('Pest check'), findsOneWidget);
+      expect(
+        find.text('Check chilled food is at 5°C or lower'),
+        findsNothing,
+      ); // done
+      await tapOn(tester, find.widgetWithText(TextButton, 'Programme'));
+      expect(find.byType(ProgrammeScreen), findsOneWidget);
+    });
 
     testWidgets('"Temperature check" opens the recorder straight away', (
       tester,

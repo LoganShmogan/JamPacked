@@ -145,6 +145,13 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reloads the business list and the current business (after its settings change).
+  Future<void> refreshCurrent() async {
+    await loadBusinesses();
+    final b = businesses.where((x) => x.id == business?.id).firstOrNull;
+    if (b != null) await selectBusiness(b);
+  }
+
   /// Back to the business picker.
   Future<void> switchBusiness() async {
     business = null;

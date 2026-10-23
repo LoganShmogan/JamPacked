@@ -17,7 +17,8 @@ describe("audits:templates / list / get", () => {
     const t = setup();
     const { token, businessId } = await signIn(t, "staff");
     const list = await t.query(api.audits.templates, { sessionToken: token, businessId });
-    expect(list.map((x) => x.key)).toEqual(TEMPLATES.map((x) => x.key));
+    // The built-in templates, then the business's programme checklists (NP2 here).
+    expect(list.map((x) => x.key)).toEqual([...TEMPLATES.map((x) => x.key), "np2_self_check"]);
     const gr = list.find((x) => x.key === "goods_receipt")!;
     expect(gr).toMatchObject({ questionCount: 11, autoFillCount: 10 });
     expect(gr).not.toHaveProperty("questions");

@@ -9,7 +9,17 @@ String programmeLabel(String key) => key == 'custom' ? 'Custom' : key;
 /// Business name, the programme it follows (NP1/NP2/NP3 or custom) and which of that
 /// programme's sectors apply. Used at sign-up and when adding another business.
 class BusinessForm extends StatefulWidget {
-  const BusinessForm({super.key});
+  const BusinessForm({
+    super.key,
+    this.showName = true,
+    this.initialProgramme,
+    this.initialSectors = const [],
+  });
+
+  /// False when only changing the programme of an existing business.
+  final bool showName;
+  final String? initialProgramme;
+  final List<String> initialSectors;
   @override
   State<BusinessForm> createState() => BusinessFormState();
 }
@@ -18,8 +28,8 @@ class BusinessFormState extends State<BusinessForm> {
   final _name = TextEditingController();
   List<Map<String, dynamic>>? _programmes;
   String? _error;
-  String? _programme;
-  final _sectors = <String>{};
+  late String? _programme = widget.initialProgramme;
+  late final _sectors = {...widget.initialSectors};
   bool _showErrors = false;
 
   @override
@@ -46,9 +56,11 @@ class BusinessFormState extends State<BusinessForm> {
   /// The business to create, or null (with errors shown) if incomplete.
   Map<String, dynamic>? collect() {
     setState(() => _showErrors = true);
-    if (_name.text.trim().isEmpty || _programme == null) return null;
+    if ((widget.showName && _name.text.trim().isEmpty) || _programme == null) {
+      return null;
+    }
     return {
-      'name': _name.text.trim(),
+      if (widget.showName) 'name': _name.text.trim(),
       'programme': _programme,
       'sectors': _sectors.toList(),
     };
@@ -73,17 +85,18 @@ class BusinessFormState extends State<BusinessForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          controller: _name,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(
-            labelText: 'Business name',
-            prefixIcon: const Icon(Icons.storefront_outlined),
-            errorText: _showErrors && _name.text.trim().isEmpty
-                ? 'Required'
-                : null,
+        if (widget.showName)
+          TextField(
+            controller: _name,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              labelText: 'Business name',
+              prefixIcon: const Icon(Icons.storefront_outlined),
+              errorText: _showErrors && _name.text.trim().isEmpty
+                  ? 'Required'
+                  : null,
+            ),
           ),
-        ),
         const SectionTitle('Which programme do you follow?'),
         if (_showErrors && _programme == null)
           const Padding(

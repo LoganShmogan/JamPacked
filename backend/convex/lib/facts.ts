@@ -61,6 +61,23 @@ export async function computeFacts(
   }
   const tempLogBad = temps.filter((t) => !t.compliant);
 
+  // Programme records: the last year, so yearly checks (mock recall) can be seen from any period.
+  const yearRecords = (
+    await ctx.db
+      .query("records")
+      .withIndex("by_business_at", (q) => q.eq("businessId", businessId).gte("at", end - 365 * 86_400_000).lte("at", end))
+      .collect()
+  ).filter((r) => !r.voided);
+  const ofType = (t: string) => yearRecords.filter((r) => r.recordType === t);
+  const inPeriod = yearRecords.filter((r) => r.at >= start);
+  const mockRecalls = ofType("mock_recall");
+  const pestChecks = ofType("pest_check").filter((r) => r.at >= start);
+  const pestsFound = pestChecks.filter((r) => r.values.found === true);
+  const calibrations = ofType("calibration").filter((r) => r.at >= end - 90 * 86_400_000);
+  const trainings = ofType("training");
+  const flaggedIds = new Set(inPeriod.filter((r) => r.issues.length).map((r) => r._id as string));
+  const openFromRecords = openCAs.filter((c) => c.source === "record" && flaggedIds.has(c.sourceId!));
+
   return {
     "gi.count": {
       value: deliveries.length,
@@ -130,6 +147,36 @@ export async function computeFacts(
     "temp.daily": {
       value: missingDays.length === 0,
       evidence: missingDays.length ? `No checks on: ${list(missingDays)}` : "Checks recorded every day",
+    },
+    "records.mockRecall": {
+      value: mockRecalls.length > 0,
+      evidence: mockRecalls.length
+        ? `Last mock recall ${fmtDate(Math.max(...mockRecalls.map((r) => r.at)), tz)}`
+        : "No mock recall recorded in the last 12 months",
+    },
+    "records.noPests": pestChecks.length === 0 ? none("pest checks") : {
+      value: pestsFound.length === 0,
+      evidence: pestsFound.length
+        ? `Pests found on ${list(pestsFound.map((r) => fmtDate(r.at, tz)))}`
+        : `${pestChecks.length} pest check(s), nothing found`,
+    },
+    "records.calibrated": {
+      value: calibrations.length > 0,
+      evidence: calibrations.length
+        ? `${calibrations.length} thermometer check(s) in the last 3 months`
+        : "No thermometer check in the last 3 months",
+    },
+    "records.training": {
+      value: trainings.length > 0,
+      evidence: trainings.length
+        ? `${trainings.length} training record(s) in the last 12 months`
+        : "No training recorded in the last 12 months",
+    },
+    "records.issuesHandled": {
+      value: openFromRecords.length === 0,
+      evidence: flaggedIds.size === 0
+        ? "No records flagged a problem"
+        : `${flaggedIds.size} record(s) flagged a problem, ${openFromRecords.length} still open`,
     },
     "ca.allClosed": {
       value: openCAs.length === 0,

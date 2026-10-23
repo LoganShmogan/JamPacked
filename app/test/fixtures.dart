@@ -172,6 +172,10 @@ Map<String, Handler> baseHandlers() => {
   'stocktakes:list': (_) => [],
   'stocktakes:get': (_) => null,
   'locations:list': (_) => [],
+  'programmes:current': (_) => programme(),
+  'programmes:due': (_) => due(),
+  'records:list': (_) => [],
+  'customProgrammes:mine': (_) => [],
   'deliveries:trace': (_) => [],
   'deliveries:suggestionsForSupplier': (_) => [],
   'audits:templates': (_) => templates,
@@ -223,4 +227,81 @@ Map<String, dynamic> lot({
 final locations = [
   {'_id': 'loc1', 'name': 'Chiller 1', 'kind': 'chiller', 'active': true},
   {'_id': 'loc2', 'name': 'Old shelf', 'kind': 'dry', 'active': false},
+];
+
+final pestCheck = {
+  'key': 'pest_check',
+  'name': 'Pest check',
+  'description': 'Look for pests.',
+  'frequency': 'weekly',
+  'fields': [
+    {'key': 'area', 'label': 'Areas checked', 'type': 'text', 'required': true},
+    {
+      'key': 'found',
+      'label': 'Signs of pests found?',
+      'type': 'yesno',
+      'required': true,
+    },
+    {'key': 'count', 'label': 'Traps', 'type': 'number', 'unit': ' traps'},
+    {'key': 'next', 'label': 'Next visit', 'type': 'date'},
+  ],
+};
+
+Map<String, dynamic> programme({
+  String key = 'NP2',
+  List prompts = const [],
+  List? records,
+  List? schedule,
+  String? customProgrammeId,
+  bool ownsProgramme = false,
+  List sectorLabels = const [],
+}) => {
+  'key': key,
+  'name': key == 'custom' ? 'Our plan' : 'National Programme 2',
+  'sectors': <String>[],
+  'sectorLabels': sectorLabels,
+  'receivingPrompts': prompts,
+  'recordTypes': records ?? [pestCheck],
+  'templates': [
+    {
+      'key': 'np2_self_check',
+      'name': 'NP2 self-check',
+      'description': 'Self check',
+      'defaultPeriodDays': 30,
+      'frequency': 'monthly',
+      'questionCount': 18,
+    },
+  ],
+  'schedule':
+      schedule ??
+      [
+        {'key': 'chilled_check'},
+      ],
+  'customProgrammeId': ?customProgrammeId,
+  'ownsProgramme': ownsProgramme,
+};
+
+List<Map<String, dynamic>> due({bool allDone = false}) => [
+  {
+    'key': 'chilled_check',
+    'label': 'Check chilled food is at 5°C or lower',
+    'frequency': 'daily',
+    'satisfiedBy': {'kind': 'temperature'},
+    'done': true,
+    'lastAt': t0,
+  },
+  {
+    'key': 'pest_check',
+    'label': 'Pest check',
+    'frequency': 'weekly',
+    'satisfiedBy': {'kind': 'record', 'recordType': 'pest_check'},
+    'done': allDone,
+  },
+  {
+    'key': 'self_check',
+    'label': 'NP2 self-check',
+    'frequency': 'monthly',
+    'satisfiedBy': {'kind': 'audit', 'templateKey': 'np2_self_check'},
+    'done': allDone,
+  },
 ];

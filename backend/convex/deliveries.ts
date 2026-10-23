@@ -4,6 +4,7 @@ import { MutationCtx, mutation, query } from "./_generated/server";
 import { logAudit } from "./lib/audit";
 import { isTempCompliant } from "./lib/settings";
 import { inBusiness, requireMember, scoped } from "./lib/session";
+import { loadModule } from "./lib/module";
 import { createLot, recordMovement } from "./lib/stock";
 import { storageType } from "./schema";
 
@@ -60,10 +61,20 @@ export const create = mutation({
     vehicleClean: v.boolean(),
     vehicleTempC: v.optional(v.number()),
     notes: v.optional(v.string()),
+    // Answers to the programme's receiving prompts: true / false / null or absent (not applicable)
+    programmeAnswers: v.optional(
+      v.array(v.object({ key: v.string(), value: v.optional(v.union(v.boolean(), v.null())) })),
+    ),
     items: v.array(itemInput),
   },
-  handler: async (ctx, { sessionToken, businessId, items, ...args }) => {
+  handler: async (ctx, { sessionToken, businessId, items, programmeAnswers, ...args }) => {
     const { user, business: settings } = await requireMember(ctx, sessionToken, businessId);
+    const prompts = (await loadModule(ctx, settings)).receivingPrompts;
+    const answers = (programmeAnswers ?? []).map((a) => {
+      const p = prompts.find((x) => x.key === a.key);
+      if (!p) throw new ConvexError(`Unknown receiving check: ${a.key}`);
+      return { key: a.key, value: a.value ?? null, text: p.text };
+    });
     if (items.length === 0) throw new ConvexError("Add at least one item");
     const supplier = inBusiness(await ctx.db.get(args.supplierId), businessId, "Supplier");
     const receivedAt = args.receivedAt ?? Date.now();
@@ -80,6 +91,7 @@ export const create = mutation({
 
     const deliveryId = await ctx.db.insert("deliveries", {
       ...args,
+      ...(answers.length ? { programmeAnswers: answers } : {}),
       businessId,
       receivedAt,
       supplierName: supplier.name,
@@ -179,6 +191,14 @@ export const create = mutation({
         sourceId: deliveryId,
       });
     }
+    for (const a of answers.filter((x) => x.value === false)) {
+      await raiseCA(ctx, user, businessId, {
+        title: `Receiving check failed: ${a.text}`,
+        description: `Delivery from ${supplier.name}.`,
+        severity: "medium",
+        sourceId: deliveryId,
+      });
+    }
     if (!args.vehicleClean) {
       await raiseCA(ctx, user, businessId, {
         title: `Delivery vehicle not clean: ${supplier.name}`,
@@ -193,7 +213,7 @@ export const create = mutation({
       entityType: "delivery",
       entityId: deliveryId,
       summary: `Goods received from ${supplier.name}: ${items.length} item(s), ${status}${issues.length ? `. ${issues.join("; ")}` : ""}`,
-      changes: { ...args, items },
+      changes: { ...args, items, programmeAnswers: answers },
     });
     return deliveryId;
   },
