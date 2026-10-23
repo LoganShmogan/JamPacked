@@ -64,6 +64,14 @@ DateTime fromMs(dynamic ms) =>
     DateTime.fromMillisecondsSinceEpoch((ms as num).toInt());
 String fmtDateTime(dynamic ms) => ms == null ? '-' : _dt.format(fromMs(ms));
 String fmtDate(dynamic ms) => ms == null ? '-' : _d.format(fromMs(ms));
+
+/// Records are never deleted, and kept at least this long (convex/lib/retention.ts).
+const retentionYears = 7;
+String keptUntil(dynamic ms) {
+  final d = fromMs(ms);
+  return _d.format(DateTime(d.year + retentionYears, d.month, d.day));
+}
+
 int localDayStartMs() {
   final n = DateTime.now();
   return DateTime(n.year, n.month, n.day).millisecondsSinceEpoch;

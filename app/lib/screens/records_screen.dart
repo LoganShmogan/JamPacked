@@ -114,6 +114,13 @@ class RecordsScreen extends StatelessWidget {
                                 icon: Icons.warning_amber,
                               ),
                             ),
+                          Text(
+                            'Kept until ${keptUntil(r['at'])}',
+                            style: const TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 12,
+                            ),
+                          ),
                           if (r['voidReason'] != null)
                             Text(
                               'Voided: ${r['voidReason']}',

@@ -7,6 +7,7 @@ import '../widgets/business_form.dart';
 import '../widgets/common.dart';
 import 'admin_screens.dart';
 import 'corrective_actions_screen.dart';
+import 'export_screen.dart';
 import 'programme_screen.dart';
 import 'business_picker_screen.dart';
 import 'expiring_screen.dart';
@@ -187,6 +188,13 @@ class MoreScreen extends StatelessWidget {
                             'Business settings',
                             'NZ/AU, registration, temperature limits',
                             const SettingsScreen(),
+                          ),
+                          const Divider(),
+                          tile(
+                            Icons.download,
+                            'Export records',
+                            'Kept $retentionYears years; download a full copy',
+                            const ExportScreen(),
                           ),
                         ],
                       ],

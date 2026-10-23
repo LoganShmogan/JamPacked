@@ -4,6 +4,7 @@ import 'package:foodsafe/main.dart';
 import 'package:foodsafe/screens/admin_screens.dart';
 import 'package:foodsafe/screens/business_picker_screen.dart';
 import 'package:foodsafe/screens/expiring_screen.dart';
+import 'package:foodsafe/screens/export_screen.dart';
 import 'package:foodsafe/screens/login_screen.dart';
 import 'package:foodsafe/screens/more_screen.dart';
 import 'package:foodsafe/screens/products_screen.dart';
@@ -97,6 +98,7 @@ void main() {
     ('Members', MembersScreen),
     ('Add another business', AddBusinessScreen),
     ('Business settings', SettingsScreen),
+    ('Export records', ExportScreen),
   ]) {
     testWidgets('admin: "$label" opens $screen', (tester) async {
       await pumpScreen(tester, const MoreScreen(), convex: fakeWith());

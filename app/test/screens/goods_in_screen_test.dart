@@ -217,6 +217,7 @@ void main() {
         }),
       );
       expect(find.text('PROGRAMME CHECKS'), findsOneWidget);
+      expect(find.text('6 May 2031'), findsOneWidget); // kept until
       expect(
         find.widgetWithText(ListTile, 'Someone was there'),
         findsOneWidget,

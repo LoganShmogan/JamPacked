@@ -96,6 +96,7 @@ class DeliveryDetailScreen extends StatelessWidget {
                                 '${fmtNum(d['vehicleTempC'])}°C',
                               ),
                             InfoRow('Notes', d['notes'] ?? '-'),
+                            InfoRow('Kept until', keptUntil(d['receivedAt'])),
                           ],
                         ),
                       ),

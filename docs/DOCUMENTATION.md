@@ -1,8 +1,11 @@
 # NZSafetyHealthApp: Technical & User Documentation
 
 Food safety record-keeping for New Zealand and Australian food businesses. Mobile-first Flutter app
-(Android, iOS, web) backed by Convex. **Goods inwards is the core workflow**: every delivery recorded feeds
-audits, corrective actions, expiry alerts, the product catalogue and recall tracing automatically.
+(Android, iOS, web) backed by Convex. **Goods inwards and stock are the core**: every delivery recorded
+becomes stock you can rotate, use, dispatch, hold and recall, and feeds audits, corrective actions,
+expiry alerts and tracing automatically. On top of that, each business follows a **programme module**
+(MPI National Programme 1, 2 or 3, or a custom programme it builds) that decides which extra checks
+and records the app asks for. One account can run several businesses.
 
 Live: https://foodsafety.savepoint.co.nz
 
@@ -19,7 +22,7 @@ Live: https://foodsafety.savepoint.co.nz
 7. [Audit templates](#7-audit-templates)
 8. [Compliance rules (NZ & AU)](#8-compliance-rules-nz--au)
 9. [Authentication, roles & security](#9-authentication-roles--security)
-10. [Audit trail & record integrity](#10-audit-trail--record-integrity)
+10. [Audit trail, record integrity & 7-year retention](#10-audit-trail-record-integrity--7-year-retention)
 11. [Flutter app reference](#11-flutter-app-reference)
 12. [Screens: user guide](#12-screens-user-guide)
 13. [Local development](#13-local-development)
@@ -32,48 +35,57 @@ Live: https://foodsafety.savepoint.co.nz
 ## 1. Concepts & workflow
 
 ```
- Delivery arrives
+ Sign up ─► your account + main business (programme: NP1 / NP2 / NP3 / custom, plus sectors)
+            add more businesses later; each day pick the one you're working in
        │
        ▼
  GOODS INWARDS  ──► products catalogue (auto-created / barcode lookup)
  (per item: temp, batch,        │
-  dates, condition, allergens,  ├──► CORRECTIVE ACTIONS (auto-raised on problems)
-  accept / reject)              ├──► EXPIRING STOCK alerts
-       │                        └──► TRACE & RECALL search
+  dates, condition, allergens,  ├──► STOCK LOTS (put away to a location)
+  accept / reject; plus the     │      use · sell · dispatch · waste · adjust · move · hold
+  programme's receiving checks) │      FIFO / expiry alerts · par levels · stocktakes · recall
+       │                        ├──► CORRECTIVE ACTIONS (auto-raised on problems)
+       │                        └──► TRACE & RECALL (one step back and one step forward)
        ▼
- AUDITS pre-answer themselves from goods inwards + temperature logs + corrective actions
+ PROGRAMME: "Due" list ─► records (pest checks, calibration, mock recall, cooking, pH...)
+                         ─► checklists (self-check) and the built-in audits
        │
        ▼
- Sign-off locks audit; "No" answers raise corrective actions
+ AUDITS pre-answer themselves from goods inwards, stock, temperatures, records and CAs
        │
        ▼
- AUDIT TRAIL records every action: who, what, when, field-level changes
+ AUDIT TRAIL records every action: who, what, when, field-level changes. Kept 7 years; nothing is deleted.
 ```
 
 | Term | Meaning |
 |---|---|
-| **Delivery** | One drop-off from one supplier (header: supplier, invoice, vehicle check). |
+| **Business** | One site/company. Everything below belongs to exactly one business. |
+| **Membership** | A user's role (admin / manager / staff) in one business. One person can be in several. |
+| **Programme** | What the business follows: NP1, NP2 or NP3 (built in, from MPI's Dec 2025 guidance) or a custom programme. Sectors narrow it (e.g. NP2 ECE). |
+| **Delivery** | One drop-off from one supplier (header: supplier, invoice, vehicle check, programme checks). |
 | **Delivery item** | One product line on a delivery, checked individually and accepted or rejected. |
+| **Stock lot** | What an accepted delivery item becomes: quantity on hand, batch, dates, location, status (available / hold / depleted). |
+| **Movement** | Any change to a lot (receive, use, sell, dispatch, waste, adjust, stocktake, transfer, hold, release, void). Append-only. |
+| **Record** | A programme record such as a pest check or mock recall. Fields come from the programme; answers outside limits raise CAs. |
 | **Corrective action (CA)** | A recorded non-conformance and how it was resolved. Open → closed with a resolution. |
-| **Audit** | A filled-in copy of a template covering a time period. In progress → completed (locked). |
+| **Audit** | A filled-in copy of a template or programme checklist covering a time period. In progress → completed (locked). |
 | **Fact** | A value computed from records (e.g. "all deliveries in range?") used to auto-answer audit questions. |
 | **Void** | The only way to "remove" a record. It stays in the database flagged void, with a reason, in the audit trail. |
-
----
 
 ## 2. Architecture
 
 ```
  ┌──────────────── Flutter app (web / Android / iOS) ───────────────┐
  │ screens ─► context.q / m / a ─► ConvexClient (HTTP JSON)        │
- │ AuthService holds session token (shared_preferences)             │
+ │ AuthService: session token + business chosen for today           │
  └──────────────────────────────┬───────────────────────────────────┘
                                 │  POST /api/query | /api/mutation | /api/action
                                 ▼
  ┌──────────────────────── Convex backend ──────────────────────────┐
  │ queries (read) · mutations (transactional writes) · actions      │
  │ (password hashing, Open Food Facts fetch)                         │
- │ Every public function: requireUser(sessionToken) → logAudit()    │
+ │ Every business function: requireMember(token, businessId) → ... │
+ │ → logAudit(businessId, ...)                                      │
  └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -100,21 +112,35 @@ NZSafetyHealthApp/
 │   ├── tests/                   Vitest + convex-test unit tests (see docs/TESTING.md)
 │   └── convex/
 │       ├── schema.ts            Tables, indexes, shared validators
-│       ├── auth.ts              Register / login / logout / me / users
-│       ├── settings.ts          Business settings
+│       ├── auth.ts              Register (account + main business) / login / logout / me
+│       ├── businesses.ts        Programme catalogue, my businesses, add, archive, members, invites
+│       ├── settings.ts          The current business's settings and programme
 │       ├── suppliers.ts         Approved supplier list
-│       ├── products.ts          Product catalogue + barcode lookup (Open Food Facts)
-│       ├── deliveries.ts        Goods inwards, void, expiring stock, trace
+│       ├── products.ts          Product catalogue, par levels, barcode lookup (Open Food Facts)
+│       ├── deliveries.ts        Goods inwards (creates stock lots), void, trace
+│       ├── stock.ts             On hand, lot history, movements, hold/release, recall, low stock, expiring
+│       ├── locations.ts         Chillers, freezers, dry store...
+│       ├── stocktakes.ts        Count, correct, flag variances
+│       ├── programmes.ts        The business's programme module and its "Due" list
+│       ├── records.ts           Programme records (pest checks, calibration, mock recall...)
+│       ├── customProgrammes.ts  Build, edit and reuse your own programmes
 │       ├── temperature.ts       Temperature checks
 │       ├── correctiveActions.ts Corrective actions
 │       ├── audits.ts            Start / answer / refresh / complete audits
 │       ├── auditLog.ts          Read-only audit trail
 │       ├── dashboard.ts         Home screen summary
+│       ├── exportData.ts        Admin export of every record a business has
+│       ├── migrations.ts        One-off: single-business install → multi-business
 │       ├── lib/
-│       │   ├── session.ts       getUser / requireUser / requireRole
+│       │   ├── session.ts       requireUser / requireMember / inBusiness
+│       │   ├── business.ts      createBusiness, sector checks
+│       │   ├── programmes.ts    NP1/NP2/NP3 catalogue and modules (from the MPI guides)
+│       │   ├── module.ts        Load a business's module (built-in or custom)
+│       │   ├── stock.ts         recordMovement, createLot, FIFO, below-par
+│       │   ├── retention.ts     RETENTION_YEARS = 7
 │       │   ├── password.ts      PBKDF2 hashing, random tokens
 │       │   ├── audit.ts         logAudit() + diff()
-│       │   ├── settings.ts      Defaults, temperature compliance rules
+│       │   ├── settings.ts      Default limits, temperature compliance rules
 │       │   ├── templates.ts     Built-in audit templates
 │       │   └── facts.ts         Auto-fill fact engine
 │       └── _generated/          Convex codegen (committed, do not edit)
@@ -123,14 +149,15 @@ NZSafetyHealthApp/
 │   ├── test/                    Unit & widget tests (see docs/TESTING.md)
 │   ├── tool/check_coverage.dart Fails unless line coverage is 100%
 │   └── lib/
-│       ├── main.dart            Providers, MaterialApp, auth gate
+│       ├── main.dart            Providers, MaterialApp, auth gate (sign in → business → app)
 │       ├── config.dart          CONVEX_URL (dart-define)
 │       ├── theme.dart           Orange/white theme + colour tokens
 │       ├── services/
 │       │   ├── convex_client.dart
-│       │   └── auth_service.dart
+│       │   └── auth_service.dart  Session, businesses, today's business
 │       ├── widgets/
 │       │   ├── common.dart      QueryBuilder, Pill, helpers, constants
+│       │   ├── business_form.dart  Name, programme cards, sectors
 │       │   └── audit_history.dart
 │       └── screens/             One file per screen (see §11)
 └── deploy/
@@ -139,218 +166,160 @@ NZSafetyHealthApp/
     └── deploy.sh                One-command build & deploy
 ```
 
----
-
 ## 4. Data model
 
 Defined in `backend/convex/schema.ts`. All timestamps are **milliseconds since epoch (UTC)**.
 Every document also has Convex's `_id` and `_creationTime`.
 
-### `users`
-| Field | Type | Notes |
+**Every record table has `businessId`**, and every index starts with it (`by_business_...`), so one
+business can never read another's data. `businessId` is declared optional only so data from before the
+multi-business change still validates until `migrations:toMultiBusiness` has run (§14); every write sets it.
+
+### Accounts and businesses
+| Table | Fields | Notes |
 |---|---|---|
-| email | string | Lower-cased, unique (index `by_email`) |
-| name | string | Shown on every record they create |
-| role | `admin` \| `manager` \| `staff` | First registered user = admin |
-| passwordHash / passwordSalt | string (hex) | PBKDF2-SHA256, 100k iterations |
-| active | boolean | Deactivated users can't sign in; their history remains |
-| createdAt | number | |
+| `users` | `email` (unique, `by_email`), `name`, `passwordHash`, `passwordSalt`, `active`, `createdAt`, legacy `role?` | Roles now live on memberships. |
+| `sessions` | `userId`, `token` (`by_token`), `expiresAt` (7 days) | Deleted on logout (the only delete in the backend). |
+| `businesses` | `name`, `jurisdiction` (NZ/AU), `registrationNumber?`, `address?`, `chilledMaxC` (5), `frozenMaxC` (-15), `hotMinC` (60), `expiryWarningDays` (3), `programme` (NP1/NP2/NP3/custom), `customProgrammeId?`, `sectors[]`, `ownerId`, `archived`, `createdAt` | Replaces the old single-row `settings` table (kept only for the migration). Archived, never deleted. |
+| `memberships` | `userId`, `businessId`, `role` (admin/manager/staff), `active`, `createdAt` | `by_user`, `by_business`, `by_user_business`. |
+| `invites` | `businessId`, `email`, `role`, `invitedByName`, `createdAt`, `acceptedAt?` | Claimed when that email signs up. |
+| `customProgrammes` | `ownerId`, `name`, `description?`, `dailyChilledCheck`, `receivingPrompts[]`, `recordTypes[]`, `templates[]`, timestamps | Owned by a user, usable by any business they administer. |
 
-### `sessions`
-`userId`, `token` (64 hex chars, index `by_token`), `expiresAt` (7 days). Deleted on logout.
+### Receiving
+- `suppliers`: `name`, `contactName?`, `phone?`, `email?`, `address?`, `registrationNumber?`, `approved`,
+  `approvalNotes?`, `active`, `createdAt`.
+- `products`: `name`, `brand?`, `barcode?`, `storageType` (chilled/frozen/hot/ambient), `allergens[]`,
+  `ingredients?`, `novaGroup?`, `imageUrl?`, `defaultSupplierId?`, **`parLevel?`, `reorderQty?`**, `active`,
+  `createdAt`. Created manually or **automatically on first delivery**.
+- `deliveries`: `receivedAt`, `supplierId`, `supplierName`, `supplierApproved` (snapshot), `invoiceNumber?`,
+  `vehicleClean`, `vehicleTempC?`, `notes?`, **`programmeAnswers?`** (`{key, text, value: true/false/null}`),
+  `status` (accepted/partial/rejected), `receivedById/Name`, `voided`, `voidReason?`.
+- `deliveryItems`: `deliveryId`, `receivedAt`, `supplierId`, `productId?`, `productName`, `barcode?`,
+  `batchCode?`, `quantity`, `unit`, `useBy?`, `bestBefore?`, `storageType`, `temperatureC?`,
+  `temperatureCompliant` (true/false/null for ambient), `packagingOk`, `labelOk`, `allergens[]`, `accepted`,
+  `rejectionReason?`, `voided`.
 
-### `settings` (single row; defaults used until first save)
-| Field | Default | Notes |
+### Stock
+| Table | Fields | Notes |
 |---|---|---|
-| businessName | "My Food Business" | |
-| jurisdiction | `NZ` | `NZ` or `AU`; changes labels (MPI vs FSANZ) |
-| registrationNumber, address | - | FCP/NP number (NZ) or council licence (AU) |
-| chilledMaxC | 5 | Chilled food received/stored at or below |
-| frozenMaxC | -15 | Frozen food received at or below |
-| hotMinC | 60 | Hot food at or above |
-| expiryWarningDays | 3 | Window for "expiring soon" |
+| `locations` | `name`, `kind` (chiller/freezer/dry/display/other), `active` | Retired, not deleted. |
+| `stockLots` | `productId?`, `productName`, `barcode?`, `deliveryId?`, `deliveryItemId?`, `supplierName?`, `batchCode?`, `useBy?`, `bestBefore?`, `locationId?`, `storageType`, `unit`, `qtyReceived`, `qtyOnHand`, `status` (available/hold/depleted), `holdReason?`, `receivedAt` | One per accepted delivery line, or opening stock. |
+| `stockMovements` | `lotId`, `productName`, `type`, `qty` (signed change), `qtyAfter`, `reason?`, `customer?` (dispatch), `toLocationId?`, `at`, `byId/Name` | Append-only: a lot's movements always add up to what is on hand. |
+| `stocktakes` | `locationId?`, `title`, `status`, `startedAt/ByName`, `completedAt?/ByName?`, `lines[]` (`lotId, productName, batchCode?, unit, expected, counted`) | |
 
-### `suppliers`
-`name`, `contactName?`, `phone?`, `email?`, `address?`, `registrationNumber?`, `approved`,
-`approvalNotes?`, `active`, `createdAt`. Index `by_name`.
-
-### `products`
-`name`, `brand?`, `barcode?` (index `by_barcode`), `storageType` (`chilled`|`frozen`|`hot`|`ambient`),
-`allergens[]`, `ingredients?`, `novaGroup?` (1–4, 4 = ultra-processed), `imageUrl?`,
-`defaultSupplierId?`, `active`, `createdAt`. Created manually or **automatically on first delivery**.
-
-### `deliveries` (goods inwards header)
-| Field | Notes |
-|---|---|
-| receivedAt | Index `by_receivedAt` |
-| supplierId, supplierName | Name denormalised so history survives renames |
-| supplierApproved | **Snapshot** of approval status at time of receipt |
-| invoiceNumber?, vehicleClean, vehicleTempC?, notes? | |
-| status | `accepted` (all items) / `partial` / `rejected` (none), computed server-side |
-| receivedById, receivedByName | Who received it |
-| voided, voidReason? | See §10 |
-
-### `deliveryItems`
-| Field | Notes |
-|---|---|
-| deliveryId, receivedAt, supplierId | Copied for indexed queries |
-| productId?, productName, barcode? | |
-| batchCode? | Index `by_batch`, used for recalls |
-| quantity, unit | |
-| useBy?, bestBefore? | Date marks (end of selected day, local) |
-| storageType, temperatureC? | |
-| temperatureCompliant | `true` / `false` / `null` (ambient → no requirement). Missing temp on chilled/frozen/hot = `false` |
-| packagingOk, labelOk, allergens[] | |
-| accepted, rejectionReason? | Reason mandatory when rejected |
-| voided | Mirrors parent delivery |
-
-### `temperatureLogs`
-`checkedAt`, `unitName`, `unitType` (`chiller`|`freezer`|`hot_hold`|`cooking`|`cooling`),
-`temperatureC`, `compliant`, `correctiveAction?` (mandatory if non-compliant), `checkedById`, `checkedByName`.
-
-### `audits`
-| Field | Notes |
-|---|---|
-| templateKey, templateName, standardRef | Copied from template at start |
-| title | e.g. "Goods Receipt & Supplier Verification: 7/10/2026 to 14/10/2026" |
-| periodStart, periodEnd | Records in this window feed auto-fill |
-| tzOffsetMinutes? | Client UTC offset, so day boundaries are local |
-| status | `in_progress` → `completed` (locked) |
-| started*/completed* | Who and when |
-| score | % of yes/no questions answered "Yes" |
-| answers[] | `questionId, section, text, type, guidance?, value, autoFilled, evidence?, notes?, answeredByName?, answeredAt?` |
-
-Questions are **copied into the audit**, so editing a template later never changes past audits.
-
-### `correctiveActions`
-`title`, `description?`, `source` (`goods_inward`|`temperature`|`audit`|`manual`), `sourceId?`
-(the delivery/log/audit ID), `severity` (`low`|`medium`|`high`), `status` (`open`|`closed`),
-`raisedAt`, `raisedById`, `raisedByName`, `closedAt?`, `closedByName?`, `resolution?`.
-
-### `auditLog`
-`at`, `userId?`, `userName` ("system" for unauthenticated events), `action`, `entityType`,
-`entityId?`, `summary` (human-readable), `changes?` (diff or payload).
-Indexes: `by_at`, `by_entity (entityType, entityId, at)`, `by_user (userId, at)`.
-
----
+### Checks and records
+- `temperatureLogs`: `checkedAt`, `unitName`, `unitType` (chiller/freezer/hot_hold/cooking/cooling),
+  `temperatureC`, `compliant`, `correctiveAction?`, `checkedById/Name`.
+- `records`: `programme`, `recordType`, `recordName`, `values` (field key → answer), `issues[]` (limits
+  it failed), `at`, `byId/Name`, `voided`, `voidReason?`. One table for every programme record type.
+- `audits`: `templateKey`, `templateName`, `standardRef`, `title`, `periodStart/End`, `tzOffsetMinutes?`,
+  `status`, `started*/completed*`, `score`, `answers[]`. Questions are **copied into the audit**, so later
+  template or programme changes never alter past audits.
+- `correctiveActions`: `title`, `description?`, `source` (goods_inward/temperature/audit/stock/record/manual),
+  `sourceId?`, `severity`, `status`, `raised*`, `closed*`, `resolution?`.
+- `auditLog`: `businessId?` (absent only for account events: register, sign-in, sign-out), `at`, `userId?`,
+  `userName`, `action`, `entityType`, `entityId?`, `summary`, `changes?`.
 
 ## 5. Backend (Convex) reference
 
-Function names are `module:function`. **Every public function except `auth:register`/`auth:login`
-takes `sessionToken`.** Errors meant for users are thrown as `ConvexError("message")`; the app shows the
-message as a red snackbar.
+Function names are `module:function`. **Business-scoped functions take `sessionToken` and `businessId`**
+(the app adds both to every call); they start with `requireMember`, which rejects anyone who isn't an active
+member of that business, and every record fetched by id is checked with `inBusiness` so ids from another
+business behave as "not found". User-level functions (sign-in, my businesses, my custom programmes) take
+only `sessionToken`. Errors meant for users are `ConvexError("message")`, shown as a red snackbar.
 
-Role legend: **any** = any signed-in user, **mgr** = admin or manager, **admin** = admin only.
+Role legend (role **in that business**): **any** = any member, **mgr** = admin or manager, **admin**.
 
-### `auth`
-| Function | Kind | Role | Description |
-|---|---|---|---|
-| `register(email, name, password)` | action | public | Validates (email format, password ≥ 8), hashes, creates user + session. First user → admin. Returns `{token}`. |
-| `login(email, password)` | action | public | Verifies hash (constant-time compare). Logs `login` or `login_failed` either way. Returns `{token}`. |
-| `logout()` | mutation | any | Deletes the session, logs it. |
-| `me()` | query | any | Current user `{_id,email,name,role}` or null. |
-| `listUsers()` | query | mgr | All users with active status. |
-| `updateUser(userId, role?, active?)` | mutation | admin | Change role / deactivate. Can't change yourself. |
-| `createUserAndSession`, `userByEmail`, `recordLogin` | internal | - | Helpers called by the actions; not callable from clients. |
+### `auth` (user-level)
+| Function | Role | Description |
+|---|---|---|
+| `register(email, name, password, business?)` | public | Creates the account and its main business (`{name, programme, sectors?, jurisdiction?, ...}`), making the creator admin. Without `business`, only works if the email has pending invites, which are claimed. |
+| `login(email, password)` | public | Constant-time hash check; logs `login` / `login_failed`. Returns `{token}`. |
+| `logout()`, `me()` | user | `me` returns `{_id, email, name}`. |
+
+### `businesses`
+| Function | Role | Description |
+|---|---|---|
+| `programmes()` | public | NP1/NP2/NP3: name, risk, "use this if you...", sectors. Shown at sign-up. |
+| `mine()` | user | The business picker: each active membership with programme, role, archived flag and open CA count. |
+| `create(name, programme, sectors?, ...)` | user | Add another business; you become its admin. |
+| `setArchived(archived)` | admin | Hide/restore a business. Nothing is deleted. |
+| `members()` | mgr | Members with their role here, plus pending invites. |
+| `invite(email, role)` | admin | Adds an existing user straight away (or reactivates them); otherwise stores an invite. |
+| `updateMember(userId, role?, active?)` | admin | Can't change yourself. |
 
 ### `settings`
-| `get()` | query | any | Current settings (or defaults). |
-|---|---|---|---|
-| `update(...fields)` | mutation | admin | Partial update; diff logged. |
+`get()` (any) returns the business (as `businessName`, limits, programme, sectors, archived...).
+`update(...)` (admin): details, limits, `programme`, `sectors`. Sectors must belong to the programme;
+switching programme clears the old programme's sectors.
 
-### `suppliers`
-| Function | Kind | Role | Description |
-|---|---|---|---|
-| `list(includeInactive?)` | query | any | Sorted by name. |
-| `get(id)` | query | any | Supplier + last 20 non-void deliveries. |
-| `create(...)` | mutation | mgr | |
-| `update(id, ...)` | mutation | mgr | Includes `approved` and `active`. Diff logged. |
+### Receiving
+| Function | Role | Description |
+|---|---|---|
+| `suppliers:list/get/create/update` | any / mgr to change | As before, scoped to the business. |
+| `products:list/byBarcode/create` | any | |
+| `products:update(id, ..., parLevel?, reorderQty?)` | mgr | |
+| `products:lookupBarcode(barcode)` | any | Open Food Facts lookup. |
+| `deliveries:create(supplierId, ..., programmeAnswers?, items[] (each with optional locationId))` | any | See below. |
+| `deliveries:voidDelivery(id, reason)` | mgr | Voids the delivery and its items, and takes any remaining stock out (`void` movement). |
+| `deliveries:updateNotes`, `list`, `get`, `suggestionsForSupplier` | any | |
+| `deliveries:trace(search)` | any | Receipts matching batch/product/barcode, each with its lot: what's left and who it was dispatched to. |
 
-### `products`
-| Function | Kind | Role | Description |
-|---|---|---|---|
-| `list()` | query | any | Active products. |
-| `byBarcode(barcode)` | query | any | Catalogue lookup. |
-| `create(...)` | mutation | any | |
-| `update(id, ...)` | mutation | mgr | |
-| `lookupBarcode(barcode)` | action | any | Calls Open Food Facts v2. Returns `{name, brand, allergens, ingredients, novaGroup, imageUrl, storageType}` or null. Storage type is guessed from OFF categories (frozen / chilled for dairy-meat-fish / else ambient). OFF allergen tags are mapped to the app's allergen names. |
+**`deliveries:create`, in order:** validate (items, rejection reasons, supplier and locations belong to
+the business, receiving-check keys belong to the programme) → status → insert delivery (with the
+programme answers and their text) → per item: find/create product, compute temperature compliance, insert,
+**create a stock lot for accepted items**, raise CAs (accepted out of temp: high; accepted past use-by: high;
+rejected: medium) → CA per receiving check answered "No" (medium), unapproved supplier (medium), dirty
+vehicle (low) → one audit-log entry.
 
-### `deliveries` (goods inwards)
-| Function | Kind | Role | Description |
-|---|---|---|---|
-| `create(supplierId, receivedAt?, invoiceNumber?, vehicleClean, vehicleTempC?, notes?, items[])` | mutation | any | See below. Returns delivery ID. |
-| `voidDelivery(id, reason)` | mutation | mgr | Flags delivery + items void. Reason required. |
-| `updateNotes(id, notes)` | mutation | any | Before/after logged. |
-| `list(limit?)` | query | any | Newest first, with `itemCount` and `tempIssues` (accepted items out of range). |
-| `get(id)` | query | any | Delivery, items and its audit-log history. |
-| `suggestionsForSupplier(supplierId)` | query | any | Distinct products from that supplier's last 10 deliveries, used as tap-to-add chips. |
-| `expiring()` | query | any | Accepted, non-void items from the last 90 days whose use-by/best-before falls within `expiryWarningDays` (or has passed). |
-| `trace(search)` | query | any | Exact batch-code match plus substring match on product name / batch / exact barcode across the last 2,000 items. Includes supplier and receiver. |
+### `stock`, `locations`, `stocktakes`
+| Function | Role | Description |
+|---|---|---|
+| `stock:onHand(locationId?)` | any | Available + held lots, first-expiring first, with location name and `expired` / `expiringSoon`. |
+| `stock:lot(id)` | any | Lot, its movements (newest first) and location. |
+| `stock:move(lotId, type, qty, reason?, customer?)` | any | `use`/`sell`/`dispatch`/`waste` take stock out; `adjust` is signed. Waste and adjust need a reason, dispatch a customer. Held or past-use-by stock can only be wasted. |
+| `stock:transfer(lotId, locationId)` | any | |
+| `stock:hold(lotId, reason)` | any | Quarantine. |
+| `stock:release(lotId, reason)` | mgr | |
+| `stock:addLot(...)` | mgr | Opening stock / stock without a goods-inwards record. |
+| `stock:lowStock()` | any | Active products whose available stock is below `parLevel`. |
+| `stock:expiring()` | any | On-hand lots within the warning window or past date. |
+| `stock:recall(lotIds, reason)` | mgr | Holds every available lot listed and raises one high CA ("Recall: ..."). |
+| `locations:list/create/update` | any / mgr to change | |
+| `stocktakes:list/get` | any | |
+| `stocktakes:start(locationId?)` | mgr | Snapshots on-hand lots (everywhere or one location). |
+| `stocktakes:count(id, lotId, counted)` | any | |
+| `stocktakes:complete(id)` | mgr | All lines counted → each lot corrected to its count (against what is on hand *now*, so stock used mid-count isn't double counted). Lines off by ≥1 and ≥10% raise one low CA. Locks. |
 
-**What `deliveries:create` does, in order:**
-1. Validates: at least one item; every rejected item has a reason; supplier exists.
-2. Computes status (`accepted` / `partial` / `rejected`).
-3. Inserts the delivery with a **snapshot** of supplier approval.
-4. For each item:
-   - finds a product by barcode (or exact name) or **creates one** in the catalogue;
-   - computes `temperatureCompliant` with the current settings;
-   - inserts the item;
-   - auto-raises CAs: **high** if accepted out of temperature, **high** if accepted past use-by,
-     **medium** for each rejected item.
-5. Auto-raises **medium** CA if the supplier is not approved, **low** if the vehicle wasn't clean.
-6. Writes one audit-log entry with a summary of issues and the full payload.
+### Programmes and records
+| Function | Role | Description |
+|---|---|---|
+| `programmes:current()` | any | The business's module trimmed to its sectors: receiving prompts, record types, checklists (summaries), schedule, sector labels, custom programme id and whether you own it. |
+| `programmes:due(dayStart?)` | any | Each schedule item with `done` and `lastAt` for its period (daily = the caller's local day; weekly/monthly/yearly = last 7/30/365 days). Satisfied by a record of that type, a completed audit of that checklist, or a chiller/freezer temperature check. |
+| `records:list(recordType?, limit?)` | any | |
+| `records:create(recordType, values)` | any | Checks the type is in the programme, required fields and answer kinds; trims text; each limit failed is listed in `issues` and raises a medium CA. |
+| `records:voidRecord(id, reason)` | mgr | |
+| `customProgrammes:mine()`, `get(id)` | user (owner) | |
+| `customProgrammes:create(name, copyFrom?, businessId?)` | user (admin of `businessId` if given) | Blank or a copy of NP1/2/3 (sector tags dropped, checklist keys prefixed `custom_`); optionally put straight onto the business. |
+| `customProgrammes:update(id, ...)` | owner | Validated: unique keys, names, ≥1 field per record and question per checklist, no clash with built-in audit keys. |
+| `customProgrammes:useForBusiness(id)` | admin + owner | |
 
-### `temperature`
-| Function | Kind | Role | Description |
-|---|---|---|---|
-| `record(unitName, unitType, temperatureC, correctiveAction?)` | mutation | any | Computes compliance; if out of range, a corrective action text is **required** and a high CA is auto-raised. |
-| `list()` | query | any | Last 200 readings. |
-| `units()` | query | any | Distinct unit names used before (quick-pick chips). |
-
-Rules (`lib/settings.ts → unitCompliant`): chiller ≤ chilledMaxC; freezer ≤ frozenMaxC;
-hot_hold ≥ hotMinC; cooking ≥ 75°C (core); cooling ≤ 21°C (first stage of 2-stage cooling).
-
-### `correctiveActions`
-| `list(status?)` | query | any | Last 200, optionally by status. |
-|---|---|---|---|
-| `create(title, description?, severity)` | mutation | any | Manual CA. |
-| `close(id, resolution)` | mutation | any | Resolution required; can't re-close. |
-
-### `audits`
-| Function | Kind | Role | Description |
-|---|---|---|---|
-| `templates()` | query | any | Template summaries with question/auto-fill counts. |
-| `list()` | query | any | Last 100 audits with answered/total. |
-| `get(id)` | query | any | Full audit. |
-| `start(templateKey, periodStart?, periodEnd?, tzOffsetMinutes?)` | mutation | any | Copies template, computes facts for the period, pre-answers. Default period = template's `defaultPeriodDays` back from now (the app sends local midnight for daily templates). |
-| `answer(id, questionId, value, notes?)` | mutation | any | Sets an answer; marks it manual (`autoFilled=false`); logs old → new and whether it overrode auto-fill. Rejected if completed. |
-| `refreshAutoFill(id)` | mutation | any | Recomputes facts up to now and updates answers **no human has touched**. |
-| `complete(id)` | mutation | any | Requires all yes/no answered. Scores, raises a medium CA per "No", locks. |
-
-### `auditLog`
-`list(entityType?, entityId?, userId?, limit?)`: entity history is readable by any user (used on detail
-screens); the global trail and per-user filters are **mgr** only. Max 1,000 rows. **No write functions exist.**
-
-### `dashboard`
-`summary(dayStart?)` → `businessName, jurisdiction, deliveriesToday, rejectionsToday, tempChecksToday,
-tempIssuesToday, openCorrectiveActions, highSeverityOpen, expiringSoon, expired, inProgressAudits`.
-`dayStart` is local midnight from the client (server runs UTC).
-
-### `lib/` helpers
-| File | Exports |
-|---|---|
-| `session.ts` | `getUser(ctx, token)`, `requireUser`, `requireRole(ctx, token, roles)` |
-| `password.ts` | `hashPassword(pw, salt?)`, `verifyPassword`, `randomHex(bytes)` |
-| `audit.ts` | `logAudit(ctx, user, {action, entityType, entityId?, summary, changes?})`, `diff(before, patch)` |
-| `settings.ts` | `DEFAULT_SETTINGS`, `loadSettings`, `isTempCompliant`, `unitCompliant` |
-| `templates.ts` | `TEMPLATES`, `Question`, `Template` types |
-| `facts.ts` | `computeFacts(ctx, start, end, tz)` |
-
----
+### Other modules
+- `temperature:record/list/units` (any); rules in `lib/settings.ts → unitCompliant`.
+- `correctiveActions:list/create/close` (any).
+- `audits:templates/list/get/start/answer/refreshAutoFill/complete` (any). Templates are the built-in ones
+  plus the programme's checklists. If a programme change removes an in-progress audit's checklist, refresh
+  leaves its answers alone.
+- `auditLog:list(...)`: entity history for any member; the full trail for mgr. Rows from other businesses
+  are never returned.
+- `dashboard:summary(dayStart?)`: today's deliveries/temps, CAs, expiring, plus `stockLines`, `onHold`,
+  `lowStock`, `programme`.
+- `exportData:manifest()`, `exportData:page(table, paginationOpts)` (admin): see §10.
+- `migrations:toMultiBusiness(programme, sectors?)` (internal): see §14.
 
 ## 6. Audit auto-fill engine
 
-`backend/convex/lib/facts.ts → computeFacts(ctx, start, end, tz)` reads non-void records in the period
+`backend/convex/lib/facts.ts → computeFacts(ctx, business, start, end, tz)` reads non-void records in the period
 and returns `{ [key]: { value, evidence } }`. A question with `autoFill: "<key>"` takes that value.
 If the value is `null` (e.g. no deliveries that period) the question is left for a human, with the
 evidence explaining why ("No deliveries recorded in this period").
@@ -368,7 +337,14 @@ evidence explaining why ("No deliveries recorded in this period").
 | `gi.rejectionsHandled` | yes/no | Every rejected item has a reason | Lists rejections |
 | `gi.rejectionRate` | number | % of line items rejected | "1 of 11 line items rejected" |
 | `gi.allergens` | text | Allergens on accepted goods | "egg, milk, sesame" |
-| `stock.noExpired` | yes/no | No accepted stock (last 90 days) now past use-by | |
+| `stock.noExpired` | yes/no | No lot on hand is past its use-by | |
+| `stock.noneOnHold` | yes/no | Nothing on hold awaiting a decision | Lists held lots and reasons |
+| `stock.stocktakeDone` | yes/no | A stocktake was completed in the period | "1 stocktake(s) completed, last 2026-10-20" |
+| `records.mockRecall` | yes/no | A mock recall recorded in the last 12 months | |
+| `records.noPests` | yes/no | Pest checks in the period found nothing (null if none done) | Dates pests were found |
+| `records.calibrated` | yes/no | Thermometer checked in the last 3 months | |
+| `records.training` | yes/no | Training recorded in the last 12 months | |
+| `records.issuesHandled` | yes/no | Every record that flagged a problem this period has its CA closed | |
 | `temp.count` | number | Temperature checks in period | |
 | `temp.compliant` | yes/no | All checks within limits | Lists out-of-range + actions |
 | `temp.daily` | yes/no | At least one check every local day in period | "No checks on: 2026-10-09" |
@@ -391,8 +367,11 @@ type: yesno|number|text, autoFill?, guidance?`).
 |---|---|---|---|---|
 | `goods_receipt` | Goods Receipt & Supplier Verification | 7 days | 11 (10) | MPI FCP "Buying & receiving"; FSANZ 3.2.2 cl.5 & 12; 3.2.2A |
 | `daily_check` | Daily Food Safety Check | today | 10 (5) | MPI FCP Diary; FSANZ 3.2.2 cl.4; 3.2.2A |
-| `monthly_review` | Monthly Food Safety Review | 30 days | 10 (7) | MPI FCP "Checking for problems"; FSANZ 3.2.2A |
+| `monthly_review` | Monthly Food Safety Review | 30 days | 13 (10) | MPI FCP "Checking for problems"; FSANZ 3.2.2A |
 | `hygiene` | Cleaning, Pest & Personal Hygiene | today | 9 (0) | MPI FCP cleaning/pests; FSANZ 3.2.2 cl.13–24, 3.2.3 |
+
+Each business also gets its **programme's checklists** (the NP self-check, or a custom programme's own),
+listed after these. See §8.
 
 **Writing questions:** phrase yes/no questions so **"Yes" = compliant** (scoring and CA-raising rely on it).
 
@@ -401,24 +380,61 @@ existing `key`/question `id`s stable, because `refreshAutoFill` matches on them.
 
 ---
 
-## 8. Compliance rules (NZ & AU)
+## 8. Programmes & compliance rules
 
+### Choosing a programme
+At sign-up (and later under **Your programme → Change programme**, admins only) a business picks:
+
+| Programme | For (from MPI's guidance, Dec 2025 v2) | Sectors that change the rules |
+|---|---|---|
+| **NP1** (lowest risk) | Honey, horticulture, sugar/syrups, hot drinks + packaged shelf-stable food, packaged ice cream, storage/transport only | honey (tutin records and receiving check), transport (transport temperature records) |
+| **NP2** (low-medium) | Bread, cereals, snacks, spreads, confectionery, ice, frozen/dried produce, chilled/frozen retail, nuts & seeds, ECE / Kōhanga Reo | ECE and chilled/frozen retail don't need sickness or transport records; chilled/frozen retail skip the process-control questions |
+| **NP3** (medium) | Brewing/distilling, non-alcoholic drinks, oils & fats, additives, grain, herbs & spices, retail food handling, dry mixes | retail food handling adds the reheating question |
+| **Custom** | Anything else (Food Control Plans, AU businesses, your own rules) | none: you build it |
+
+### What a module contains (`backend/convex/lib/programmes.ts`)
+- **Receiving prompts**: extra yes / no / N/A checks on every delivery ("Someone was there to receive it",
+  "Chilled first, then frozen, then ambient", "Allergen info on file", NP1 honey: tutin declaration).
+  "No" raises a medium CA.
+- **Record types**: field lists with limits. Every NP: pest check (weekly), thermometer check (monthly,
+  ice slurry within ±1°C), maintenance, staff training, mock recall (yearly), self-supply water test,
+  customer complaint. Then by programme: sickness, transport temperature, cooking (69-75°C time/temperature
+  combinations), cooling (21°C in 2 h, 5°C in 6 h), reheating (75°C), water activity (< 0.85), pH (≤ 4.6),
+  tutin. Each `failIf` limit raises a CA.
+- **Checklists**: the NP self-check (monthly), built from "Checking the programme is working well" and each
+  card's "Show" section, auto-filled from facts (§6).
+- **Schedule**: drives the **Due** list: daily chilled check (any chiller/freezer temperature log),
+  weekly pest check, monthly thermometer check and self-check, yearly mock recall.
+
+Items tagged `sectors` only apply to businesses in one of those sectors; `excludeSectors` are exempt.
+`moduleFor(key, sectors)` returns the trimmed module.
+
+### Custom programmes
+Built in the app (**Your programme → Build your programme**): start blank or copy NP1/2/3, then edit the
+receiving checks, record types (fields: yes/no, number, text, date; problem when yes/no, or above/below a
+number) with how often each is due, and checklists. A daily chilled check can be switched on. Keys never
+change once created, so records stay linked if things are renamed. Owned by the user who made it and
+reusable across their businesses; editing it changes what every business using it asks for (records
+already kept are untouched).
+
+### How the app meets the rules
 | Requirement | How the app meets it |
 |---|---|
-| Buy from approved/registered suppliers (MPI FCP; FSANZ 3.2.2 cl.5) | Approved supplier list; approval snapshot on each delivery; CA if unapproved. |
-| Receive potentially hazardous food at ≤5°C or ≥60°C, frozen food frozen (FSANZ 3.2.2 cl.5) | Probe temperature per item, live pass/fail, server-side compliance flag, CA if accepted out of range. |
-| Protect food from contamination on receipt (FSANZ 3.2.2 cl.5) | Packaging & label checks, vehicle cleanliness. |
-| Traceability "one step back" (Food Act 2014; FSANZ 3.2.2 cl.12 recall) | Batch + date mark per item; Trace & Recall search. |
-| Allergen information (FSANZ 1.2.3 / PEAL) | Per-item allergen capture against the 21 declarable allergens; allergens-received audit answer. |
-| Temperature control of storage, cooking, cooling | Temperature checks with corrective actions. Cooking ≥75°C, cooling ≤21°C stage 1. |
-| Keep records & show they're accurate (Food Act record keeping; FSANZ 3.2.2A cl.10) | Every record attributed to a user and timestamped; immutable audit trail; voids not deletes; locked audits. |
-| Identify and fix problems (corrective action) | Auto-raised CAs from every source; close-out requires a resolution. |
-| Regular verification / review | Daily, monthly and hygiene audit templates with scores. |
+| Trusted suppliers (NP "Sourcing, receiving and tracing"; FSANZ 3.2.2 cl.5) | Approved supplier list; approval snapshot on each delivery; CA if unapproved. |
+| Check deliveries: temperature (≤5°C / >60°C / frozen), packaging, use-by | Per-item checks with live pass/fail; server-side compliance; CAs. |
+| Records of what was received (type, quantity, date, chilled temperature) | Every delivery line; batch and date marks for batch-level recall. |
+| Who you sold/delivered to (unless the final consumer) | `dispatch` movements record the customer; trace shows them. |
+| Test tracing every 12 months | Mock recall record (yearly on the Due list); `records.mockRecall` fact. |
+| Recall: identify, separate (HOLD), tell the supplier/verifier | Trace → **Recall** holds all matching stock and raises a high CA with the steps. |
+| Use-by rotation; nothing used past use-by | FIFO on hand, expiring alerts, past-use-by stock can only be wasted. |
+| Daily check that chilled food is ≤5°C | Temperature checks; daily item on the Due list. |
+| Records of pests, maintenance, training, sickness, process controls | Programme record types with limits and CAs. |
+| Allergens (FSANZ 1.2.3 / PEAL) | Per-item allergen capture; allergens-received audit answer. |
+| Taking action when something goes wrong | Auto-raised CAs from every source; close-out needs a resolution. |
+| Keep records (NP: 4 years) | Kept **7 years**, never deleted (§10). |
 
-Limits are configurable in **Business settings**. The defaults and templates are a starting point.
-Confirm them against your registered FCP/National Programme or local council requirements.
-
----
+Limits are configurable in **Business settings**. The defaults and modules are a starting point. Confirm
+them against your registration and your verifier's expectations.
 
 ## 9. Authentication, roles & security
 
@@ -428,44 +444,54 @@ Confirm them against your registered FCP/National Programme or local council req
 - Comparison is constant-time.
 - Sessions: 32 random bytes (hex), 7-day expiry, stored in `sessions`; the app keeps the token in
   `shared_preferences` (localStorage on web).
-- Every public function resolves the user from the token (`requireUser`/`requireRole`). Inactive users
-  and expired sessions are rejected.
+- Every public function resolves the user from the token; business functions also require an active
+  membership of that business (`requireMember`). Inactive users, removed members and expired sessions are
+  rejected, and ids from another business are "not found" (`inBusiness`).
 - Failed sign-ins are logged (`login_failed`) with the attempted email.
+
+**Roles are per business** (a membership): someone can be admin of their own café and staff at another.
+Sign-up makes you admin of the business you create; admins add people under **More → Members** (an
+existing account is added at once, a new email becomes an invite claimed when they sign up).
 
 **Roles:**
 
 | Capability | staff | manager | admin |
 |---|:-:|:-:|:-:|
-| Record deliveries, temps, audits, CAs | ✓ | ✓ | ✓ |
-| Add/edit suppliers, edit products | | ✓ | ✓ |
-| Void deliveries | | ✓ | ✓ |
-| View full audit trail & users | | ✓ | ✓ |
-| Change roles / deactivate users | | | ✓ |
-| Business settings | | | ✓ |
+| Record deliveries, temps, audits, CAs, programme records | ✓ | ✓ | ✓ |
+| Move stock (use, sell, dispatch, waste, move), put on hold, count stocktakes | ✓ | ✓ | ✓ |
+| Add/edit suppliers, edit products & par levels, manage locations | | ✓ | ✓ |
+| Release holds, adjust stock, add opening stock, start/complete stocktakes, recall | | ✓ | ✓ |
+| Void deliveries and records | | ✓ | ✓ |
+| View full audit trail & members | | ✓ | ✓ |
+| Invite, change roles / remove members | | | ✓ |
+| Business settings, change programme, build custom programmes, archive, export | | | ✓ |
 
 **Known gaps (acceptable for dev, fix before real use):** open registration (anyone with the URL can
-create a staff account); no rate limiting on login; no password reset. Clerk (§15) resolves these.
+create an account and a business of their own); no rate limiting on login; no password reset. Clerk (§15) resolves these.
 
 ---
 
-## 10. Audit trail & record integrity
+## 10. Audit trail, record integrity & 7-year retention
 
-- `logAudit()` is called by **every** mutation after it writes. Entries contain user, time, action,
-  entity, a readable summary and `changes` (field diffs `{field: {from, to}}` or the create payload).
-- Actions logged: `register`, `login`, `login_failed`, `logout`, `create`, `update`, `void`, `answer`,
-  `refresh`, `complete`, `close`.
-- **There are no delete functions** for business records and **no functions that modify `auditLog`**.
-- Deliveries are **voided** (manager+, reason required), never deleted; voided records are excluded from
-  stats/audits but remain viewable and greyed out.
-- Completed audits reject further changes.
+- `logAudit()` is called by **every** mutation after it writes, tagged with the business. Entries contain
+  user, time, action, entity, a readable summary and `changes` (field diffs or the create payload).
+- **Records are kept for at least 7 years** (`lib/retention.ts → RETENTION_YEARS`; MPI requires 4). In
+  practice nothing is ever removed:
+  - there are **no delete endpoints** for records; deliveries and programme records are **voided** with a
+    reason, locations retired, members removed (membership deactivated), businesses **archived**;
+  - stock changes are **append-only movements**; completed audits and stocktakes are locked;
+  - the only `db.delete` in the backend is the session on sign-out. A test (`tests/retention.test.ts`)
+    scans the backend source and fails if any other delete or replace appears.
+- Detail screens show **"Kept until"** (7 years after the record was made).
+- **Export** (More → Export records, admin): pages through every table with a `businessId` (a test checks
+  none is missed) and saves one JSON file with the business, retention period and all rows, via the share
+  sheet on mobile or a download on web.
 - Supplier approval is snapshotted on each delivery so later changes don't rewrite history.
-- Where to see it: **More → Audit trail** (filter by area, tap for change details), plus a "Record history"
-  section on delivery, supplier and audit screens.
+- Where to see it: **More → Audit trail**, plus "Record history" on delivery, supplier and audit screens and
+  the movement history on every stock lot.
 
 Note: a Convex admin (dashboard / admin key) can still edit data directly. Protect the admin key
-(`~/foodsafe/.admin_key` on the server).
-
----
+(`~/foodsafe/.admin_key` on the server), and keep server backups (§14) for at least as long.
 
 ## 11. Flutter app reference
 
@@ -475,21 +501,25 @@ Note: a Convex admin (dashboard / admin key) can still edit data directly. Prote
   rejects explicit nulls for optional fields). Throws `ConvexException` with the server's `ConvexError`
   message, or a generic message for unexpected errors (details go to the debug console).
   `changes` (`ValueNotifier<int>`) increments after each mutation/action.
-- **`AuthService`** (`services/auth_service.dart`, `ChangeNotifier`): `restore()` on startup validates a
-  saved token via `auth:me`; `login`, `register`, `logout`. Exposes `user` (`AppUser` with `isManager`,
-  `isAdmin`) and `token`.
+- **`AuthService`** (`services/auth_service.dart`, `ChangeNotifier`): `restore()` validates a saved token
+  via `auth:me` and loads `businesses` (`businesses:mine`). The business chosen today is remembered in
+  `shared_preferences` with the date, so the picker shows again tomorrow; with only one open business it is
+  chosen automatically. `selectBusiness`, `switchBusiness`, `refreshCurrent`, `login`,
+  `register(..., business:)`, `logout`. Exposes `user` (`AppUser`; `role`, `isManager`, `isAdmin` are the
+  role **in the current business**), `business` and `token`.
 
 ### Shared widgets & helpers (`widgets/common.dart`)
 | Name | Purpose |
 |---|---|
-| `context.q / m / a` | Query / mutation / action with the session token added |
+| `context.q / m / a` | Query / mutation / action with the session token **and current `businessId`** added |
+| `context.userQ / userM` | User-level calls (custom programmes): session token only |
 | `context.run(fn, success:)` | Runs a call; shows errors (and optional success) as snackbars; returns null on failure |
 | `context.toast(msg, error:)` | Snackbar |
-| `QueryBuilder(path, args, builder)` | Loads a query, shows spinner/error+retry, refetches on any mutation, pull-to-refresh |
+| `QueryBuilder(path, args, builder, userScoped:)` | Loads a query, shows spinner/error+retry, refetches on any mutation, pull-to-refresh |
 | `Pill(text, tone:, icon:)` | Status chip; tones `ok`, `warn`, `bad`, `neutral`, `brand` |
 | `SectionTitle`, `EmptyState`, `InfoRow`, `Responsive` | Layout helpers; `Responsive` caps width on tablets/web |
 | `promptText(context, ...)` | Text-input dialog |
-| `fmtDateTime`, `fmtDate`, `fmtNum`, `fromMs`, `localDayStartMs` | Formatting |
+| `fmtDateTime`, `fmtDate`, `fmtNum`, `fromMs`, `localDayStartMs`, `keptUntil` | Formatting |
 | `storageLabels`, `storageIcons`, `allergenList` | Shared constants |
 
 `widgets/audit_history.dart`: `AuditHistory(entries)` timeline and `auditActionIcon(action)`.
@@ -500,34 +530,45 @@ Note: a Convex admin (dashboard / admin key) can still edit data directly. Prote
 cards, 50px-tall buttons, filled inputs, and an orange-accented navigation bar.
 
 ### Navigation
-`main.dart` shows a spinner while restoring, `LoginScreen` if signed out, else `HomeShell`.
-`HomeShell` has 5 tabs (Home, Goods In, Audits, Actions, More) in an `IndexedStack`: **bottom bar under
+`main.dart` shows a spinner while restoring, `LoginScreen` if signed out, `BusinessPickerScreen` until a
+business is chosen, else `HomeShell` (keyed by business, so switching rebuilds everything).
+`HomeShell` has 5 tabs (Home, Goods In, Stock, Checks, More) in an `IndexedStack`: **bottom bar under
 900px width, side rail above** (desktop web). Other screens are pushed with `MaterialPageRoute`.
 `HomeShell.of(context).go(i)` switches tab from inside a page.
 
 ### Screen files
 | File | Screen(s) |
 |---|---|
-| `login_screen.dart` | Sign in / create account |
+| `login_screen.dart` | Sign in / create account (account → business & programme, or "I've been invited") |
+| `business_picker_screen.dart` | Your businesses (programme, role, open actions, archived) + `AddBusinessScreen` |
 | `home_shell.dart` | Tab container |
-| `dashboard_screen.dart` | Home: greeting header, today's KPIs, quick-action tiles |
+| `dashboard_screen.dart` | Home: header (business · programme), today's KPIs, stock KPIs, Due list, quick actions |
 | `goods_in_screen.dart` | Delivery list |
-| `goods_in_form_screen.dart` | Receive goods form + `ItemEditorScreen` |
+| `goods_in_form_screen.dart` | Receive goods form (incl. programme checks) + `ItemEditorScreen` (incl. put-away location) |
+| `stock_screen.dart` | Stock tab: On hand / Low stock / Stocktakes; `AddStockScreen`, `LotCard`, `LocationPicker` |
+| `lot_detail_screen.dart` | One lot: details, actions (use, sell, dispatch, waste, move, hold/release, adjust), history |
+| `stocktake_screen.dart` | Count lines, complete |
+| `locations_screen.dart` | Add / rename / retire locations |
+| `programme_screen.dart` | Your programme: Due list, records, receiving checks, checklists; `ChangeProgrammeScreen`, `DueList` |
+| `records_screen.dart` | `RecordsScreen` (history, void) and `RecordFormScreen` (generic form from fields) |
+| `custom_programme_editor.dart` | Custom programme builder + `RecordTypeEditor`, `ChecklistEditor` |
+| `export_screen.dart` | Export every record as JSON |
 | `scanner_screen.dart` | Camera barcode scanner (with "Type it" fallback) |
 | `delivery_detail_screen.dart` | Delivery record, items, edit notes, void, history |
-| `audits_screen.dart` | Start-new (templates) / History tabs |
+| `audits_screen.dart` | Checks tab: programme card, Start-new (templates + programme checklists) / History; `startAudit()` |
 | `audit_detail_screen.dart` | Answer questions, evidence, notes, refresh, sign off, trail |
 | `corrective_actions_screen.dart` | Open / Closed tabs, raise, close out |
 | `temperature_screen.dart` | Readings list + record sheet |
 | `suppliers_screen.dart` | Supplier list + `SupplierFormScreen` |
 | `products_screen.dart` | Catalogue with allergens & NOVA |
-| `expiring_screen.dart` | Expiring / expired stock |
-| `trace_screen.dart` | Trace & recall search |
-| `more_screen.dart` | Profile, record links, compliance links, sign out |
-| `admin_screens.dart` | `AuditTrailScreen`, `UsersScreen`, `SettingsScreen` |
+| `expiring_screen.dart` | Expiring / expired stock on hand |
+| `trace_screen.dart` | Trace & recall: receipts, what's left, dispatched to; Recall button |
+| `more_screen.dart` | Profile, business (switch / programme / add), records, compliance, sign out |
+| `admin_screens.dart` | `AuditTrailScreen`, `MembersScreen` (invites), `SettingsScreen` (archive / restore) |
 
 ### Packages
-`http`, `provider`, `shared_preferences`, `intl`, `mobile_scanner` (camera on Android/iOS/web).
+`http`, `provider`, `shared_preferences`, `intl`, `mobile_scanner` (camera on Android/iOS/web),
+`share_plus` (export file: share sheet on mobile, download on web).
 Platform setup done: Android `INTERNET` + `CAMERA` permissions and `usesCleartextTraffic` (for local
 http dev), iOS `NSCameraUsageDescription`, web title/theme colour.
 
@@ -535,66 +576,64 @@ http dev), iOS `NSCameraUsageDescription`, web title/theme colour.
 
 ## 12. Screens: user guide
 
-### Sign in
-Email + password. **Create an account** for new staff; the first account on a fresh deployment becomes
-admin. Others start as staff until an admin promotes them.
+### Sign up, sign in and choosing a business
+- **Create an account**: your name, email and password, then **set up your main business**: its name, the
+  programme it follows (each card lists who it's for) and which kinds of business apply. Someone invited
+  by a manager ticks **"I've been invited"** instead and joins that business.
+- After signing in you see **Your businesses** with each one's programme, your role and open actions. Pick
+  the one you're working in today; the app remembers it until tomorrow (or until **More → Switch business**).
+  **Add business** creates another one you run. Archived businesses are under "Show archived".
 
 ### Home
-- Header: greeting, business name, NZ/MPI or AU/FSANZ badge.
-- **Today** cards (tap to jump): Deliveries (warn if any rejections), Temp checks (red if none yet or any
-  out of range), Open actions (red if any high severity), Expiring soon (red if anything past use-by).
-- **Quick actions**: Receive goods, Temperature check (opens the record sheet directly), Start audit,
-  Trace / recall, Suppliers, Expiring stock.
-- In-progress audits shortcut.
+- Header: greeting, business name and programme, NZ/MPI or AU/FSANZ badge.
+- **Today**: Deliveries, Temp checks, Open actions, Expiring soon. **Stock**: on hand, on hold, low stock.
+- **Due**: what your programme still needs this period (tap to do it). **Programme** opens the full list.
+- **Quick actions**: Receive goods, Temperature check, Stock, Start audit, Trace / recall, Suppliers,
+  Expiring stock.
 
 ### Receive goods (the main workflow)
-1. **Supplier**: pick from list (unapproved ones are labelled, with a warning), or **+** to add one.
-2. Invoice/docket number, vehicle clean toggle, optional vehicle temperature.
-3. **Add items**:
-   - **Scan**: scans a barcode. The app checks your catalogue, then Open Food Facts, and pre-fills name,
-     storage type and allergens.
-   - **Add item**: manual entry.
-   - **"Usually from this supplier"** chips: one tap pre-fills a previous product.
-4. **Item check** screen: product, quantity/unit, batch code, storage type, probe temperature (required
-   unless ambient; tick/cross shows pass/fail against your limits), use-by / best-before, packaging and
-   label switches, allergens, then **Accept / Reject**. If there's a problem the app warns you to reject
-   and pre-fills the reason.
-5. **Save delivery**: problems automatically become corrective actions.
+1. **Supplier**, invoice/docket, vehicle clean, vehicle temperature.
+2. **Add items** (scan, manual, or "usually from this supplier" chips). The item check covers temperature,
+   batch, dates, condition, allergens, accept/reject and, for accepted goods, **Put away to** a location.
+3. **Programme checks**: answer each of your programme's receiving checks Yes / No / N/A.
+4. **Save**: accepted goods go into stock; problems (and any "No") become corrective actions.
 
-### Delivery record
-Header details, every item with temperature/batch/date/allergen pills, rejection reasons,
-**Edit notes**, **Void record** (managers; reason required), and full record history.
+### Stock
+- **On hand**: everything in stock, first-expiring first, filter by location. **DISCARD** = past use-by,
+  **PAST BB** = past best-before, **ON HOLD** in red. Tap a lot to **Use, Sell, Dispatch** (who to),
+  **Waste** (why), **Move**, **Hold** / **Release** (managers) or **Adjust** (managers), and see its history.
+- **Low stock**: products below their par level (set par in **More → Products**, managers).
+- **Stocktakes** (managers start): count everything or one location, enter counts, complete. Stock is
+  corrected and big differences become a corrective action.
+- Managers: **Locations** (chillers, freezers, dry store) and **Add stock** (opening stock).
 
-### Audits
-- **Start new**: pick a template; it opens pre-filled.
-- Each question shows guidance, the **evidence** box (orange, ✨) explaining the auto-answer, and the answer.
-  Tap Yes/No or tap the field for number/text. Changing an auto-answer is allowed and logged as an override.
-- **Note** adds a comment. **Refresh** re-pulls auto answers you haven't changed (e.g. after more deliveries).
-- **Complete & sign off**: needs all yes/no answered; locks the audit under your name and raises a CA
-  for each "No". Score = % "Yes".
-- **History** tab: all audits with status and score.
+### Checks (programme, records and audits)
+- **Your programme**: the Due list, record types (tap for history, **Add record**), what's asked at goods
+  inwards, and checklists. Admins can **Change programme**; on a custom programme, **Edit programme**.
+- Record forms check your answers against the programme's limits (e.g. thermometer more than 1°C out,
+  cooling not under 21°C in 2 h) and raise corrective actions for anything outside them.
+- **Audits**: built-in templates plus your programme's checklist(s), pre-filled from your records. Sign-off
+  locks the audit and raises a CA for each "No".
 
-### Corrective actions
-Open/Closed tabs with severity and source. **+** raises a manual action. **Close out** records how it was
-fixed; who closed it and when is saved.
+### Building a custom programme (admins)
+On a business set to **Custom**: **Start blank** or **Copy NP1/2/3**, or reuse one you've built for another
+business. In the editor add receiving checks, records (fields, whether each is required, and when an answer
+is a problem) with how often they're due, and checklists (questions by section). Save applies it everywhere
+the programme is used.
 
-### Temperature checks
-**Record**: tap a previously used unit or type a name, choose type, enter °C. Out of range → you must
-enter what you did; a high-severity CA is raised.
+### Trace & recall
+Search a batch code, product or barcode: where it came from, how much is left, and who it was dispatched
+to. Managers can **Recall**: every matching lot still in stock goes on hold and a high-severity corrective
+action is raised listing it.
 
-### Suppliers / Products / Expiring stock / Trace & recall
-- Suppliers: list with Approved / Not approved / Inactive; managers can edit and see history.
-- Products: searchable catalogue with allergens and NOVA group (4 = ultra-processed).
-- Expiring stock: sorted by date. **DISCARD** = past use-by (unsafe), **PAST BB** = past best-before.
-- Trace & recall: search a batch code, product or barcode to find every receipt: when, from whom, how
-  much, who received it. Tap through to the delivery.
+### Corrective actions, temperature checks, suppliers, products, expiring stock
+As before; corrective actions are now under **More** and the Home "Open actions" card.
 
-### More (admin/manager)
-- **Audit trail**: every action, filter by area, tap for field-level change details.
-- **Users**: admins change roles and deactivate/reactivate accounts.
-- **Business settings**: name, NZ/AU, registration number, address, temperature limits, expiry warning days.
-
----
+### More
+- **Business**: switch business, your programme, add another business.
+- **Records**: corrective actions, temperature checks, suppliers, products, expiring stock, trace & recall.
+- **Compliance** (managers): audit trail, **Members** (admins invite and change roles);
+  admins also get **Business settings** (archive / restore at the bottom) and **Export records**.
 
 ## 13. Local development
 
@@ -618,9 +657,11 @@ flutter run -d <iphone>     --dart-define=CONVEX_URL=http://<your-LAN-ip>:3210
 - Calling functions by hand:
   ```bash
   curl -X POST http://127.0.0.1:3210/api/query -H 'content-type: application/json' \
-    -d '{"path":"dashboard:summary","args":{"sessionToken":"<token>"},"format":"json"}'
+    -d '{"path":"dashboard:summary","args":{"sessionToken":"<token>","businessId":"<id>"},"format":"json"}'
   ```
 - Convex dashboard for the local deployment: `npx convex dashboard`.
+- After adding a backend module, regenerate `convex/_generated/api.d.ts` with
+  `npx convex codegen --typecheck disable` (uses the local deployment) so tests can reference it.
 
 ---
 
@@ -647,6 +688,20 @@ configs, runs `docker compose up -d`, generates the Convex admin key on first ru
 missing, then pushes Convex functions via `npx convex deploy` over an SSH tunnel (local port 3299).
 Re-running is safe.
 
+**Upgrading the live server to multi-business (one-off).** Data saved before this change has no
+`businessId`: until it is migrated, existing users sign in to an empty business list. So run this
+**straight after** `./deploy/deploy.sh`, choosing the programme (and sectors) the existing business follows:
+```bash
+ssh -fN -L 3299:127.0.0.1:3210 loganserver          # tunnel to the server's Convex
+cd backend && CONVEX_DEPLOYMENT= CONVEX_SELF_HOSTED_URL=http://127.0.0.1:3299 \
+  CONVEX_SELF_HOSTED_ADMIN_KEY="$(ssh loganserver cat ~/foodsafe/.admin_key)" \
+  npx convex run migrations:toMultiBusiness '{"programme":"NP2","sectors":["retail_chilled_frozen"]}'
+```
+It turns the old settings row into the first business (owned by the earliest admin), each user's role into
+a membership, and stamps every existing record. Re-running does nothing once a business exists. Try it on a
+copy first (restore a backup into a local deployment). Once it has run, `businessId` can be made required
+in `schema.ts` and the legacy `settings` table and `users.role` field removed.
+
 **Operations:**
 ```bash
 ssh loganserver
@@ -672,7 +727,7 @@ The app is structured so only auth plumbing changes:
    ```
 3. **Backend:** change `getUser` in `lib/session.ts` to use `ctx.auth.getUserIdentity()` and find/create
    the `users` row by Clerk `subject` (add a `clerkId` field + index). `sessionToken` args can then be
-   removed (or ignored); all permission checks keep working via `requireUser`/`requireRole`.
+   removed (or ignored); all permission checks keep working via `requireUser`/`requireMember`.
 4. **Flutter:** add `clerk_flutter`, replace `AuthService.login/register` with Clerk sign-in, and send the
    Clerk JWT as `Authorization: Bearer <jwt>` in `ConvexClient` (the HTTP API accepts it).
    Screens depend only on `AuthService.user`, so they don't change.
@@ -684,11 +739,11 @@ The app is structured so only auth plumbing changes:
 
 - **No live push between devices**: data refreshes on any local change or pull-to-refresh.
   Option: `convex_flutter` WebSocket client (needs Rust toolchain for mobile).
-- **Single business/site**: add an `organizationId` to every table for multi-site / multi-tenant.
 - **No photo evidence**: Convex file storage could hold delivery/damage photos.
 - **No offline mode**: receiving in a walk-in with no signal fails; a local queue would fix it.
-- **Templates are code-defined**: a template editor UI could store custom templates in a table.
-- **Reports/exports**: PDF/CSV export of audits and records for verifiers is a natural next step.
-- **Stock depletion isn't tracked**: "expiring stock" assumes received items are still on hand
-  (last 90 days). Mark-as-used/discarded would make it exact.
-- Dev-auth gaps listed in §9.
+- **Stock doesn't follow production**: using ingredients doesn't create finished-product lots, so tracing
+  "what went into what" is by date rather than linked batches.
+- **Exports are JSON**: PDF/CSV reports of audits and records for verifiers are a natural next step.
+- **Large businesses**: some queries read whole indexes (e.g. stock on hand); pagination would be needed
+  at very large scale.
+- **Dev auth** (§9): no password reset, no rate limiting; Clerk resolves these.

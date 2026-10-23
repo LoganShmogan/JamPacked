@@ -345,6 +345,7 @@ void main() {
       expect(find.text('Pests found'), findsOneWidget);
       expect(find.text('VOID'), findsOneWidget);
       expect(find.text('Voided: Duplicate'), findsOneWidget);
+      expect(find.text('Kept until 6 May 2031'), findsNWidgets(2));
 
       await tapOn(tester, find.byTooltip('Void'));
       await tapOn(tester, find.text('Cancel'));
