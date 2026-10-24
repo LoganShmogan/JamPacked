@@ -1,4 +1,4 @@
-# NZSafetyHealthApp: Unit Tests
+# JamPacked: Unit Tests
 
 Both halves of the project have unit tests with a **100% coverage gate**:
 
@@ -227,7 +227,7 @@ Things to know:
 - To check what a screen pops with, push it from a small launcher page and record the
   result (see `openForm` / `openEditor` / `openScanner` in the screen tests).
 - Screens that read `context.watch<AuthService>().user!` (More, Dashboard) must be signed in.
-  To test sign-out, pump `NzSafetyHealthApp` so the real auth gate swaps the screen out.
+  To test sign-out, pump `JamPackedApp` so the real auth gate swaps the screen out.
 - The item editor is a full-screen dialog: close it with `find.byType(CloseButton)`, not
   `tester.pageBack()`.
 - Pumping a second screen in the same test keeps the first one's navigator, including any pushed

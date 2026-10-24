@@ -18,19 +18,19 @@ void main() {
         Provider.value(value: convex),
         ChangeNotifierProvider.value(value: auth),
       ],
-      child: const NzSafetyHealthApp(),
+      child: const JamPackedApp(),
     ),
   );
 }
 
-class NzSafetyHealthApp extends StatelessWidget {
-  const NzSafetyHealthApp({super.key});
+class JamPackedApp extends StatelessWidget {
+  const JamPackedApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthService>();
     return MaterialApp(
-      title: 'NZSafetyHealthApp',
+      title: 'JamPacked',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       home: auth.loading

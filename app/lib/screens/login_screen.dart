@@ -67,27 +67,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Center(
-                      child: Container(
-                        height: 88,
-                        width: 88,
-                        alignment: Alignment.center,
-                        margin: const EdgeInsets.only(bottom: 20),
-                        decoration: BoxDecoration(
-                          color: AppColors.orange,
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: const Icon(
-                          Icons.verified_user,
-                          color: Colors.white,
-                          size: 48,
-                        ),
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: 20),
+                        child: AppLogo(size: 96),
                       ),
                     ),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        'NZSafetyHealthApp',
+                        'JamPacked',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineMedium!
                             .copyWith(fontWeight: FontWeight.w800),
@@ -220,6 +209,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      '© JamPacked and Co',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                    ),
                   ],
                 ),
               ),

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/audit_detail_screen.dart';
-import 'package:foodsafe/screens/custom_programme_editor.dart';
-import 'package:foodsafe/screens/programme_screen.dart';
-import 'package:foodsafe/screens/records_screen.dart';
-import 'package:foodsafe/screens/temperature_screen.dart';
+import 'package:jampacked/screens/audit_detail_screen.dart';
+import 'package:jampacked/screens/custom_programme_editor.dart';
+import 'package:jampacked/screens/programme_screen.dart';
+import 'package:jampacked/screens/records_screen.dart';
+import 'package:jampacked/screens/temperature_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../fixtures.dart';

@@ -313,6 +313,24 @@ class InfoRow extends StatelessWidget {
   );
 }
 
+/// The JamPacked jar logo, with rounded corners like an app icon.
+class AppLogo extends StatelessWidget {
+  const AppLogo({super.key, this.size = 48});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(size * 0.22),
+    child: Image.asset(
+      'assets/logo.jpg',
+      width: size,
+      height: size,
+      semanticLabel: 'JamPacked',
+    ),
+  );
+}
+
 /// Constrains content width on tablets/desktop web while staying full-width on phones.
 class Responsive extends StatelessWidget {
   const Responsive({super.key, required this.child, this.maxWidth = 760});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/admin_screens.dart';
-import 'package:foodsafe/theme.dart';
+import 'package:jampacked/screens/admin_screens.dart';
+import 'package:jampacked/theme.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 

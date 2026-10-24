@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/common.dart';
 import 'audits_screen.dart';
 import 'dashboard_screen.dart';
 import 'goods_in_screen.dart';
@@ -74,11 +75,7 @@ class HomeShellState extends State<HomeShell> {
             labelType: NavigationRailLabelType.all,
             leading: const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
-              child: Icon(
-                Icons.verified_user,
-                color: Color(0xFFF26B21),
-                size: 36,
-              ),
+              child: AppLogo(size: 44),
             ),
             destinations: [
               for (final d in _destinations)

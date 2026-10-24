@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/temperature_screen.dart';
+import 'package:jampacked/screens/temperature_screen.dart';
 
 import '../fixtures.dart';
 import '../helpers.dart';

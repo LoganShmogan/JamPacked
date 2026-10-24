@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/suppliers_screen.dart';
+import 'package:jampacked/screens/suppliers_screen.dart';
 
 import '../fixtures.dart';
 import '../helpers.dart';

@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/goods_in_form_screen.dart';
-import 'package:foodsafe/screens/scanner_screen.dart';
-import 'package:foodsafe/screens/suppliers_screen.dart';
+import 'package:jampacked/screens/goods_in_form_screen.dart';
+import 'package:jampacked/screens/scanner_screen.dart';
+import 'package:jampacked/screens/suppliers_screen.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../fixtures.dart';

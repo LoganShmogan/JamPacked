@@ -5,7 +5,9 @@
 set -euo pipefail
 HOST=${1:-loganserver}
 DIR=foodsafe            # relative to the remote home directory
-URL=https://foodsafety.savepoint.co.nz
+DOMAIN=jampacked.co.nz
+URL=https://app.$DOMAIN
+OLD_HOST=foodsafety.savepoint.co.nz   # previous address, now redirects to the new one
 TUNNEL_PORT=3299
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 
@@ -26,10 +28,14 @@ until curl -sf http://127.0.0.1:3210/version >/dev/null; do sleep 2; done
 [ -s .admin_key ] || docker compose exec -T convex ./generate_admin_key.sh | tail -1 > .admin_key
 chmod 600 .admin_key
 
-# Add the Caddy route once. Append (not sed -i) so the bind-mounted file keeps its inode.
-if ! grep -q "foodsafety.savepoint.co.nz" ~/caddy/Caddyfile; then
+# Add the Caddy routes once: the app on app.$DOMAIN, the bare domain and www redirect to it until the
+# website exists, and the old address redirects too. Write in place (append / cat >, not sed -i) so the
+# bind-mounted file keeps its inode.
+if ! grep -q "app.$DOMAIN" ~/caddy/Caddyfile; then
   cp ~/caddy/Caddyfile ~/caddy/Caddyfile.bak-\$(date +%F-%H%M)
-  printf '\nhttp://foodsafety.savepoint.co.nz {\n    reverse_proxy foodsafe:80\n}\n' >> ~/caddy/Caddyfile
+  awk '/$OLD_HOST/{f=1} f && /reverse_proxy foodsafe:80/{sub(/reverse_proxy foodsafe:80/, "redir $URL{uri}"); f=0} {print}' \
+    ~/caddy/Caddyfile > /tmp/Caddyfile.new && cat /tmp/Caddyfile.new > ~/caddy/Caddyfile && rm /tmp/Caddyfile.new
+  printf '\nhttp://app.$DOMAIN {\n    reverse_proxy foodsafe:80\n}\n\nhttp://$DOMAIN, http://www.$DOMAIN {\n    redir $URL{uri}\n}\n' >> ~/caddy/Caddyfile
   docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 fi
 REMOTE

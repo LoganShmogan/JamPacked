@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/main.dart';
-import 'package:foodsafe/screens/admin_screens.dart';
-import 'package:foodsafe/screens/business_picker_screen.dart';
-import 'package:foodsafe/screens/expiring_screen.dart';
-import 'package:foodsafe/screens/export_screen.dart';
-import 'package:foodsafe/screens/login_screen.dart';
-import 'package:foodsafe/screens/more_screen.dart';
-import 'package:foodsafe/screens/products_screen.dart';
-import 'package:foodsafe/screens/suppliers_screen.dart';
-import 'package:foodsafe/screens/temperature_screen.dart';
-import 'package:foodsafe/screens/trace_screen.dart';
+import 'package:jampacked/main.dart';
+import 'package:jampacked/screens/admin_screens.dart';
+import 'package:jampacked/screens/business_picker_screen.dart';
+import 'package:jampacked/screens/expiring_screen.dart';
+import 'package:jampacked/screens/export_screen.dart';
+import 'package:jampacked/screens/login_screen.dart';
+import 'package:jampacked/screens/more_screen.dart';
+import 'package:jampacked/screens/products_screen.dart';
+import 'package:jampacked/screens/suppliers_screen.dart';
+import 'package:jampacked/screens/temperature_screen.dart';
+import 'package:jampacked/screens/trace_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../fixtures.dart';
@@ -61,7 +61,7 @@ void main() {
     final auth = signedIn(convex);
     await pumpScreen(
       tester,
-      const NzSafetyHealthApp(),
+      const JamPackedApp(),
       convex: convex,
       auth: auth,
       size: const Size(400, 1400),
@@ -114,7 +114,7 @@ void main() {
     // Through the real auth gate, which swaps the shell out when the user goes away.
     await pumpScreen(
       tester,
-      const NzSafetyHealthApp(),
+      const JamPackedApp(),
       convex: convex,
       auth: auth,
       size: const Size(400, 1400),

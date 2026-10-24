@@ -120,7 +120,7 @@ export const lookupBarcode = action({
     if (!/^\d{6,14}$/.test(barcode)) return null;
     const res = await fetch(
       `https://world.openfoodfacts.org/api/v2/product/${barcode}.json?fields=product_name,brands,allergens_tags,ingredients_text,nova_group,image_front_small_url,categories_tags`,
-      { headers: { "User-Agent": "NZSafetyHealthApp/0.1 (dev)" } },
+      { headers: { "User-Agent": "JamPacked/0.1 (https://jampacked.co.nz)" } },
     );
     if (!res.ok) return null;
     const body = await res.json();

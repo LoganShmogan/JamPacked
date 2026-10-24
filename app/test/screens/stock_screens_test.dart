@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/locations_screen.dart';
-import 'package:foodsafe/screens/lot_detail_screen.dart';
-import 'package:foodsafe/screens/stock_screen.dart';
-import 'package:foodsafe/screens/stocktake_screen.dart';
+import 'package:jampacked/screens/locations_screen.dart';
+import 'package:jampacked/screens/lot_detail_screen.dart';
+import 'package:jampacked/screens/stock_screen.dart';
+import 'package:jampacked/screens/stocktake_screen.dart';
 
 import '../fixtures.dart';
 import '../helpers.dart';

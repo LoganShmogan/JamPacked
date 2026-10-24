@@ -1,17 +1,10 @@
-# foodsafe
+# JamPacked: Flutter app
 
-A new Flutter project.
+The Flutter client (Android, iOS, web) for JamPacked (by JamPacked and Co). The project docs live at the repo root:
 
-## Getting Started
+- [`../README.md`](../README.md): overview and how to run it locally
+- [`../docs/DOCUMENTATION.md`](../docs/DOCUMENTATION.md): technical & user documentation (see §11 for the Flutter app reference)
+- [`../docs/TESTING.md`](../docs/TESTING.md): running and writing tests
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The logo is `assets/logo.jpg`. After changing it, regenerate the Android, iOS and web icons with
+`dart run flutter_launcher_icons` (settings in `pubspec.yaml`).

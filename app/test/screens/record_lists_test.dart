@@ -1,11 +1,11 @@
 // Read-only list screens: expiring stock, trace & recall, products.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/delivery_detail_screen.dart';
-import 'package:foodsafe/screens/expiring_screen.dart';
-import 'package:foodsafe/screens/lot_detail_screen.dart';
-import 'package:foodsafe/screens/products_screen.dart';
-import 'package:foodsafe/screens/trace_screen.dart';
+import 'package:jampacked/screens/delivery_detail_screen.dart';
+import 'package:jampacked/screens/expiring_screen.dart';
+import 'package:jampacked/screens/lot_detail_screen.dart';
+import 'package:jampacked/screens/products_screen.dart';
+import 'package:jampacked/screens/trace_screen.dart';
 
 import '../fixtures.dart';
 import '../helpers.dart';

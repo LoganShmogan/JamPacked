@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/custom_programme_editor.dart';
+import 'package:jampacked/screens/custom_programme_editor.dart';
 
 import '../helpers.dart';
 

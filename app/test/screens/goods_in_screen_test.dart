@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/delivery_detail_screen.dart';
-import 'package:foodsafe/screens/goods_in_form_screen.dart';
-import 'package:foodsafe/screens/goods_in_screen.dart';
-import 'package:foodsafe/widgets/common.dart';
+import 'package:jampacked/screens/delivery_detail_screen.dart';
+import 'package:jampacked/screens/goods_in_form_screen.dart';
+import 'package:jampacked/screens/goods_in_screen.dart';
+import 'package:jampacked/widgets/common.dart';
 
 import '../fixtures.dart';
 import '../helpers.dart';

@@ -1,4 +1,6 @@
-# NZSafetyHealthApp: goods inwards, stock & food safety programmes for NZ & AU businesses
+# JamPacked: goods inwards, stock & food safety programmes for NZ & AU businesses
+
+By JamPacked and Co. Live at https://app.jampacked.co.nz
 
 Mobile-first Flutter app (Android, iOS, web) with a Convex backend, in the spirit of Safe Food Pro.
 **Goods inwards and stock management are the core**: every delivery becomes stock you can rotate, use,
@@ -43,6 +45,9 @@ cd app && flutter test                  # or: flutter test --coverage && dart ru
 ```
 
 See [`docs/TESTING.md`](docs/TESTING.md) for how the tests are organised and how to add new ones.
+
+Open issues and to-dos before launch (hosting, Clerk, store release, scaling) are tracked in
+[`docs/issues/`](docs/issues/README.md).
 
 ## What's in it
 

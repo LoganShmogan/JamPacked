@@ -1,11 +1,11 @@
 {
-    "name": "NZSafetyHealthApp",
-    "short_name": "NZSafetyHealthApp",
+    "name": "JamPacked",
+    "short_name": "JamPacked",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#FFFFFF",
+    "background_color": "#FDE5CD",
     "theme_color": "#F26B21",
-    "description": "A new Flutter project.",
+    "description": "Goods inwards, stock & food safety records for NZ & Australian businesses.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

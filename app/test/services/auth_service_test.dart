@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/services/auth_service.dart';
-import 'package:foodsafe/services/convex_client.dart';
+import 'package:jampacked/services/auth_service.dart';
+import 'package:jampacked/services/convex_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../fixtures.dart' as fixtures;

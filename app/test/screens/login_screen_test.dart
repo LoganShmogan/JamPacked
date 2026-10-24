@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/login_screen.dart';
-import 'package:foodsafe/services/auth_service.dart';
+import 'package:jampacked/screens/login_screen.dart';
+import 'package:jampacked/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../fixtures.dart';

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/services/auth_service.dart';
-import 'package:foodsafe/services/convex_client.dart';
-import 'package:foodsafe/theme.dart';
+import 'package:jampacked/services/auth_service.dart';
+import 'package:jampacked/services/convex_client.dart';
+import 'package:jampacked/theme.dart';
 import 'package:provider/provider.dart';
 
 typedef Handler = Object? Function(Map<String, dynamic> args);

@@ -1,13 +1,13 @@
-# NZSafetyHealthApp: Technical & User Documentation
+# JamPacked: Technical & User Documentation
 
-Food safety record-keeping for New Zealand and Australian food businesses. Mobile-first Flutter app
+JamPacked, by JamPacked and Co: food safety record-keeping for New Zealand and Australian food businesses. Mobile-first Flutter app
 (Android, iOS, web) backed by Convex. **Goods inwards and stock are the core**: every delivery recorded
 becomes stock you can rotate, use, dispatch, hold and recall, and feeds audits, corrective actions,
 expiry alerts and tracing automatically. On top of that, each business follows a **programme module**
 (MPI National Programme 1, 2 or 3, or a custom programme it builds) that decides which extra checks
 and records the app asks for. One account can run several businesses.
 
-Live: https://foodsafety.savepoint.co.nz
+Live: https://app.jampacked.co.nz
 
 ---
 
@@ -670,21 +670,25 @@ flutter run -d <iphone>     --dart-define=CONVEX_URL=http://<your-LAN-ip>:3210
 **Topology:**
 ```
 Internet → Cloudflare → cloudflared tunnel (loganserver) → Caddy (127.0.0.1:80, ~/caddy)
-   → http://foodsafety.savepoint.co.nz { reverse_proxy foodsafe:80 }   (Docker network "web")
+   → http://app.jampacked.co.nz { reverse_proxy foodsafe:80 }   (Docker network "web")
+     http://jampacked.co.nz, www, and the old foodsafety.savepoint.co.nz redirect to app.jampacked.co.nz
    → foodsafe (nginx): serves Flutter web build; /api/* → foodsafe-convex:3210 (network "internal")
    → foodsafe-convex: self-hosted Convex backend, data in volume foodsafe_convex-data
 ```
 
 - Files on server: `~/foodsafe/` (`docker-compose.yml`, `nginx.conf`, `web/`, `.admin_key`).
 - Convex is published only on `127.0.0.1:3210` on the server; deploys reach it through an SSH tunnel.
-- Caddy route was appended to `~/caddy/Caddyfile` (a timestamped backup was taken first).
+- Caddy routes are added to `~/caddy/Caddyfile` by the deploy (a timestamped backup is taken first).
+- Each hostname also needs a **Public Hostname** on the Cloudflare tunnel (Zero Trust → Networks →
+  Tunnels), pointing at the same service as the other loganserver sites. The tunnel runs from a token, so
+  this is done in the Cloudflare dashboard, not on the server.
 
 **Deploy / update** (from this repo, on a machine with Flutter, Node and SSH access):
 ```bash
 ./deploy/deploy.sh            # default host: loganserver
 ```
-It builds the web app with `CONVEX_URL=https://foodsafety.savepoint.co.nz`, rsyncs the build and
-configs, runs `docker compose up -d`, generates the Convex admin key on first run, adds the Caddy route if
+It builds the web app with `CONVEX_URL=https://app.jampacked.co.nz`, rsyncs the build and
+configs, runs `docker compose up -d`, generates the Convex admin key on first run, adds the Caddy routes if
 missing, then pushes Convex functions via `npx convex deploy` over an SSH tunnel (local port 3299).
 Re-running is safe.
 
