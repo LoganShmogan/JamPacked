@@ -25,6 +25,12 @@ BOOT=flutter_bootstrap.$(sha256sum "$WEB/flutter_bootstrap.js" | cut -c1-12).js
 mv "$WEB/flutter_bootstrap.js" "$WEB/$BOOT"
 sed -i "s/src=\"flutter_bootstrap.js\"/src=\"$BOOT\"/" "$WEB/index.html"
 grep -q "src=\"$BOOT\"" "$WEB/index.html"
+# Version the icons and manifest the same way (?v=content hash), so a new logo shows up straight away.
+# manifest.json goes last: its own hash must include the icon versions written into it.
+for f in favicon.png icons/Icon-192.png icons/Icon-512.png icons/Icon-maskable-192.png icons/Icon-maskable-512.png manifest.json; do
+  V=$(sha256sum "$WEB/$f" | cut -c1-8)
+  sed -i "s#\"$f\"#\"$f?v=$V\"#g" "$WEB/index.html" "$WEB/manifest.json"
+done
 
 echo "==> Uploading"
 ssh "$HOST" "mkdir -p $DIR/web"

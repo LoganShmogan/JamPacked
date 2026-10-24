@@ -8,3 +8,5 @@ The Flutter client (Android, iOS, web) for JamPacked (by JamPacked and Co). The 
 
 The logo is `assets/logo.jpg`. After changing it, regenerate the Android, iOS and web icons with
 `dart run flutter_launcher_icons` (settings in `pubspec.yaml`).
+That also overwrites `web/favicon.png` with a 16px copy of the whole logo; the committed favicon is a
+96px crop around the jar so it's readable in a browser tab, so re-crop it after regenerating.

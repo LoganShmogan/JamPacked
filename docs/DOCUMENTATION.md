@@ -694,7 +694,7 @@ Re-running is safe.
 
 `main.dart.js` and `flutter_bootstrap.js` are renamed with a content hash on each deploy, and nginx sends
 `no-cache` for everything else. Otherwise Cloudflare caches the app's files at its edge and phones keep
-running the old build for hours. If a deploy still looks stale (e.g. an image), purge the Cloudflare
+running the old build for hours. Icons and `manifest.json` get a `?v=<hash>` the same way. If a deploy still looks stale, purge the Cloudflare
 cache for `jampacked.co.nz` (Caching → Configuration → Purge Everything).
 
 **Upgrading the live server to multi-business (one-off).** Data saved before this change has no
