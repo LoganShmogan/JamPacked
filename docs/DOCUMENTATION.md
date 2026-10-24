@@ -692,6 +692,11 @@ configs, runs `docker compose up -d`, generates the Convex admin key on first ru
 missing, then pushes Convex functions via `npx convex deploy` over an SSH tunnel (local port 3299).
 Re-running is safe.
 
+`main.dart.js` and `flutter_bootstrap.js` are renamed with a content hash on each deploy, and nginx sends
+`no-cache` for everything else. Otherwise Cloudflare caches the app's files at its edge and phones keep
+running the old build for hours. If a deploy still looks stale (e.g. an image), purge the Cloudflare
+cache for `jampacked.co.nz` (Caching → Configuration → Purge Everything).
+
 **Upgrading the live server to multi-business (one-off).** Data saved before this change has no
 `businessId`: until it is migrated, existing users sign in to an empty business list. So run this
 **straight after** `./deploy/deploy.sh`, choosing the programme (and sectors) the existing business follows:
