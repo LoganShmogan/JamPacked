@@ -161,7 +161,7 @@ class ProgrammeScreen extends StatelessWidget {
                               ListTile(
                                 leading: const Icon(
                                   Icons.assignment,
-                                  color: AppColors.orange,
+                                  color: AppColors.jam,
                                 ),
                                 title: Text(
                                   r['name'],
@@ -191,7 +191,7 @@ class ProgrammeScreen extends StatelessWidget {
                               ListTile(
                                 leading: const Icon(
                                   Icons.local_shipping,
-                                  color: AppColors.orange,
+                                  color: AppColors.jam,
                                 ),
                                 title: Text(p['text']),
                                 subtitle: p['guidance'] == null
@@ -211,7 +211,7 @@ class ProgrammeScreen extends StatelessWidget {
                               ListTile(
                                 leading: const Icon(
                                   Icons.fact_check,
-                                  color: AppColors.orange,
+                                  color: AppColors.jam,
                                 ),
                                 title: Text(
                                   t['name'],
@@ -324,7 +324,7 @@ class _BuildProgrammeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    color: AppColors.orangeLight,
+    color: AppColors.jamLight,
     child: Padding(
       padding: const EdgeInsets.all(16),
       child: Column(

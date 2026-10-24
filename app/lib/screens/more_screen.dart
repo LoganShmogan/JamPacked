@@ -28,7 +28,7 @@ class MoreScreen extends StatelessWidget {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => w));
     Widget tile(IconData icon, String title, String sub, Widget page) =>
         ListTile(
-          leading: Icon(icon, color: AppColors.orange),
+          leading: Icon(icon, color: AppColors.jam),
           title: Text(
             title,
             style: const TextStyle(fontWeight: FontWeight.w600),
@@ -49,7 +49,7 @@ class MoreScreen extends StatelessWidget {
                 Card(
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: AppColors.orange,
+                      backgroundColor: AppColors.jam,
                       child: Text(
                         user.name[0].toUpperCase(),
                         style: const TextStyle(color: Colors.white),
@@ -70,7 +70,7 @@ class MoreScreen extends StatelessWidget {
                       ListTile(
                         leading: const Icon(
                           Icons.storefront,
-                          color: AppColors.orange,
+                          color: AppColors.jam,
                         ),
                         title: Text(
                           business.name,
@@ -86,7 +86,7 @@ class MoreScreen extends StatelessWidget {
                       ListTile(
                         leading: const Icon(
                           Icons.swap_horiz,
-                          color: AppColors.orange,
+                          color: AppColors.jam,
                         ),
                         title: const Text(
                           'Switch business',

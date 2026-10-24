@@ -104,7 +104,7 @@ class LocationsScreen extends StatelessWidget {
               child: Card(
                 child: ListTile(
                   onTap: () => _edit(context, l),
-                  leading: const Icon(Icons.kitchen, color: AppColors.orange),
+                  leading: const Icon(Icons.kitchen, color: AppColors.jam),
                   title: Text(
                     l['name'],
                     style: TextStyle(

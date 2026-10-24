@@ -209,7 +209,7 @@ class _ItemCard extends StatelessWidget {
               children: [
                 Icon(
                   storageIcons[item['storageType']],
-                  color: AppColors.orange,
+                  color: AppColors.jam,
                   size: 20,
                 ),
                 const SizedBox(width: 8),

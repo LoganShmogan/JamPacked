@@ -76,7 +76,7 @@ class _AuditTrailScreenState extends State<AuditTrailScreen> {
                           auditActionIcon(e['action']),
                           color: e['action'] == 'login_failed'
                               ? AppColors.bad
-                              : AppColors.orange,
+                              : AppColors.jam,
                         ),
                         title: Text(e['summary']),
                         subtitle: Text(

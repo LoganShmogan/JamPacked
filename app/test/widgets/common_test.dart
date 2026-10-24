@@ -291,7 +291,7 @@ void main() {
       expect(colorOf('ok'), AppColors.ok);
       expect(colorOf('warn'), AppColors.warn);
       expect(colorOf('bad'), AppColors.bad);
-      expect(colorOf('brand'), AppColors.orangeDark);
+      expect(colorOf('brand'), AppColors.jamDark);
       expect(colorOf('neutral'), AppColors.muted);
       expect(find.byIcon(Icons.check), findsOneWidget);
     });

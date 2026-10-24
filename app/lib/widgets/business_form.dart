@@ -177,7 +177,7 @@ class _ProgrammeCard extends StatelessWidget {
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
       side: BorderSide(
-        color: selected ? AppColors.orange : AppColors.border,
+        color: selected ? AppColors.jam : AppColors.border,
         width: selected ? 2 : 1,
       ),
     ),
@@ -195,7 +195,7 @@ class _ProgrammeCard extends StatelessWidget {
                   selected
                       ? Icons.radio_button_checked
                       : Icons.radio_button_off,
-                  color: AppColors.orange,
+                  color: AppColors.jam,
                 ),
                 const SizedBox(width: 8),
                 Expanded(

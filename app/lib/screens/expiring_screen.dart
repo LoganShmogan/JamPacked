@@ -42,7 +42,7 @@ class ExpiringScreen extends StatelessWidget {
                     ),
                     leading: Icon(
                       storageIcons[it['storageType']],
-                      color: AppColors.orange,
+                      color: AppColors.jam,
                     ),
                     title: Text(
                       it['productName'],

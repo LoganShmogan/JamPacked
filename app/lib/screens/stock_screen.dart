@@ -156,10 +156,7 @@ class LotCard extends StatelessWidget {
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => LotDetailScreen(id: lot['_id'])),
         ),
-        leading: Icon(
-          storageIcons[lot['storageType']],
-          color: AppColors.orange,
-        ),
+        leading: Icon(storageIcons[lot['storageType']], color: AppColors.jam),
         title: Text(
           lot['productName'],
           style: const TextStyle(fontWeight: FontWeight.w700),

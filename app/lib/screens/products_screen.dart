@@ -131,7 +131,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                   children: [
                                     Icon(
                                       storageIcons[p['storageType']],
-                                      color: AppColors.orange,
+                                      color: AppColors.jam,
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(

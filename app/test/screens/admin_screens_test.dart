@@ -91,7 +91,7 @@ void main() {
         );
         expect(
           tester.widget<Icon>(find.byIcon(Icons.edit_outlined)).color,
-          AppColors.orange,
+          AppColors.jam,
         );
         expect(find.text('Sam · 6 May 2024, 9:15 AM · update'), findsOneWidget);
 

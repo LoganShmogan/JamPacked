@@ -301,7 +301,7 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
                           avatar: Icon(
                             storageIcons[s['storageType']],
                             size: 18,
-                            color: AppColors.orange,
+                            color: AppColors.jam,
                           ),
                           label: Text(s['productName']),
                           onPressed: () =>
@@ -380,7 +380,7 @@ class _DraftItemTile extends StatelessWidget {
   Widget build(BuildContext context) => Card(
     child: ListTile(
       onTap: onTap,
-      leading: Icon(storageIcons[item['storageType']], color: AppColors.orange),
+      leading: Icon(storageIcons[item['storageType']], color: AppColors.jam),
       title: Text(
         item['productName'],
         style: const TextStyle(fontWeight: FontWeight.w700),

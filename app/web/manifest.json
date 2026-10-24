@@ -4,7 +4,7 @@
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FDE5CD",
-    "theme_color": "#F26B21",
+    "theme_color": "#C94A4E",
     "description": "Goods inwards, stock & food safety records for NZ & Australian businesses.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,

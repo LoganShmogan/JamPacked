@@ -34,7 +34,7 @@ class AuditHistory extends StatelessWidget {
               dense: true,
               leading: Icon(
                 auditActionIcon(entries[i]['action']),
-                color: AppColors.orange,
+                color: AppColors.jam,
               ),
               title: Text(entries[i]['summary']),
               subtitle: Text(

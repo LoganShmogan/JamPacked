@@ -53,7 +53,7 @@ class AuditsScreen extends StatelessWidget {
                       child: ListTile(
                         leading: const Icon(
                           Icons.verified,
-                          color: AppColors.orange,
+                          color: AppColors.jam,
                         ),
                         title: const Text(
                           'Your programme',
@@ -74,21 +74,18 @@ class AuditsScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   const Responsive(
                     child: Card(
-                      color: AppColors.orangeLight,
+                      color: AppColors.jamLight,
                       child: Padding(
                         padding: EdgeInsets.all(14),
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.auto_awesome,
-                              color: AppColors.orangeDark,
-                            ),
+                            Icon(Icons.auto_awesome, color: AppColors.jamDark),
                             SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 'Audits pre-fill from your goods inwards, temperature and corrective action records. '
                                 'Just review the evidence and answer what\'s left.',
-                                style: TextStyle(color: AppColors.orangeDark),
+                                style: TextStyle(color: AppColors.jamDark),
                               ),
                             ),
                           ],
@@ -112,7 +109,7 @@ class AuditsScreen extends StatelessWidget {
                                   children: [
                                     const Icon(
                                       Icons.fact_check,
-                                      color: AppColors.orange,
+                                      color: AppColors.jam,
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
@@ -126,7 +123,7 @@ class AuditsScreen extends StatelessWidget {
                                     ),
                                     const Icon(
                                       Icons.play_circle_fill,
-                                      color: AppColors.orange,
+                                      color: AppColors.jam,
                                       size: 30,
                                     ),
                                   ],

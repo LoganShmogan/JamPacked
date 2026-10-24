@@ -58,10 +58,10 @@ class GoodsInScreen extends StatelessWidget {
                       child: Row(
                         children: [
                           CircleAvatar(
-                            backgroundColor: AppColors.orangeLight,
+                            backgroundColor: AppColors.jamLight,
                             child: const Icon(
                               Icons.local_shipping,
-                              color: AppColors.orange,
+                              color: AppColors.jam,
                             ),
                           ),
                           const SizedBox(width: 12),

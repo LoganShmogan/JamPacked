@@ -202,7 +202,7 @@ class DashboardScreen extends StatelessWidget {
                             child: ListTile(
                               leading: const Icon(
                                 Icons.pending_actions,
-                                color: AppColors.orange,
+                                color: AppColors.jam,
                               ),
                               title: Text(
                                 '${fmtNum(d['inProgressAudits'])} audit(s) in progress',
@@ -243,7 +243,7 @@ class _Header extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.orange, AppColors.orangeDark],
+          colors: [AppColors.jam, AppColors.jamDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -349,7 +349,7 @@ class _Kpi extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(icon, size: 18, color: AppColors.orange),
+                  Icon(icon, size: 18, color: AppColors.jam),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -415,7 +415,7 @@ class _TileGrid extends StatelessWidget {
               width: w,
               height: 104,
               child: Material(
-                color: t.primary ? AppColors.orange : Colors.white,
+                color: t.primary ? AppColors.jam : Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                   side: t.primary
@@ -433,7 +433,7 @@ class _TileGrid extends StatelessWidget {
                         Icon(
                           t.icon,
                           size: 32,
-                          color: t.primary ? Colors.white : AppColors.orange,
+                          color: t.primary ? Colors.white : AppColors.jam,
                         ),
                         const SizedBox(height: 8),
                         Text(

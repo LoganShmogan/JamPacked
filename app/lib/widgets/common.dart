@@ -167,11 +167,7 @@ class _QueryBuilderState extends State<QueryBuilder> {
     }
     final child = widget.builder(context, _data);
     return widget.refreshable
-        ? RefreshIndicator(
-            color: AppColors.orange,
-            onRefresh: _load,
-            child: child,
-          )
+        ? RefreshIndicator(color: AppColors.jam, onRefresh: _load, child: child)
         : child;
   }
 }
@@ -190,7 +186,7 @@ class Pill extends StatelessWidget {
       Tone.ok => (AppColors.okLight, AppColors.ok),
       Tone.warn => (AppColors.warnLight, AppColors.warn),
       Tone.bad => (AppColors.badLight, AppColors.bad),
-      Tone.brand => (AppColors.orangeLight, AppColors.orangeDark),
+      Tone.brand => (AppColors.jamLight, AppColors.jamDark),
       Tone.neutral => (const Color(0xFFF1F1F1), AppColors.muted),
     };
     return Container(
@@ -267,8 +263,8 @@ class EmptyState extends StatelessWidget {
       const SizedBox(height: 40),
       CircleAvatar(
         radius: 36,
-        backgroundColor: AppColors.orangeLight,
-        child: Icon(icon, size: 36, color: AppColors.orange),
+        backgroundColor: AppColors.jamLight,
+        child: Icon(icon, size: 36, color: AppColors.jam),
       ),
       const SizedBox(height: 16),
       Text(

@@ -52,7 +52,7 @@ class _BusinessPickerScreenState extends State<BusinessPickerScreen> {
         label: const Text('Add business'),
       ),
       body: RefreshIndicator(
-        color: AppColors.orange,
+        color: AppColors.jam,
         onRefresh: _refresh,
         child: ListView(
           // Always scrollable so pull-to-refresh works with only a few businesses.
@@ -116,7 +116,7 @@ class _BusinessCard extends StatelessWidget {
     child: ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: CircleAvatar(
-        backgroundColor: b.archived ? AppColors.border : AppColors.orange,
+        backgroundColor: b.archived ? AppColors.border : AppColors.jam,
         child: Text(
           b.name[0].toUpperCase(),
           style: const TextStyle(color: Colors.white),

@@ -62,8 +62,8 @@ class AuditDetailScreen extends StatelessWidget {
                               value: answers.isEmpty
                                   ? 0
                                   : answered / answers.length,
-                              color: AppColors.orange,
-                              backgroundColor: AppColors.orangeLight,
+                              color: AppColors.jam,
+                              backgroundColor: AppColors.jamLight,
                               minHeight: 8,
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -217,7 +217,7 @@ class _QuestionCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.orangeLight,
+                  color: AppColors.jamLight,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -226,14 +226,14 @@ class _QuestionCard extends StatelessWidget {
                     const Icon(
                       Icons.auto_awesome,
                       size: 16,
-                      color: AppColors.orangeDark,
+                      color: AppColors.jamDark,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         q['evidence'],
                         style: const TextStyle(
-                          color: AppColors.orangeDark,
+                          color: AppColors.jamDark,
                           fontSize: 13,
                         ),
                       ),

@@ -75,7 +75,7 @@ class _ExportScreenState extends State<ExportScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Card(
-                  color: AppColors.orangeLight,
+                  color: AppColors.jamLight,
                   child: Padding(
                     padding: EdgeInsets.all(14),
                     child: Text(
@@ -83,7 +83,7 @@ class _ExportScreenState extends State<ExportScreen> {
                       'with a reason, and businesses are archived. MPI National Programmes need 4 years.\n\n'
                       'Export a full copy of everything this business has recorded: deliveries, stock, '
                       'temperatures, programme records, audits, corrective actions and the audit trail.',
-                      style: TextStyle(color: AppColors.orangeDark),
+                      style: TextStyle(color: AppColors.jamDark),
                     ),
                   ),
                 ),
