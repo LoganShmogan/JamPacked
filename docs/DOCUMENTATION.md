@@ -328,7 +328,7 @@ vehicle (low) → one audit-log entry.
 - `platform:overview()` (platform admin): users, businesses (active in the last 7/30 days, by programme
   and country), sign-ups per week for 12 weeks, and a per-business list (members, last activity) for
   support. Counts only, never a business's records. Activity is the newest audit log row per business.
-- `platform:setPlatformAdmin(email, platformAdmin)` (internal): see §9.
+- `platform:setPlatformAdmin(email, platformAdmin)`, `platform:createPlatformAdmin(email, name, password)` (internal): see §9.
 
 ## 6. Audit auto-fill engine
 
@@ -485,6 +485,10 @@ grant it from the CLI with the internal mutation (on the live server, through th
 migration):
 ```bash
 npx convex run platform:setPlatformAdmin '{"email":"you@example.com","platformAdmin":true}'
+```
+Someone with no account yet (sign-up needs a business) gets one with the dashboard already on:
+```bash
+npx convex run platform:createPlatformAdmin '{"email":"…","name":"…","password":"…"}'
 ```
 
 **Known gaps (acceptable for dev, fix before real use):** open registration (anyone with the URL can

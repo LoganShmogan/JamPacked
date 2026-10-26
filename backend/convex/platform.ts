@@ -1,9 +1,11 @@
 // The owner dashboard: how JamPacked itself is doing (sign-ups, businesses, activity), for platform
 // admins only. Counts come from users, businesses and memberships, which grow with customers, not with
 // their records; activity reads one audit log row per business. No business's records are returned.
-import { v } from "convex/values";
-import { internalMutation, query } from "./_generated/server";
+import { ConvexError, v } from "convex/values";
+import { internal } from "./_generated/api";
+import { internalAction, internalMutation, query } from "./_generated/server";
 import { logAudit } from "./lib/audit";
+import { hashPassword } from "./lib/password";
 import { requirePlatformAdmin } from "./lib/session";
 
 const DAY = 86_400_000;
@@ -96,5 +98,39 @@ export const setPlatformAdmin = internalMutation({
       summary: `${user.name} ${platformAdmin ? "is now" : "is no longer"} a platform admin`,
     });
     return { updated: true };
+  },
+});
+
+/**
+ * An account for JamPacked staff, with the owner dashboard switched on. Unlike sign-up it needs no
+ * business. Internal only: `npx convex run platform:createPlatformAdmin '{"email":…,"name":…,"password":…}'`.
+ */
+export const createPlatformAdmin = internalAction({
+  args: { email: v.string(), name: v.string(), password: v.string() },
+  handler: async (ctx, args): Promise<{ created: boolean }> => {
+    if (args.password.length < 8) throw new ConvexError("Password must be at least 8 characters");
+    const { hash, salt } = await hashPassword(args.password);
+    return await ctx.runMutation(internal.platform.insertPlatformAdmin, {
+      email: args.email.trim().toLowerCase(),
+      name: args.name.trim(),
+      passwordHash: hash,
+      passwordSalt: salt,
+    });
+  },
+});
+
+export const insertPlatformAdmin = internalMutation({
+  args: { email: v.string(), name: v.string(), passwordHash: v.string(), passwordSalt: v.string() },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", args.email)).unique();
+    if (existing) return { created: false };
+    const userId = await ctx.db.insert("users", { ...args, active: true, platformAdmin: true, createdAt: Date.now() });
+    await logAudit(ctx, null, {
+      action: "platform_admin_created",
+      entityType: "user",
+      entityId: userId,
+      summary: `Platform admin account created for ${args.email}`,
+    });
+    return { created: true };
   },
 });

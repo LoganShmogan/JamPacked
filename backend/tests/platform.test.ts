@@ -79,3 +79,27 @@ describe("platform:setPlatformAdmin", () => {
     expect(await t.mutation(internal.platform.setPlatformAdmin, { email: "who@example.com", platformAdmin: true })).toEqual({ updated: false });
   });
 });
+
+describe("platform:createPlatformAdmin", () => {
+  test("creates a staff account with no business that can sign in and see the dashboard", async () => {
+    const t = setup();
+    await signIn(t, "admin"); // a customer, so the dashboard has something to count
+    const res = await t.action(internal.platform.createPlatformAdmin, {
+      email: " Tim@Example.com ", name: " Tim ", password: "longenough1",
+    });
+    expect(res).toEqual({ created: true });
+    const { token } = await t.action(api.auth.login, { email: "tim@example.com", password: "longenough1" });
+    const o = await t.query(api.platform.overview, { sessionToken: token });
+    expect(o.users.total).toBe(2);
+    expect(await t.query(api.businesses.mine, { sessionToken: token })).toEqual([]);
+    expect((await auditLog(t)).map((e) => e.action)).toContain("platform_admin_created");
+  });
+
+  test("leaves an existing account alone and rejects short passwords", async () => {
+    const t = setup();
+    const { userId } = await signIn(t, "admin", { email: "logan@example.com" });
+    expect(await t.action(internal.platform.createPlatformAdmin, { email: "logan@example.com", name: "L", password: "longenough1" })).toEqual({ created: false });
+    expect((await getDoc(t, userId))!.platformAdmin).toBeUndefined();
+    await expect(t.action(internal.platform.createPlatformAdmin, { email: "x@example.com", name: "X", password: "short" })).rejects.toThrow("at least 8");
+  });
+});

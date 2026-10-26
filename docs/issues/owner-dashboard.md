@@ -27,5 +27,7 @@ There's no way for us to see how the business is doing: sign-ups, trials, paying
   breakdown, business list
 - [ ] Subscriptions by status, MRR, churn and trial conversion (needs [billing-stripe.md](billing-stripe.md))
 - [x] Per-business view for support (programme, members, signed up, last activity) without their records
-- [ ] Grant yourself platform admin on the live server after deploying
+- [x] Platform admin accounts on the live server for Logan (logan@savepoint.co.nz) and Tim
+  (timcoulson5@gmail.com), 27 Oct 2026
+- [ ] A way to change your password (none until Clerk; ask a platform admin to reset it from the CLI)
 - [ ] Move the `/admin` sign-in to Clerk with [clerk-authentication.md](clerk-authentication.md)
