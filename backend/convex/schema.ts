@@ -88,6 +88,7 @@ export default defineSchema({
     passwordHash: v.string(),
     passwordSalt: v.string(),
     active: v.boolean(),
+    platformAdmin: v.optional(v.boolean()), // JamPacked staff: can see the owner dashboard (platform.ts)
     createdAt: v.number(),
   }).index("by_email", ["email"]),
 

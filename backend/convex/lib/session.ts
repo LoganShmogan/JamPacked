@@ -27,6 +27,13 @@ export async function requireUser(ctx: QueryCtx | MutationCtx, sessionToken: str
   return user;
 }
 
+/** The owner dashboard: only JamPacked's own staff (users with `platformAdmin`), never customers. */
+export async function requirePlatformAdmin(ctx: QueryCtx | MutationCtx, sessionToken: string) {
+  const user = await requireUser(ctx, sessionToken);
+  if (!user.platformAdmin) throw new ConvexError("Only JamPacked staff can see this");
+  return user;
+}
+
 export async function membership(ctx: QueryCtx | MutationCtx, userId: Id<"users">, businessId: Id<"businesses">) {
   return await ctx.db
     .query("memberships")

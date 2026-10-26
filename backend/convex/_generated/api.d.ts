@@ -30,6 +30,7 @@ import type * as lib_stock from "../lib/stock.js";
 import type * as lib_templates from "../lib/templates.js";
 import type * as locations from "../locations.js";
 import type * as migrations from "../migrations.js";
+import type * as platform from "../platform.js";
 import type * as products from "../products.js";
 import type * as programmes from "../programmes.js";
 import type * as records from "../records.js";
@@ -68,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   "lib/templates": typeof lib_templates;
   locations: typeof locations;
   migrations: typeof migrations;
+  platform: typeof platform;
   products: typeof products;
   programmes: typeof programmes;
   records: typeof records;
