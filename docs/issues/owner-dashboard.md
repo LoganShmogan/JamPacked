@@ -29,5 +29,5 @@ There's no way for us to see how the business is doing: sign-ups, trials, paying
 - [x] Per-business view for support (programme, members, signed up, last activity) without their records
 - [x] Platform admin accounts on the live server for Logan (logan@savepoint.co.nz) and Tim
   (timcoulson5@gmail.com), 27 Oct 2026
-- [ ] A way to change your password (none until Clerk; ask a platform admin to reset it from the CLI)
+- [ ] A way to change or reset a password (there is none until Clerk; see [clerk-authentication.md](clerk-authentication.md))
 - [ ] Move the `/admin` sign-in to Clerk with [clerk-authentication.md](clerk-authentication.md)
