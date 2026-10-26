@@ -5,7 +5,7 @@ folder while developing and add to it as new problems turn up.
 
 | Issue | Priority | Status |
 |---|---|---|
-| [Product name, domain & business setup](branding-and-business-setup.md) | High | Open |
+| [Product name, domain & business setup](branding-and-business-setup.md) | High | In progress |
 | [Hosting, backups & data location](hosting-and-backups.md) | High | Decided, not started |
 | [Move sign-in to Clerk](clerk-authentication.md) | High | Open |
 | [Account deletion vs 7-year retention](account-deletion-and-retention.md) | High | Open |

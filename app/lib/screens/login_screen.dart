@@ -211,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     const SizedBox(height: 24),
                     const Text(
-                      '© JamPacked and Co',
+                      '© Save Point Limited',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.muted, fontSize: 12),
                     ),

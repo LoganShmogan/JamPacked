@@ -1,6 +1,6 @@
 # JamPacked: goods inwards, stock & food safety programmes for NZ & AU businesses
 
-By JamPacked and Co. Live at https://app.jampacked.co.nz
+By Save Point Limited (trading as JamPacked). Live at https://app.jampacked.co.nz
 
 Mobile-first Flutter app (Android, iOS, web) with a Convex backend, in the spirit of Safe Food Pro.
 **Goods inwards and stock management are the core**: every delivery becomes stock you can rotate, use,

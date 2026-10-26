@@ -1,6 +1,6 @@
 # JamPacked: Technical & User Documentation
 
-JamPacked, by JamPacked and Co: food safety record-keeping for New Zealand and Australian food businesses. Mobile-first Flutter app
+JamPacked, by Save Point Limited: food safety record-keeping for New Zealand and Australian food businesses. Mobile-first Flutter app
 (Android, iOS, web) backed by Convex. **Goods inwards and stock are the core**: every delivery recorded
 becomes stock you can rotate, use, dispatch, hold and recall, and feeds audits, corrective actions,
 expiry alerts and tracing automatically. On top of that, each business follows a **programme module**
