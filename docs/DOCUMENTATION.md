@@ -704,7 +704,6 @@ flutter run -d <iphone>     --dart-define=CONVEX_URL=http://<your-LAN-ip>:3210
 Internet → Cloudflare → cloudflared tunnel (loganserver) → Caddy (127.0.0.1:80, ~/caddy)
    → http://app.jampacked.co.nz { reverse_proxy foodsafe:80 }   (Docker network "web")
      http://jampacked.co.nz, www { reverse_proxy foodsafe:80 }
-     the old foodsafety.savepoint.co.nz redirects to app.jampacked.co.nz
    → foodsafe (nginx), by hostname:
        jampacked.co.nz, www → the website (web/out, in ~/foodsafe/site)
        anything else        → the Flutter web build; /api/* → foodsafe-convex:3210 (network "internal")
