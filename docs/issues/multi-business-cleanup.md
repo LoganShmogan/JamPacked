@@ -12,8 +12,8 @@ Optional `businessId` means the schema doesn't guarantee every record belongs to
 fields and tables are confusing to work with.
 
 ## To do
-- [ ] Run `migrations:toMultiBusiness` on the live server (after `./deploy/deploy.sh`), and confirm existing
-  users see their business
+- [x] Run `migrations:toMultiBusiness` on the live server, and confirm existing users see their business
+  (checked 27 Oct 2026: no `settings` rows left and every delivery has a `businessId`)
 - [ ] Make `businessId` required in `schema.ts`
 - [ ] Remove the legacy `settings` table and `users.role`
 - [ ] Remove the migration (or keep it documented) and update §14

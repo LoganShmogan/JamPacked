@@ -36,7 +36,7 @@ Pages:
 - [x] SEO basics: titles, descriptions, Open Graph image (the logo), sitemap, robots.txt
 - [ ] A proper 1200×630 Open Graph image and a Google Search Console property
 - [x] Serve the site on `jampacked.co.nz` / `www` from loganserver (`deploy/`, DOCUMENTATION.md §14)
-- [ ] Run `./deploy/deploy.sh` to put it live (switches the bare domain and www from the app redirect to the site)
+- [x] Put it live with `./deploy/deploy.sh` (27 Oct 2026): `jampacked.co.nz` and `www` now serve the site
 - [ ] Vercel project, domains, preview deployments per branch (when moving off loganserver, see
   [hosting-and-backups.md](hosting-and-backups.md))
 - [x] Flutter web build on `app.<domain>`
