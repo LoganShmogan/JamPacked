@@ -130,9 +130,10 @@ NZSafetyHealthApp/
 │       ├── auditLog.ts          Read-only audit trail
 │       ├── dashboard.ts         Home screen summary
 │       ├── exportData.ts        Admin export of every record a business has
+│       ├── platform.ts          Owner dashboard numbers (platform admins only)
 │       ├── migrations.ts        One-off: single-business install → multi-business
 │       ├── lib/
-│       │   ├── session.ts       requireUser / requireMember / inBusiness
+│       │   ├── session.ts       requireUser / requireMember / requirePlatformAdmin / inBusiness
 │       │   ├── business.ts      createBusiness, sector checks
 │       │   ├── programmes.ts    NP1/NP2/NP3 catalogue and modules (from the MPI guides)
 │       │   ├── module.ts        Load a business's module (built-in or custom)
@@ -151,7 +152,7 @@ NZSafetyHealthApp/
 │   └── lib/
 │       ├── main.dart            Providers, MaterialApp, auth gate (sign in → business → app)
 │       ├── config.dart          CONVEX_URL (dart-define)
-│       ├── theme.dart           Orange/white theme + colour tokens
+│       ├── theme.dart           Jam colours from the logo + colour tokens
 │       ├── services/
 │       │   ├── convex_client.dart
 │       │   └── auth_service.dart  Session, businesses, today's business
@@ -160,9 +161,17 @@ NZSafetyHealthApp/
 │       │   ├── business_form.dart  Name, programme cards, sectors
 │       │   └── audit_history.dart
 │       └── screens/             One file per screen (see §11)
+├── web/                         Website: jampacked.co.nz (Next.js, static export to web/out/)
+│   ├── next.config.ts           output: "export", so nginx (or Vercel) serves plain files
+│   └── src/
+│       ├── app/page.tsx         Landing page: features, programmes, FAQ
+│       ├── app/admin/page.tsx   Owner dashboard (platform admins only)
+│       ├── lib/site.ts          Company details, contact email, URLs
+│       ├── lib/convex.ts        Convex client + the backend functions the site calls
+│       └── components/Analytics.tsx  PostHog page views (off unless a key is set)
 └── deploy/
     ├── docker-compose.yml       Self-hosted Convex + nginx
-    ├── nginx.conf               Serves web build, proxies /api to Convex
+    ├── nginx.conf               Serves the website and the web app by hostname, proxies /api to Convex
     └── deploy.sh                One-command build & deploy
 ```
 
@@ -316,6 +325,10 @@ vehicle (low) → one audit-log entry.
   `lowStock`, `programme`.
 - `exportData:manifest()`, `exportData:page(table, paginationOpts)` (admin): see §10.
 - `migrations:toMultiBusiness(programme, sectors?)` (internal): see §14.
+- `platform:overview()` (platform admin): users, businesses (active in the last 7/30 days, by programme
+  and country), sign-ups per week for 12 weeks, and a per-business list (members, last activity) for
+  support. Counts only, never a business's records. Activity is the newest audit log row per business.
+- `platform:setPlatformAdmin(email, platformAdmin)` (internal): see §9.
 
 ## 6. Audit auto-fill engine
 
@@ -465,6 +478,14 @@ existing account is added at once, a new email becomes an invite claimed when th
 | View full audit trail & members | | ✓ | ✓ |
 | Invite, change roles / remove members | | | ✓ |
 | Business settings, change programme, build custom programmes, archive, export | | | ✓ |
+
+**Platform admins** are JamPacked's own staff, not a business role: `users.platformAdmin` lets someone
+see the owner dashboard (`jampacked.co.nz/admin`, `platform:overview`). It can't be set from the apps;
+grant it from the CLI with the internal mutation (on the live server, through the same tunnel as §14's
+migration):
+```bash
+npx convex run platform:setPlatformAdmin '{"email":"you@example.com","platformAdmin":true}'
+```
 
 **Known gaps (acceptable for dev, fix before real use):** open registration (anyone with the URL can
 create an account and a business of their own); no rate limiting on login; no password reset. Clerk (§15) resolves these.
@@ -660,6 +681,9 @@ flutter run -d <iphone>     --dart-define=CONVEX_URL=http://<your-LAN-ip>:3210
     -d '{"path":"dashboard:summary","args":{"sessionToken":"<token>","businessId":"<id>"},"format":"json"}'
   ```
 - Convex dashboard for the local deployment: `npx convex dashboard`.
+- Website: `cd web && npm install && NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210 npm run dev`
+  (http://localhost:3000; the owner dashboard is `/admin`). `npm run lint` and `npm run build` check it.
+  Without `NEXT_PUBLIC_CONVEX_URL` it talks to production.
 - After adding a backend module, regenerate `convex/_generated/api.d.ts` with
   `npx convex codegen --typecheck disable` (uses the local deployment) so tests can reference it.
 
@@ -671,12 +695,16 @@ flutter run -d <iphone>     --dart-define=CONVEX_URL=http://<your-LAN-ip>:3210
 ```
 Internet → Cloudflare → cloudflared tunnel (loganserver) → Caddy (127.0.0.1:80, ~/caddy)
    → http://app.jampacked.co.nz { reverse_proxy foodsafe:80 }   (Docker network "web")
-     http://jampacked.co.nz, www, and the old foodsafety.savepoint.co.nz redirect to app.jampacked.co.nz
-   → foodsafe (nginx): serves Flutter web build; /api/* → foodsafe-convex:3210 (network "internal")
+     http://jampacked.co.nz, www { reverse_proxy foodsafe:80 }
+     the old foodsafety.savepoint.co.nz redirects to app.jampacked.co.nz
+   → foodsafe (nginx), by hostname:
+       jampacked.co.nz, www → the website (web/out, in ~/foodsafe/site)
+       anything else        → the Flutter web build; /api/* → foodsafe-convex:3210 (network "internal")
    → foodsafe-convex: self-hosted Convex backend, data in volume foodsafe_convex-data
 ```
 
-- Files on server: `~/foodsafe/` (`docker-compose.yml`, `nginx.conf`, `web/`, `.admin_key`).
+- Files on server: `~/foodsafe/` (`docker-compose.yml`, `nginx.conf`, `web/` (app), `site/` (website),
+  `.admin_key`).
 - Convex is published only on `127.0.0.1:3210` on the server; deploys reach it through an SSH tunnel.
 - Caddy routes are added to `~/caddy/Caddyfile` by the deploy (a timestamped backup is taken first).
 - Each hostname also needs a **Public Hostname** on the Cloudflare tunnel (Zero Trust → Networks →
@@ -687,9 +715,9 @@ Internet → Cloudflare → cloudflared tunnel (loganserver) → Caddy (127.0.0.
 ```bash
 ./deploy/deploy.sh            # default host: loganserver
 ```
-It builds the web app with `CONVEX_URL=https://app.jampacked.co.nz`, rsyncs the build and
-configs, runs `docker compose up -d`, generates the Convex admin key on first run, adds the Caddy routes if
-missing, then pushes Convex functions via `npx convex deploy` over an SSH tunnel (local port 3299).
+It builds the web app with `CONVEX_URL=https://app.jampacked.co.nz` and the website with the same
+`NEXT_PUBLIC_CONVEX_URL`, rsyncs both builds and the configs, runs `docker compose up -d`, generates the Convex admin key on first run, adds the Caddy routes if
+missing (and switches servers that still redirect jampacked.co.nz to the app over to the website), then pushes Convex functions via `npx convex deploy` over an SSH tunnel (local port 3299).
 Re-running is safe.
 
 `main.dart.js` and `flutter_bootstrap.js` are renamed with a content hash on each deploy, and nginx sends

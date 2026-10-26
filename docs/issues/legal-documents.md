@@ -24,6 +24,13 @@ Documents (published on the website under `/legal/...`, linked from the app's si
 - [ ] In-app: tick box to accept the terms at sign-up, record which version and when (audit log)
 
 ## Notes
+- The provider in every document is **Save Point Limited** (trading as JamPacked; see
+  [branding-and-business-setup.md](branding-and-business-setup.md)). Save Point already has a Privacy
+  Policy, Terms and Disclaimer (effective 13 May 2026, in `~/Documents/Save Point/01 Company/Legal Policies/`),
+  written for client projects. Use them as a starting point, but JamPacked needs its own subscription
+  terms and a privacy policy covering customers' staff and records.
+- The website footer already names Save Point Limited and its NZBN; add `/legal/...` links there when the
+  documents exist.
 - Drafts can be written here, but **have a NZ lawyer review them before launch**. Business-to-business
   terms can contract out of the Consumer Guarantees Act; the Fair Trading Act still applies.
 - Keep each document versioned (date at the top) so accepted versions can be shown later.

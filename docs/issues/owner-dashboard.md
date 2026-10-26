@@ -1,6 +1,6 @@
 # Owner dashboard (business metrics)
 
-**Priority:** Medium · **Status:** Open
+**Priority:** Medium · **Status:** In progress
 
 ## Problem
 There's no way for us to see how the business is doing: sign-ups, trials, paying businesses, revenue.
@@ -16,8 +16,16 @@ There's no way for us to see how the business is doing: sign-ups, trials, paying
   than rebuilding them.
 
 ## To do
-- [ ] `platformAdmin` flag and a `requirePlatformAdmin` helper, with tests
-- [ ] Convex queries for counts that don't read whole tables (keep running totals updated on write; see
+- [x] `platformAdmin` flag and a `requirePlatformAdmin` helper, with tests; granted from the CLI with
+  `platform:setPlatformAdmin` (DOCUMENTATION.md §9)
+- [x] `platform:overview`: users, businesses, active in the last 7 / 30 days, by programme and country,
+  sign-ups per week. Reads `users`, `businesses` and `memberships` whole (they grow with customers, not
+  records) and one audit log row per business
+- [ ] Switch to running totals updated on write once there are thousands of businesses (see
   [growing-queries.md](growing-queries.md))
-- [ ] `/admin` page: KPIs, sign-ups over time, subscriptions by status, MRR
-- [ ] Per-business view for support (status, plan, last activity) without exposing their records
+- [x] `/admin` page (`web/src/app/admin/page.tsx`): KPI tiles, sign-ups per week, programme and country
+  breakdown, business list
+- [ ] Subscriptions by status, MRR, churn and trial conversion (needs [billing-stripe.md](billing-stripe.md))
+- [x] Per-business view for support (programme, members, signed up, last activity) without their records
+- [ ] Grant yourself platform admin on the live server after deploying
+- [ ] Move the `/admin` sign-in to Clerk with [clerk-authentication.md](clerk-authentication.md)

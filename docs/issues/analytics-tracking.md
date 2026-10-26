@@ -1,6 +1,6 @@
 # Website & in-app usage analytics
 
-**Priority:** Medium · **Status:** Open
+**Priority:** Medium · **Status:** In progress
 
 ## Problem
 There's no visibility into how people find the website, whether they reach checkout, or which app features
@@ -17,9 +17,13 @@ they use.
 
 ## To do
 - [ ] PostHog project (cloud), pick the region
-- [ ] Website: page views, pricing viewed, checkout started / completed, sign-up
+- [x] Website: page views, wired up in `web/src/components/Analytics.tsx` but **off until**
+  `NEXT_PUBLIC_POSTHOG_KEY` (and `NEXT_PUBLIC_POSTHOG_HOST` for the EU region) is set at build time.
+  Memory-only persistence, so no cookies and no consent banner; session recording off
+- [ ] Website: pricing viewed, checkout started / completed, sign-up (once those pages exist)
 - [ ] App: a small `Analytics` service wrapping `posthog_flutter` (fake in tests, like `sharer` in
   `export_screen.dart`); events for delivery recorded, temp logged, audit completed, export, etc.
-- [ ] Consent: cookie banner or cookieless mode on the website; opt-out in the app settings
+- [x] Consent on the website: cookieless (memory persistence), so no banner
+- [ ] Opt-out in the app settings
 - [ ] Funnel: landing → sign-up → trial → paid
 - [ ] Update the privacy policy ([legal-documents.md](legal-documents.md)) and the stores' privacy forms

@@ -10,13 +10,13 @@ folder while developing and add to it as new problems turn up.
 | [Move sign-in to Clerk](clerk-authentication.md) | High | Open |
 | [Account deletion vs 7-year retention](account-deletion-and-retention.md) | High | Open |
 | [Licences & billing with Stripe](billing-stripe.md) | High | Open |
-| [Website (landing, pricing, legal, account)](website.md) | High | Open |
+| [Website (landing, pricing, legal, account)](website.md) | High | In progress |
 | [Legal documents](legal-documents.md) | High | Open |
 | [Queries that grow with the data](growing-queries.md) | Medium | Open |
 | [Exports for large businesses](export-scalability.md) | Medium | Open |
 | [Releasing to the Play Store & App Store](app-store-release.md) | Medium | Open |
-| [Website & in-app usage analytics](analytics-tracking.md) | Medium | Open |
-| [Owner dashboard (business metrics)](owner-dashboard.md) | Medium | Open |
+| [Website & in-app usage analytics](analytics-tracking.md) | Medium | In progress |
+| [Owner dashboard (business metrics)](owner-dashboard.md) | Medium | In progress |
 | [Customer compliance reports](customer-reports.md) | Medium | Open |
 | [Finish the multi-business migration](multi-business-cleanup.md) | Low | Open |
 

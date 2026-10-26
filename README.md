@@ -11,6 +11,7 @@ One account can run several businesses; you pick the one you're working in each 
 ```
 backend/   Convex functions + schema (TypeScript)
 app/       Flutter app
+web/       Website at jampacked.co.nz: landing page and the owner dashboard (/admin), Next.js
 ```
 
 ## Run it locally
@@ -25,6 +26,10 @@ cd app && flutter pub get
 flutter run -d chrome                                                 # web
 flutter run -d <android-device> --dart-define=CONVEX_URL=http://10.0.2.2:3210   # Android emulator
 flutter run --dart-define=CONVEX_URL=https://<your-deployment>.convex.cloud     # cloud deployment
+
+# 3. Website (optional)
+cd web && npm install
+NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210 npm run dev                       # http://localhost:3000
 ```
 
 Create an account on the sign-in screen: your details, then your main business and the programme it
