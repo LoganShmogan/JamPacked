@@ -102,6 +102,7 @@ export default defineSchema({
   businesses: defineTable({
     name: v.string(),
     jurisdiction: v.union(v.literal("NZ"), v.literal("AU")),
+    region: v.optional(v.string()), // NZ region or AU state (convex/lib/regions.ts); unset on older businesses
     registrationNumber: v.optional(v.string()), // NZ FCP/NP registration or AU council licence
     address: v.optional(v.string()),
     chilledMaxC: v.number(),

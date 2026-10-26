@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../theme.dart';
 import '../widgets/audit_history.dart';
+import '../widgets/business_form.dart';
 import '../widgets/common.dart';
 
 /// Full, read-only audit trail of every action in the system.
@@ -322,6 +323,7 @@ class _SettingsFormState extends State<_SettingsForm> {
       k: TextEditingController(text: fmtNum(s[k])),
   };
   late String _jurisdiction = s['jurisdiction'];
+  late String? _region = s['region'];
 
   @override
   Widget build(BuildContext context) {
@@ -348,14 +350,18 @@ class _SettingsFormState extends State<_SettingsForm> {
                 decoration: const InputDecoration(labelText: 'Business name'),
               ),
               const SizedBox(height: 12),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'NZ', label: Text('New Zealand (MPI)')),
-                  ButtonSegment(value: 'AU', label: Text('Australia (FSANZ)')),
-                ],
-                selected: {_jurisdiction},
-                onSelectionChanged: (v) =>
-                    setState(() => _jurisdiction = v.first),
+              CountryPicker(
+                value: _jurisdiction,
+                onChanged: (v) => setState(() {
+                  _jurisdiction = v;
+                  _region = null;
+                }),
+              ),
+              const SizedBox(height: 12),
+              RegionField(
+                jurisdiction: _jurisdiction,
+                value: _region,
+                onChanged: (v) => setState(() => _region = v),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -384,6 +390,7 @@ class _SettingsFormState extends State<_SettingsForm> {
                     for (final e in _num.entries)
                       e.key: double.tryParse(e.value.text),
                     'jurisdiction': _jurisdiction,
+                    'region': ?_region,
                   }),
                   success: 'Settings saved',
                 ),

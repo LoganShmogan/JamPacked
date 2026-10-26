@@ -6,6 +6,7 @@ import { internal } from "./_generated/api";
 import { internalAction, internalMutation, query } from "./_generated/server";
 import { logAudit } from "./lib/audit";
 import { hashPassword } from "./lib/password";
+import { checkRegion } from "./lib/regions";
 import { requirePlatformAdmin } from "./lib/session";
 
 const DAY = 86_400_000;
@@ -20,6 +21,25 @@ function weekly(times: number[], now: number) {
     if (ago >= 0 && ago < WEEKS) counts[WEEKS - 1 - ago]++;
   }
   return counts.map((count, i) => ({ weekStart: now - (WEEKS - i) * WEEK, count }));
+}
+
+/** Live businesses per country, biggest first, each split by region ("Not set" for older businesses). */
+function byCountry(businesses: { jurisdiction: string; region: string | null }[]) {
+  const countries = new Map<string, Map<string, number>>();
+  for (const b of businesses) {
+    const regions = countries.get(b.jurisdiction) ?? new Map<string, number>();
+    const region = b.region ?? "Not set";
+    regions.set(region, (regions.get(region) ?? 0) + 1);
+    countries.set(b.jurisdiction, regions);
+  }
+  const sorted = <T extends { count: number }>(rows: T[]) => rows.sort((a, b) => b.count - a.count);
+  return sorted(
+    [...countries].map(([country, regions]) => ({
+      country,
+      count: [...regions.values()].reduce((n, c) => n + c, 0),
+      regions: sorted([...regions].map(([region, count]) => ({ region, count }))),
+    })),
+  );
 }
 
 export const overview = query({
@@ -45,6 +65,7 @@ export const overview = query({
         name: b.name,
         programme: b.programme,
         jurisdiction: b.jurisdiction,
+        region: b.region ?? null,
         archived: b.archived,
         createdAt: b.createdAt,
         members: members.length,
@@ -66,7 +87,7 @@ export const overview = query({
         active7d: activeWithin(7),
         active30d: activeWithin(30),
         byProgramme: tally(live.map((b) => b.programme)),
-        byJurisdiction: tally(live.map((b) => b.jurisdiction)),
+        byCountry: byCountry(live),
       },
       signupsByWeek: {
         users: weekly(users.map((u) => u.createdAt), now),
@@ -132,5 +153,24 @@ export const insertPlatformAdmin = internalMutation({
       summary: `Platform admin account created for ${args.email}`,
     });
     return { created: true };
+  },
+});
+
+/** Support: set a business's region, e.g. for businesses created before regions were asked for. */
+export const setBusinessRegion = internalMutation({
+  args: { businessId: v.id("businesses"), region: v.string() },
+  handler: async (ctx, { businessId, region }) => {
+    const business = await ctx.db.get(businessId);
+    if (!business) throw new ConvexError("Business not found");
+    checkRegion(business.jurisdiction, region);
+    await ctx.db.patch(businessId, { region });
+    await logAudit(ctx, null, {
+      businessId,
+      action: "update",
+      entityType: "settings",
+      entityId: businessId,
+      summary: `Region set to ${region} by JamPacked support`,
+      changes: { region: { from: business.region ?? null, to: region } },
+    });
   },
 });

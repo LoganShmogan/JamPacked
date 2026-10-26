@@ -18,7 +18,7 @@ export type Overview = {
     active7d: number;
     active30d: number;
     byProgramme: Record<string, number>;
-    byJurisdiction: Record<string, number>;
+    byCountry: { country: string; count: number; regions: { region: string; count: number }[] }[];
   };
   signupsByWeek: { users: Week[]; businesses: Week[] };
   businessList: {
@@ -26,6 +26,7 @@ export type Overview = {
     name: string;
     programme: string;
     jurisdiction: string;
+    region: string | null;
     archived: boolean;
     createdAt: number;
     members: number;

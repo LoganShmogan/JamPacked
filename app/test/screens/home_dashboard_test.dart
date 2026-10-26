@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jampacked/screens/audits_screen.dart';
 import 'package:jampacked/screens/corrective_actions_screen.dart';
+import 'package:jampacked/screens/dashboard_screen.dart';
 import 'package:jampacked/screens/expiring_screen.dart';
 import 'package:jampacked/screens/goods_in_form_screen.dart';
 import 'package:jampacked/screens/goods_in_screen.dart';
@@ -21,6 +22,15 @@ int tab(WidgetTester tester) =>
     tester.widget<IndexedStack>(find.byType(IndexedStack)).index!;
 
 void main() {
+  test('the greeting follows the time of day', () {
+    expect(greetingFor(0), 'Good morning');
+    expect(greetingFor(11), 'Good morning');
+    expect(greetingFor(12), 'Good afternoon');
+    expect(greetingFor(16), 'Good afternoon');
+    expect(greetingFor(17), 'Good evening');
+    expect(greetingFor(23), 'Good evening');
+  });
+
   group('HomeShell', () {
     testWidgets('phone layout: bottom navigation switches tabs', (
       tester,

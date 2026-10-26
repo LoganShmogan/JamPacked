@@ -127,7 +127,7 @@ export default function AdminPage() {
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <Breakdown title="Businesses by programme" counts={b.byProgramme} />
-        <Breakdown title="Businesses by country" counts={b.byJurisdiction} />
+        <ByCountry countries={b.byCountry} />
       </div>
 
       <section className="mt-6 rounded-xl border border-border bg-surface">
@@ -138,6 +138,7 @@ export default function AdminPage() {
               <tr className="border-b border-border">
                 <th className="px-5 py-2 font-medium">Name</th>
                 <th className="px-3 py-2 font-medium">Programme</th>
+                <th className="px-3 py-2 font-medium">Where</th>
                 <th className="px-3 py-2 font-medium text-right">Members</th>
                 <th className="px-3 py-2 font-medium">Signed up</th>
                 <th className="px-5 py-2 font-medium">Last activity</th>
@@ -150,7 +151,8 @@ export default function AdminPage() {
                     {x.name}
                     {x.archived && <span className="ml-2 text-xs text-muted">(archived)</span>}
                   </td>
-                  <td className="px-3 py-2">{x.programme} · {x.jurisdiction}</td>
+                  <td className="px-3 py-2">{x.programme}</td>
+                  <td className="px-3 py-2">{x.region ?? "–"}, {COUNTRY[x.jurisdiction] ?? x.jurisdiction}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{x.members}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{date(x.createdAt)}</td>
                   <td className="px-5 py-2 whitespace-nowrap">{ago(x.lastActivityAt)}</td>
@@ -219,6 +221,37 @@ function WeeklyBars({ title, weeks }: { title: string; weeks: Overview["signupsB
           </tbody>
         </table>
       </details>
+    </section>
+  );
+}
+
+const COUNTRY: Record<string, string> = { NZ: "New Zealand", AU: "Australia" };
+
+// Each country with its total, then its regions as bars on one shared scale, so regions in different
+// countries compare directly.
+function ByCountry({ countries }: { countries: Overview["businesses"]["byCountry"] }) {
+  const max = Math.max(1, ...countries.flatMap((c) => c.regions.map((r) => r.count)));
+  return (
+    <section className="rounded-xl border border-border bg-surface p-5">
+      <h2 className="font-semibold">Businesses by country and region</h2>
+      {countries.length === 0 && <p className="mt-3 text-sm text-muted">No businesses yet.</p>}
+      {countries.map((c) => (
+        <div key={c.country} className="mt-3">
+          <h3 className="flex justify-between text-sm font-semibold">
+            <span>{COUNTRY[c.country] ?? c.country}</span>
+            <span className="tabular-nums">{c.count}</span>
+          </h3>
+          <ul className="mt-1 flex flex-col gap-1.5">
+            {c.regions.map((r) => (
+              <li key={r.region} className="grid grid-cols-[9rem_1fr_2rem] items-center gap-3 text-sm">
+                <span className={`truncate ${r.region === "Not set" ? "text-muted" : ""}`} title={r.region}>{r.region}</span>
+                <span className="h-3 rounded-r-[4px] bg-jam" style={{ width: `${(r.count / max) * 100}%` }} />
+                <span className="text-right tabular-nums">{r.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </section>
   );
 }

@@ -56,6 +56,29 @@ describe("settings", () => {
     );
   });
 
+  test("region must be one of the country's; changing country needs a new region", async () => {
+    const t = setup();
+    const { token, businessId } = await signIn(t, "admin");
+    const as = { sessionToken: token, businessId };
+    await expect(t.mutation(api.settings.update, { ...as, region: "Victoria" })).rejects.toThrow(
+      "Victoria isn't a region of New Zealand",
+    );
+    // No region yet: the country can change without one.
+    await t.mutation(api.settings.update, { ...as, jurisdiction: "AU" });
+    await t.mutation(api.settings.update, { ...as, jurisdiction: "NZ", region: "Otago" });
+    // Other edits keep the region.
+    await t.mutation(api.settings.update, { ...as, hotMinC: 63 });
+    expect(await getDoc(t, businessId)).toMatchObject({ jurisdiction: "NZ", region: "Otago", hotMinC: 63 });
+    await expect(t.mutation(api.settings.update, { ...as, jurisdiction: "AU" })).rejects.toThrow(
+      "Choose a region in the new country",
+    );
+    await expect(t.mutation(api.settings.update, { ...as, jurisdiction: "AU", region: "Otago" })).rejects.toThrow(
+      "Otago isn't a region of Australia",
+    );
+    await t.mutation(api.settings.update, { ...as, jurisdiction: "AU", region: "Queensland" });
+    expect(await getDoc(t, businessId)).toMatchObject({ jurisdiction: "AU", region: "Queensland" });
+  });
+
   test("only admins can update", async () => {
     const t = setup();
     const { token, businessId } = await signIn(t, "manager");

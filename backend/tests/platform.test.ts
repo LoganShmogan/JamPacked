@@ -20,7 +20,8 @@ describe("platform:overview", () => {
     // Kai Cafe (from signIn) is active today; Old Co was last used 20 days ago; Quiet Co never; Shut Co archived.
     await t.mutation(api.suppliers.create, { sessionToken: me.token, businessId: me.businessId, name: "Fresh", approved: true });
     const old = await addBusiness(t, me.userId, { name: "Old Co", programme: "NP3", createdAt: now - 20 * DAY });
-    await addBusiness(t, me.userId, { name: "Quiet Co", jurisdiction: "AU", createdAt: now - 2 * DAY });
+    await addBusiness(t, me.userId, { name: "Quiet Co", jurisdiction: "AU", region: "Victoria", createdAt: now - 2 * DAY });
+    await t.run((ctx) => ctx.db.patch(me.businessId, { region: "Otago" }));
     await addBusiness(t, me.userId, { name: "Shut Co", archived: true, createdAt: now - 400 * DAY });
     await t.run(async (ctx) => {
       await ctx.db.insert("auditLog", {
@@ -37,7 +38,10 @@ describe("platform:overview", () => {
       active7d: 1,
       active30d: 2,
       byProgramme: { NP2: 2, NP3: 1 },
-      byJurisdiction: { NZ: 2, AU: 1 },
+      byCountry: [
+        { country: "NZ", count: 2, regions: [{ region: "Otago", count: 1 }, { region: "Not set", count: 1 }] },
+        { country: "AU", count: 1, regions: [{ region: "Victoria", count: 1 }] },
+      ],
     });
     expect(o.businessList.map((b) => [b.name, b.members, b.lastActivityAt !== null])).toEqual([
       ["Kai Cafe", 2, true],
@@ -46,7 +50,7 @@ describe("platform:overview", () => {
       ["Shut Co", 0, false],
     ]);
     expect(Object.keys(o.businessList[0]).sort()).toEqual(
-      ["_id", "archived", "createdAt", "jurisdiction", "lastActivityAt", "members", "name", "programme"],
+      ["_id", "archived", "createdAt", "jurisdiction", "lastActivityAt", "members", "name", "programme", "region"],
     );
 
     const counts = (w: { count: number }[]) => w.map((x) => x.count);
@@ -101,5 +105,33 @@ describe("platform:createPlatformAdmin", () => {
     expect(await t.action(internal.platform.createPlatformAdmin, { email: "logan@example.com", name: "L", password: "longenough1" })).toEqual({ created: false });
     expect((await getDoc(t, userId))!.platformAdmin).toBeUndefined();
     await expect(t.action(internal.platform.createPlatformAdmin, { email: "x@example.com", name: "X", password: "short" })).rejects.toThrow("at least 8");
+  });
+});
+
+describe("platform:setBusinessRegion", () => {
+  test("sets a region of the business's country, logged in its trail", async () => {
+    const t = setup();
+    const { businessId } = await signIn(t, "admin");
+    await t.mutation(internal.platform.setBusinessRegion, { businessId, region: "Manawatū-Whanganui" });
+    await t.mutation(internal.platform.setBusinessRegion, { businessId, region: "Wellington" });
+    expect((await getDoc(t, businessId))!.region).toBe("Wellington");
+    const log = (await auditLog(t)).filter((e) => e.businessId === businessId);
+    expect(log.map((e) => e.changes)).toEqual([
+      { region: { from: null, to: "Manawatū-Whanganui" } },
+      { region: { from: "Manawatū-Whanganui", to: "Wellington" } },
+    ]);
+    await expect(t.mutation(internal.platform.setBusinessRegion, { businessId, region: "Victoria" })).rejects.toThrow(
+      "isn't a region of New Zealand",
+    );
+  });
+
+  test("an unknown business is an error", async () => {
+    const t = setup();
+    const { userId } = await signIn(t, "admin");
+    const gone = await addBusiness(t, userId);
+    await t.run((ctx) => ctx.db.delete(gone));
+    await expect(t.mutation(internal.platform.setBusinessRegion, { businessId: gone, region: "Otago" })).rejects.toThrow(
+      "Business not found",
+    );
   });
 });

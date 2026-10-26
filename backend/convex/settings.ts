@@ -1,7 +1,8 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { diff, logAudit } from "./lib/audit";
 import { checkSectors } from "./lib/business";
+import { checkRegion } from "./lib/regions";
 import { requireMember } from "./lib/session";
 import { programmeKey } from "./schema";
 
@@ -21,6 +22,7 @@ export const update = mutation({
     businessId: v.id("businesses"),
     businessName: v.optional(v.string()),
     jurisdiction: v.optional(v.union(v.literal("NZ"), v.literal("AU"))),
+    region: v.optional(v.string()),
     registrationNumber: v.optional(v.string()),
     address: v.optional(v.string()),
     chilledMaxC: v.optional(v.number()),
@@ -39,6 +41,13 @@ export const update = mutation({
     // Switching programme drops sectors that belonged to the old one unless new ones are given.
     if (programme !== business.programme && !patch.sectors) patch.sectors = [];
     checkSectors(programme, patch.sectors ?? business.sectors);
+    const jurisdiction = patch.jurisdiction ?? business.jurisdiction;
+    // Moving country without picking a new region would leave the old one wrong, so ask for one.
+    const region = patch.region ?? (jurisdiction === business.jurisdiction ? business.region : undefined);
+    if (region) checkRegion(jurisdiction, region);
+    else if (jurisdiction !== business.jurisdiction && business.region) {
+      throw new ConvexError("Choose a region in the new country");
+    }
     const changes = diff(business, patch);
     await ctx.db.patch(businessId, patch);
     await logAudit(ctx, user, {

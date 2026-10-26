@@ -151,11 +151,14 @@ void main() {
         find.widgetWithText(TextField, 'Business name'),
         'Bakery',
       );
+      await pickRegion(tester, 'Manawatū-Whanganui');
       await tapOn(tester, find.text('NP2: National Programme 2'));
       await tapOn(tester, find.text('Bread'));
       await tapOn(tester, find.text('Create business'));
       expect(convex.callsTo('businesses:create').single.args, {
         'name': 'Bakery',
+        'jurisdiction': 'NZ',
+        'region': 'Manawatū-Whanganui',
         'programme': 'NP2',
         'sectors': ['bread'],
         'sessionToken': 'tok',
@@ -177,6 +180,7 @@ void main() {
         find.widgetWithText(TextField, 'Business name'),
         'X',
       );
+      await pickRegion(tester, 'Auckland');
       await tapOn(tester, find.text('Custom programme'));
       await tester.tap(find.text('Create business'));
       await tester.pump();

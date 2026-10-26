@@ -225,6 +225,13 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
+/// The dashboard greeting for the hour of the day (0-23).
+String greetingFor(int hour) => hour < 12
+    ? 'Good morning'
+    : hour < 17
+    ? 'Good afternoon'
+    : 'Good evening';
+
 class _Header extends StatelessWidget {
   const _Header({
     required this.name,
@@ -234,12 +241,7 @@ class _Header extends StatelessWidget {
   final String name, business, jurisdiction;
   @override
   Widget build(BuildContext context) {
-    final hour = DateTime.now().hour;
-    final greeting = hour < 12
-        ? 'Good morning'
-        : hour < 17
-        ? 'Good afternoon'
-        : 'Good evening';
+    final greeting = greetingFor(DateTime.now().hour);
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(

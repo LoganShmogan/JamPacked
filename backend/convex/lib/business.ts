@@ -4,6 +4,7 @@ import { MutationCtx } from "../_generated/server";
 import { programmeKey } from "../schema";
 import { logAudit } from "./audit";
 import { programmeInfo } from "./programmes";
+import { checkRegion } from "./regions";
 import { DEFAULT_SETTINGS } from "./settings";
 
 /** What sign-up and "Add business" ask for. */
@@ -12,6 +13,7 @@ export const newBusinessFields = {
   programme: programmeKey,
   sectors: v.optional(v.array(v.string())),
   jurisdiction: v.optional(v.union(v.literal("NZ"), v.literal("AU"))),
+  region: v.optional(v.string()),
   registrationNumber: v.optional(v.string()),
   address: v.optional(v.string()),
 };
@@ -31,6 +33,7 @@ export async function createBusiness(ctx: MutationCtx, owner: Doc<"users">, inpu
   if (!name) throw new ConvexError("Business name is required");
   const sectors = input.sectors ?? [];
   checkSectors(input.programme, sectors);
+  if (input.region) checkRegion(input.jurisdiction ?? DEFAULT_SETTINGS.jurisdiction, input.region);
   const businessId = await ctx.db.insert("businesses", {
     ...DEFAULT_SETTINGS,
     ...input,

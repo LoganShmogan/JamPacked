@@ -23,6 +23,7 @@ import type * as lib_facts from "../lib/facts.js";
 import type * as lib_module from "../lib/module.js";
 import type * as lib_password from "../lib/password.js";
 import type * as lib_programmes from "../lib/programmes.js";
+import type * as lib_regions from "../lib/regions.js";
 import type * as lib_retention from "../lib/retention.js";
 import type * as lib_session from "../lib/session.js";
 import type * as lib_settings from "../lib/settings.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   "lib/module": typeof lib_module;
   "lib/password": typeof lib_password;
   "lib/programmes": typeof lib_programmes;
+  "lib/regions": typeof lib_regions;
   "lib/retention": typeof lib_retention;
   "lib/session": typeof lib_session;
   "lib/settings": typeof lib_settings;

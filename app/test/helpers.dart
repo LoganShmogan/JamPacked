@@ -138,6 +138,20 @@ Future<void> tapOn(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
+/// Opens the region dropdown (labelled [label]) and picks [region].
+Future<void> pickRegion(
+  WidgetTester tester,
+  String region, {
+  String label = 'Region',
+}) async {
+  await tapOn(
+    tester,
+    find.widgetWithText(DropdownButtonFormField<String>, label),
+  );
+  await tester.tap(find.text(region).last);
+  await tester.pumpAndSettle();
+}
+
 /// Fills the (only) dialog text field and presses [button].
 Future<void> answerDialog(
   WidgetTester tester,

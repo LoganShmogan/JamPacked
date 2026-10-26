@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { logAudit } from "./lib/audit";
 import { createBusiness, newBusinessFields } from "./lib/business";
 import { PROGRAMMES } from "./lib/programmes";
+import { REGIONS } from "./lib/regions";
 import { membership, requireMember, requireUser } from "./lib/session";
 import { role } from "./schema";
 
@@ -10,6 +11,12 @@ import { role } from "./schema";
 export const programmes = query({
   args: {},
   handler: () => PROGRAMMES,
+});
+
+/** Regions to choose from for each country. Public: shown at sign-up. */
+export const regions = query({
+  args: {},
+  handler: () => REGIONS,
 });
 
 /** The business picker: every business this user belongs to, with what needs attention. */

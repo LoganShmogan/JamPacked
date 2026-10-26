@@ -266,6 +266,7 @@ void main() {
       await tester.tap(find.text('Australia (FSANZ)'));
       await tester.pumpAndSettle();
       expect(find.text('Council food business licence no.'), findsOneWidget);
+      await pickRegion(tester, 'Victoria', label: 'State or territory');
 
       await tester.enterText(
         find.widgetWithText(TextField, 'Business name'),
@@ -289,10 +290,35 @@ void main() {
         'hotMinC': null,
         'expiryWarningDays': 3.0,
         'jurisdiction': 'AU',
+        'region': 'Victoria',
         'businessId': 'b1',
         'sessionToken': 'tok',
       });
       expect(find.text('Settings saved'), findsOneWidget);
+    });
+
+    testWidgets('shows the saved region; changing country clears it', (
+      tester,
+    ) async {
+      final convex = await pumpScreen(
+        tester,
+        const SettingsScreen(),
+        convex: fakeWith({
+          'settings:get': (_) => {...settings(), 'region': 'Otago'},
+          'settings:update': (_) => null,
+        }),
+      );
+      expect(find.text('Otago'), findsOneWidget);
+      await tapOn(tester, find.text('Save'));
+      expect(convex.callsTo('settings:update').last.args['region'], 'Otago');
+
+      await tapOn(tester, find.text('Australia (FSANZ)'));
+      expect(find.text('Otago'), findsNothing);
+      await tapOn(tester, find.text('Save'));
+      expect(
+        convex.callsTo('settings:update').last.args.containsKey('region'),
+        isFalse,
+      );
     });
 
     testWidgets('archiving goes back to the business picker', (tester) async {

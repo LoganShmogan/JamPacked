@@ -6,8 +6,9 @@ import 'common.dart';
 
 String programmeLabel(String key) => key == 'custom' ? 'Custom' : key;
 
-/// Business name, the programme it follows (NP1/NP2/NP3 or custom) and which of that
-/// programme's sectors apply. Used at sign-up and when adding another business.
+/// Business name, where it is (country and region), the programme it follows (NP1/NP2/NP3
+/// or custom) and which of that programme's sectors apply. Used at sign-up and when adding
+/// another business; changing an existing business's programme shows only the programme part.
 class BusinessForm extends StatefulWidget {
   const BusinessForm({
     super.key,
@@ -16,7 +17,7 @@ class BusinessForm extends StatefulWidget {
     this.initialSectors = const [],
   });
 
-  /// False when only changing the programme of an existing business.
+  /// False when only changing the programme of an existing business (no name or location).
   final bool showName;
   final String? initialProgramme;
   final List<String> initialSectors;
@@ -30,6 +31,8 @@ class BusinessFormState extends State<BusinessForm> {
   String? _error;
   late String? _programme = widget.initialProgramme;
   late final _sectors = {...widget.initialSectors};
+  String _jurisdiction = 'NZ';
+  String? _region;
   bool _showErrors = false;
 
   @override
@@ -56,11 +59,16 @@ class BusinessFormState extends State<BusinessForm> {
   /// The business to create, or null (with errors shown) if incomplete.
   Map<String, dynamic>? collect() {
     setState(() => _showErrors = true);
-    if ((widget.showName && _name.text.trim().isEmpty) || _programme == null) {
+    if ((widget.showName && (_name.text.trim().isEmpty || _region == null)) ||
+        _programme == null) {
       return null;
     }
     return {
-      if (widget.showName) 'name': _name.text.trim(),
+      if (widget.showName) ...{
+        'name': _name.text.trim(),
+        'jurisdiction': _jurisdiction,
+        'region': _region,
+      },
       'programme': _programme,
       'sectors': _sectors.toList(),
     };
@@ -97,6 +105,23 @@ class BusinessFormState extends State<BusinessForm> {
                   : null,
             ),
           ),
+        if (widget.showName) ...[
+          const SectionTitle('Where is it?'),
+          CountryPicker(
+            value: _jurisdiction,
+            onChanged: (v) => setState(() {
+              _jurisdiction = v;
+              _region = null;
+            }),
+          ),
+          const SizedBox(height: 12),
+          RegionField(
+            jurisdiction: _jurisdiction,
+            value: _region,
+            onChanged: (v) => setState(() => _region = v),
+            showError: _showErrors,
+          ),
+        ],
         const SectionTitle('Which programme do you follow?'),
         if (_showErrors && _programme == null)
           const Padding(
@@ -221,4 +246,101 @@ class _ProgrammeCard extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// New Zealand (MPI rules) or Australia (FSANZ rules).
+class CountryPicker extends StatelessWidget {
+  const CountryPicker({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) => SegmentedButton<String>(
+    segments: const [
+      ButtonSegment(value: 'NZ', label: Text('New Zealand (MPI)')),
+      ButtonSegment(value: 'AU', label: Text('Australia (FSANZ)')),
+    ],
+    selected: {value},
+    onSelectionChanged: (v) => onChanged(v.first),
+  );
+}
+
+/// The region (NZ) or state (AU) a business is in, from `businesses:regions`.
+class RegionField extends StatefulWidget {
+  const RegionField({
+    super.key,
+    required this.jurisdiction,
+    required this.value,
+    required this.onChanged,
+    this.showError = false,
+  });
+  final String jurisdiction;
+  final String? value;
+  final ValueChanged<String> onChanged;
+
+  /// Show "Required" when nothing is chosen.
+  final bool showError;
+
+  @override
+  State<RegionField> createState() => _RegionFieldState();
+}
+
+class _RegionFieldState extends State<RegionField> {
+  Map<String, dynamic>? _regions;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      // Public query: no session yet at sign-up.
+      final r = await context.convex.query('businesses:regions');
+      if (mounted) {
+        setState(() {
+          _regions = Map<String, dynamic>.from(r);
+          _error = null;
+        });
+      }
+    } on ConvexException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      return Row(
+        children: [
+          Expanded(child: Text(_error!)),
+          TextButton(onPressed: _load, child: const Text('Retry')),
+        ],
+      );
+    }
+    if (_regions == null) return const LinearProgressIndicator();
+    final options = List<String>.from(_regions![widget.jurisdiction]);
+    final label = widget.jurisdiction == 'AU' ? 'State or territory' : 'Region';
+    return DropdownButtonFormField<String>(
+      // A new country starts with nothing chosen.
+      key: ValueKey(widget.jurisdiction),
+      initialValue: options.contains(widget.value) ? widget.value : null,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: const Icon(Icons.place_outlined),
+        errorText: widget.showError && widget.value == null ? 'Required' : null,
+      ),
+      items: [
+        for (final r in options) DropdownMenuItem(value: r, child: Text(r)),
+      ],
+      onChanged: (v) => widget.onChanged(v!),
+    );
+  }
 }

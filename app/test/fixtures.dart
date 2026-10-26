@@ -32,6 +32,12 @@ Map<String, dynamic> business({
   'openCorrectiveActions': openCAs,
 };
 
+/// A cut-down `businesses:regions`.
+final regions = {
+  'NZ': ['Auckland', 'Manawatū-Whanganui', 'Otago'],
+  'AU': ['New South Wales', 'Victoria'],
+};
+
 final programmes = [
   {
     'key': 'NP1',
@@ -191,6 +197,7 @@ Map<String, Handler> baseHandlers() => {
   'businesses:members': (_) => {'members': [], 'invites': []},
   'businesses:mine': (_) => [business()],
   'businesses:programmes': (_) => programmes,
+  'businesses:regions': (_) => regions,
 };
 
 FakeConvex fakeWith([Map<String, Handler> overrides = const {}]) =>

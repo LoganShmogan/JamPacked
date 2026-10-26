@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import { api } from "../convex/_generated/api";
 import { Id } from "../convex/_generated/dataModel";
 import { PROGRAMMES } from "../convex/lib/programmes";
+import { REGIONS } from "../convex/lib/regions";
 import { addBusiness, addSupplier, auditLog, getDoc, item, setup, signIn } from "./helpers";
 
 describe("businesses:programmes", () => {
@@ -15,6 +16,30 @@ describe("businesses:programmes", () => {
       expect(p.whoFor.length).toBeGreaterThan(0);
       expect(new Set(p.sectors.map((s) => s.key)).size).toBe(p.sectors.length);
     }
+  });
+});
+
+describe("businesses:regions", () => {
+  test("lists NZ regions and AU states without signing in", async () => {
+    const t = setup();
+    const r = await t.query(api.businesses.regions, {});
+    expect(r).toEqual(REGIONS);
+    expect(r.NZ).toContain("Manawatū-Whanganui");
+    expect(r.AU).toHaveLength(8);
+  });
+
+  test("a new business can have a region of its country (NZ unless given)", async () => {
+    const t = setup();
+    const { token } = await signIn(t, "admin");
+    const nz = await t.mutation(api.businesses.create, { sessionToken: token, name: "Kiwi", programme: "NP2", region: "Canterbury" });
+    const au = await t.mutation(api.businesses.create, {
+      sessionToken: token, name: "Aussie", programme: "custom", jurisdiction: "AU", region: "Victoria",
+    });
+    expect(await getDoc(t, nz)).toMatchObject({ jurisdiction: "NZ", region: "Canterbury" });
+    expect(await getDoc(t, au)).toMatchObject({ jurisdiction: "AU", region: "Victoria" });
+    await expect(
+      t.mutation(api.businesses.create, { sessionToken: token, name: "X", programme: "NP2", region: "Victoria" }),
+    ).rejects.toThrow("Victoria isn't a region of New Zealand");
   });
 });
 

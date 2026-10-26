@@ -20,6 +20,7 @@ Future<(FakeConvex, AuthService)> pumpLogin(
     'auth:me': (_) => me,
     'businesses:mine': (_) => [business()],
     'businesses:programmes': (_) => programmes,
+    'businesses:regions': (_) => regions,
     ...handlers,
   });
   final auth = AuthService(convex)..loading = false;
@@ -139,7 +140,7 @@ void main() {
 
       // Nothing chosen yet.
       await tapOn(tester, find.text('Create account'));
-      expect(find.text('Required'), findsOneWidget);
+      expect(find.text('Required'), findsNWidgets(2)); // name and region
       expect(find.text('Choose a programme'), findsOneWidget);
       expect(convex.callsTo('auth:register'), isEmpty);
 
@@ -147,6 +148,12 @@ void main() {
         find.widgetWithText(TextField, 'Business name'),
         ' Kai Cafe ',
       );
+      // Choosing a state, then going back to NZ, clears it.
+      await tapOn(tester, find.text('Australia (FSANZ)'));
+      await pickRegion(tester, 'Victoria', label: 'State or territory');
+      await tapOn(tester, find.text('New Zealand (MPI)'));
+      expect(find.text('Victoria'), findsNothing);
+      await pickRegion(tester, 'Otago');
       await tapOn(tester, find.text('NP1: National Programme 1'));
       expect(find.text('Transport and distribution'), findsOneWidget);
       await tapOn(tester, find.text('NP2: National Programme 2'));
@@ -161,6 +168,8 @@ void main() {
         'password': 'long-enough',
         'business': {
           'name': 'Kai Cafe',
+          'jurisdiction': 'NZ',
+          'region': 'Otago',
           'programme': 'NP2',
           'sectors': ['ece'],
         },
@@ -188,11 +197,15 @@ void main() {
       find.widgetWithText(TextField, 'Business name'),
       'Bar',
     );
+    await tapOn(tester, find.text('Australia (FSANZ)'));
+    await pickRegion(tester, 'Victoria', label: 'State or territory');
     await tapOn(tester, find.text('Custom programme'));
     expect(find.text('WHAT DOES YOUR BUSINESS DO?'), findsNothing);
     await tapOn(tester, find.text('Create account'));
     expect(convex.callsTo('auth:register').single.args['business'], {
       'name': 'Bar',
+      'jurisdiction': 'AU',
+      'region': 'Victoria',
       'programme': 'custom',
       'sectors': <String>[],
     });
@@ -237,5 +250,23 @@ void main() {
     fail = false;
     await tapOn(tester, find.text('Retry'));
     expect(find.text('NP1: National Programme 1'), findsOneWidget);
+  });
+
+  testWidgets('register: regions that fail to load can be retried', (
+    tester,
+  ) async {
+    var fail = true;
+    await pumpLogin(tester, {
+      'businesses:regions': (_) =>
+          fail ? throw fakeError('Cannot reach the server') : regions,
+    });
+    await fillAccount(tester);
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cannot reach the server'), findsOneWidget);
+    fail = false;
+    await tapOn(tester, find.text('Retry'));
+    expect(find.text('Cannot reach the server'), findsNothing);
+    await pickRegion(tester, 'Auckland');
   });
 }
