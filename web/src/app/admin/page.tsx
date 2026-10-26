@@ -28,19 +28,18 @@ function ago(t: number | null) {
 }
 
 export default function AdminPage() {
-  const [token, setToken] = useState<string | null>(null);
-  const [data, setData] = useState<Overview | null>(null);
+  // Signed in and loaded: the session token and the numbers it fetched, always together.
+  const [session, setSession] = useState<{ token: string; data: Overview } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function load(t: string) {
     try {
-      setData(await convex.query(fns.overview, { sessionToken: t }));
-      setToken(t);
+      setSession({ token: t, data: await convex.query(fns.overview, { sessionToken: t }) });
       setError(null);
     } catch (e) {
       setError(message(e));
-      setData(null);
+      setSession(null);
     } finally {
       setBusy(false);
     }
@@ -51,7 +50,7 @@ export default function AdminPage() {
     const t = stored.get();
     if (!t) return;
     convex.query(fns.overview, { sessionToken: t }).then(
-      (d) => { setData(d); setToken(t); },
+      (data) => setSession({ token: t, data }),
       () => stored.clear(),
     );
   }, []);
@@ -75,14 +74,7 @@ export default function AdminPage() {
     }
   }
 
-  async function signOut() {
-    if (token) await convex.mutation(fns.logout, { sessionToken: token }).catch(() => {});
-    stored.clear();
-    setToken(null);
-    setData(null);
-  }
-
-  if (!data) {
+  if (!session) {
     return (
       <div className="mx-auto max-w-sm px-4 py-16">
         <h1 className="text-2xl font-bold">Owner dashboard</h1>
@@ -101,14 +93,22 @@ export default function AdminPage() {
     );
   }
 
+  const { token, data } = session;
   const b = data.businesses;
+
+  async function signOut() {
+    await convex.mutation(fns.logout, { sessionToken: token }).catch(() => {});
+    stored.clear();
+    setSession(null);
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-2xl font-bold">Owner dashboard</h1>
         <div className="flex items-center gap-4 text-sm text-muted">
           <span>Updated {new Date(data.generatedAt).toLocaleTimeString("en-NZ", { hour: "numeric", minute: "2-digit" })}</span>
-          <button onClick={() => { if (token) { setBusy(true); void load(token); } }} disabled={busy} className="hover:text-ink">Refresh</button>
+          <button onClick={() => { setBusy(true); void load(token); }} disabled={busy} className="hover:text-ink">Refresh</button>
           <button onClick={signOut} className="hover:text-ink">Sign out</button>
         </div>
       </div>

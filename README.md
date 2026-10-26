@@ -42,11 +42,13 @@ follows (NP1 / NP2 / NP3 / custom). You're its admin. Add more businesses from t
 
 ## Tests
 
-Backend (Vitest + convex-test) and app (flutter_test) unit tests, both with 100% coverage enforced:
+Backend (Vitest + convex-test), app (flutter_test) and website (Vitest + Testing Library) unit tests, all
+with 100% coverage enforced:
 
 ```bash
 cd backend && npm test                  # or: npm run test:coverage
 cd app && flutter test                  # or: flutter test --coverage && dart run tool/check_coverage.dart
+cd web && npm test                      # or: npm run test:coverage
 ```
 
 See [`docs/TESTING.md`](docs/TESTING.md) for how the tests are organised and how to add new ones.

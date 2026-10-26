@@ -1,11 +1,12 @@
 # JamPacked: Unit Tests
 
-Both halves of the project have unit tests with a **100% coverage gate**:
+All three parts of the project have unit tests with a **100% coverage gate**:
 
 | Part | Framework | Tests | Coverage (enforced) |
 |---|---|---|---|
-| Backend (`backend/`) | Vitest + [`convex-test`](https://www.npmjs.com/package/convex-test) | 190 | 100% statements, branches, functions and lines |
-| App (`app/`) | `flutter_test` (unit + widget tests) | 266 | 100% lines (the Dart VM reports lines only) |
+| Backend (`backend/`) | Vitest + [`convex-test`](https://www.npmjs.com/package/convex-test) | 201 | 100% statements, branches, functions and lines |
+| App (`app/`) | `flutter_test` (unit + widget tests) | 269 | 100% lines (the Dart VM reports lines only) |
+| Website (`web/`) | Vitest + Testing Library (jsdom) | 27 | 100% statements, branches, functions and lines |
 
 No test needs a running Convex deployment, a network connection, a device or a camera.
 
@@ -41,6 +42,13 @@ flutter test test/screens/login_screen_test.dart          # one file
 flutter test --plain-name "signs in"                      # tests whose name contains the text
 flutter test --coverage && dart run tool/check_coverage.dart   # coverage; fails below 100%
 flutter analyze                                           # lints lib/, test/ and tool/
+
+# Website
+cd web
+npm install
+npm test                 # run once
+npm run test:coverage    # run with coverage; fails below 100%
+npm run lint
 ```
 
 Coverage reports:
@@ -49,8 +57,22 @@ Coverage reports:
   and `backend/coverage/lcov.info`.
 - App: `app/coverage/lcov.info`. For HTML, `genhtml coverage/lcov.info -o coverage/html`
   (from the `lcov` package).
+- Website: printed in the terminal, plus `web/coverage/index.html`.
 
-Both `coverage/` folders are git-ignored.
+All three `coverage/` folders are git-ignored.
+
+### Website tests (`web/tests/`)
+
+- `pages.test.tsx`: the landing page, layout (footer company details, metadata), `/admin` being
+  hidden from search engines, robots.txt and the sitemap.
+- `lib.test.tsx`: PostHog stays off without a key and stores nothing in the browser with one; the
+  Convex URL defaults to production.
+- `admin.test.tsx`: the owner dashboard with `@/lib/convex` mocked: signing in, wrong passwords,
+  customers being refused, restoring and expiring a session, blocked browser storage, every chart,
+  the business list, Refresh and Sign out.
+- `setup.ts` swaps `next/font/google` and `next/image` for plain stand-ins (they need a Next build),
+  and `vitest.config.mts` pins the time zone to `Pacific/Auckland` so dates format the same on any
+  machine.
 
 ---
 
@@ -266,6 +288,8 @@ drive it like a user (`tapOn`, `enterText`, `answerDialog`) and assert on both t
 - A `const` constructor that is only ever used as `const` never runs, so Dart reports it as
   uncovered. Construct it once without `const` (e.g. with a `UniqueKey`), as in
   `goods_in_form_screen_test.dart`.
+- Don't let coverage depend on the clock: code that branches on the time (like the dashboard
+  greeting, `greetingFor`) gets a plain function tested for every case.
 - Prefer a real test over an ignore comment. If a branch truly can't be reached, consider
   whether the code is needed.
 
@@ -274,6 +298,7 @@ To run both gates in CI:
 ```bash
 (cd backend && npm ci && npm run typecheck && npm run test:coverage)
 (cd app && flutter pub get && flutter analyze && flutter test --coverage && dart run tool/check_coverage.dart)
+(cd web && npm ci && npm run lint && npm run test:coverage && npm run build)
 ```
 
 ---

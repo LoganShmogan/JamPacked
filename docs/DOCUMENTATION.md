@@ -189,7 +189,7 @@ multi-business change still validates until `migrations:toMultiBusiness` has run
 |---|---|---|
 | `users` | `email` (unique, `by_email`), `name`, `passwordHash`, `passwordSalt`, `active`, `createdAt`, legacy `role?` | Roles now live on memberships. |
 | `sessions` | `userId`, `token` (`by_token`), `expiresAt` (7 days) | Deleted on logout (the only delete in the backend). |
-| `businesses` | `name`, `jurisdiction` (NZ/AU), `registrationNumber?`, `address?`, `chilledMaxC` (5), `frozenMaxC` (-15), `hotMinC` (60), `expiryWarningDays` (3), `programme` (NP1/NP2/NP3/custom), `customProgrammeId?`, `sectors[]`, `ownerId`, `archived`, `createdAt` | Replaces the old single-row `settings` table (kept only for the migration). Archived, never deleted. |
+| `businesses` | `name`, `jurisdiction` (NZ/AU), `region?` (NZ region or AU state, `lib/regions.ts`; asked for at sign-up, unset on older businesses), `registrationNumber?`, `address?`, `chilledMaxC` (5), `frozenMaxC` (-15), `hotMinC` (60), `expiryWarningDays` (3), `programme` (NP1/NP2/NP3/custom), `customProgrammeId?`, `sectors[]`, `ownerId`, `archived`, `createdAt` | Replaces the old single-row `settings` table (kept only for the migration). Archived, never deleted. |
 | `memberships` | `userId`, `businessId`, `role` (admin/manager/staff), `active`, `createdAt` | `by_user`, `by_business`, `by_user_business`. |
 | `invites` | `businessId`, `email`, `role`, `invitedByName`, `createdAt`, `acceptedAt?` | Claimed when that email signs up. |
 | `customProgrammes` | `ownerId`, `name`, `description?`, `dailyChilledCheck`, `receivingPrompts[]`, `recordTypes[]`, `templates[]`, timestamps | Owned by a user, usable by any business they administer. |
@@ -250,8 +250,9 @@ Role legend (role **in that business**): **any** = any member, **mgr** = admin o
 | Function | Role | Description |
 |---|---|---|
 | `programmes()` | public | NP1/NP2/NP3: name, risk, "use this if you...", sectors. Shown at sign-up. |
+| `regions()` | public | NZ regions and AU states, per country. Shown at sign-up and in settings. |
 | `mine()` | user | The business picker: each active membership with programme, role, archived flag and open CA count. |
-| `create(name, programme, sectors?, ...)` | user | Add another business; you become its admin. |
+| `create(name, programme, sectors?, jurisdiction?, region?, ...)` | user | Add another business; you become its admin. The region must be one of its country's. |
 | `setArchived(archived)` | admin | Hide/restore a business. Nothing is deleted. |
 | `members()` | mgr | Members with their role here, plus pending invites. |
 | `invite(email, role)` | admin | Adds an existing user straight away (or reactivates them); otherwise stores an invite. |
@@ -259,8 +260,9 @@ Role legend (role **in that business**): **any** = any member, **mgr** = admin o
 
 ### `settings`
 `get()` (any) returns the business (as `businessName`, limits, programme, sectors, archived...).
-`update(...)` (admin): details, limits, `programme`, `sectors`. Sectors must belong to the programme;
-switching programme clears the old programme's sectors.
+`update(...)` (admin): details, limits, `jurisdiction`, `region`, `programme`, `sectors`. Sectors must
+belong to the programme; switching programme clears the old programme's sectors. The region must be one
+of the country's, and changing country needs a new region if one was set.
 
 ### Receiving
 | Function | Role | Description |
@@ -325,10 +327,12 @@ vehicle (low) → one audit-log entry.
   `lowStock`, `programme`.
 - `exportData:manifest()`, `exportData:page(table, paginationOpts)` (admin): see §10.
 - `migrations:toMultiBusiness(programme, sectors?)` (internal): see §14.
-- `platform:overview()` (platform admin): users, businesses (active in the last 7/30 days, by programme
-  and country), sign-ups per week for 12 weeks, and a per-business list (members, last activity) for
+- `platform:overview()` (platform admin): users, businesses (active in the last 7/30 days, by programme,
+  and by country then region), sign-ups per week for 12 weeks, and a per-business list (members, last activity) for
   support. Counts only, never a business's records. Activity is the newest audit log row per business.
 - `platform:setPlatformAdmin(email, platformAdmin)`, `platform:createPlatformAdmin(email, name, password)` (internal): see §9.
+- `platform:setBusinessRegion(businessId, region)` (internal): fill in the region of a business created
+  before regions were asked for.
 
 ## 6. Audit auto-fill engine
 
