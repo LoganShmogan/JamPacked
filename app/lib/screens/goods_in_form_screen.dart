@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'stock_screen.dart';
 import 'scanner_screen.dart';
 import 'suppliers_screen.dart';
 
@@ -16,6 +17,10 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
   List _suppliers = [];
   Map<String, dynamic>? _settings;
   List _suggestions = [];
+
+  /// The programme's extra receiving checks, and answers: true / false / null (N/A).
+  List _prompts = [];
+  final Map<String, bool?> _answers = {};
   String? _supplierId;
   final _invoice = TextEditingController();
   final _vehicleTemp = TextEditingController();
@@ -33,10 +38,17 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
   Future<void> _load() async {
     final suppliers = context.q('suppliers:list');
     final settings = context.q('settings:get');
-    final r = await context.run(() async => (await suppliers, await settings));
+    final programme = context.q('programmes:current');
+    final r = await context.run(
+      () async => (await suppliers, await settings, await programme),
+    );
     if (r == null || !mounted) return;
     setState(
-      () => (_suppliers = r.$1, _settings = Map<String, dynamic>.from(r.$2)),
+      () => (
+        _suppliers = r.$1,
+        _settings = Map<String, dynamic>.from(r.$2),
+        _prompts = r.$3['receivingPrompts'],
+      ),
     );
   }
 
@@ -99,10 +111,7 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
       }
       if (!mounted) return base;
       context.toast('Looking up barcode…');
-      final off = await context.convex.action('products:lookupBarcode', {
-        'sessionToken': context.token,
-        'barcode': code,
-      });
+      final off = await context.a('products:lookupBarcode', {'barcode': code});
       if (off != null && (off['name'] as String).isNotEmpty) {
         if (mounted) context.toast('Found: ${off['name']}');
         return {
@@ -129,6 +138,9 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
     if (_items.isEmpty) {
       return context.toast('Add at least one item', error: true);
     }
+    if (_prompts.any((p) => !_answers.containsKey(p['key']))) {
+      return context.toast('Answer the programme checks', error: true);
+    }
     setState(() => _saving = true);
     final id = await context.run(
       () => context.m('deliveries:create', {
@@ -140,6 +152,11 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
         'vehicleTempC': double.tryParse(_vehicleTemp.text),
         'notes': _notes.text.trim().isEmpty ? null : _notes.text.trim(),
         'items': _items,
+        if (_prompts.isNotEmpty)
+          'programmeAnswers': [
+            for (final p in _prompts)
+              {'key': p['key'], 'value': _answers[p['key']]},
+          ],
       }),
       success: 'Delivery recorded',
     );
@@ -284,7 +301,7 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
                           avatar: Icon(
                             storageIcons[s['storageType']],
                             size: 18,
-                            color: AppColors.orange,
+                            color: AppColors.jam,
                           ),
                           label: Text(s['productName']),
                           onPressed: () =>
@@ -292,6 +309,46 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
                         ),
                     ],
                   ),
+                ],
+                if (_prompts.isNotEmpty) ...[
+                  const SectionTitle('Programme checks'),
+                  for (final p in _prompts)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(p['text']),
+                          if (p['guidance'] != null)
+                            Text(
+                              p['guidance'],
+                              style: const TextStyle(
+                                color: AppColors.muted,
+                                fontSize: 12,
+                              ),
+                            ),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              for (final (v, label) in [
+                                (true, 'Yes'),
+                                (false, 'No'),
+                                (null, 'N/A'),
+                              ])
+                                ChoiceChip(
+                                  label: Text(label),
+                                  selected:
+                                      _answers.containsKey(p['key']) &&
+                                      _answers[p['key']] == v,
+                                  onSelected: (_) =>
+                                      setState(() => _answers[p['key']] = v),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
                 const SectionTitle('Notes'),
                 TextField(
@@ -323,7 +380,7 @@ class _DraftItemTile extends StatelessWidget {
   Widget build(BuildContext context) => Card(
     child: ListTile(
       onTap: onTap,
-      leading: Icon(storageIcons[item['storageType']], color: AppColors.orange),
+      leading: Icon(storageIcons[item['storageType']], color: AppColors.jam),
       title: Text(
         item['productName'],
         style: const TextStyle(fontWeight: FontWeight.w700),
@@ -453,6 +510,7 @@ class _ItemEditorScreenState extends State<ItemEditorScreen> {
           : double.tryParse(_temp.text),
       'allergens': _allergens,
       'rejectionReason': i['accepted'] ? null : _reason.text.trim(),
+      'locationId': i['accepted'] ? i['locationId'] : null,
     }..removeWhere((k, v) => v == null);
     Navigator.pop(context, out);
   }
@@ -681,6 +739,14 @@ class _ItemEditorScreenState extends State<ItemEditorScreen> {
                       }
                     }),
                   ),
+                  if (i['accepted'] == true) ...[
+                    const SizedBox(height: 12),
+                    LocationPicker(
+                      label: 'Put away to',
+                      value: i['locationId'],
+                      onChanged: (v) => i['locationId'] = v,
+                    ),
+                  ],
                   if (i['accepted'] == false) ...[
                     const SizedBox(height: 12),
                     TextFormField(

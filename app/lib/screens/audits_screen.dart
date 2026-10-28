@@ -3,24 +3,26 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'audit_detail_screen.dart';
+import 'programme_screen.dart';
+
+/// Starts an audit from template [t] (pre-filled from records) and opens it.
+Future<void> startAudit(BuildContext context, Map t) async {
+  final id = await context.run(
+    () => context.m('audits:start', {
+      'templateKey': t['key'],
+      'tzOffsetMinutes': DateTime.now().timeZoneOffset.inMinutes,
+      // Daily checks cover "today" in local time rather than a rolling 24h.
+      if (t['defaultPeriodDays'] == 1) 'periodStart': localDayStartMs(),
+    }),
+  );
+  if (id != null && context.mounted) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => AuditDetailScreen(id: id)));
+  }
+}
 
 class AuditsScreen extends StatelessWidget {
   const AuditsScreen({super.key});
-
-  Future<void> _start(BuildContext context, dynamic t) async {
-    final id = await context.run(
-      () => context.m('audits:start', {
-        'templateKey': t['key'],
-        'tzOffsetMinutes': DateTime.now().timeZoneOffset.inMinutes,
-        // Daily checks cover "today" in local time rather than a rolling 24h.
-        if (t['defaultPeriodDays'] == 1) 'periodStart': localDayStartMs(),
-      }),
-    );
-    if (id != null && context.mounted) {
-      Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => AuditDetailScreen(id: id)));
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +30,7 @@ class AuditsScreen extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Audits & Inspections'),
+          title: const Text('Checks & Audits'),
           bottom: const TabBar(
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
@@ -46,23 +48,44 @@ class AuditsScreen extends StatelessWidget {
               builder: (context, data) => ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  Responsive(
+                    child: Card(
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.verified,
+                          color: AppColors.jam,
+                        ),
+                        title: const Text(
+                          'Your programme',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        subtitle: const Text(
+                          'What is due, records to keep and checklists',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ProgrammeScreen(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   const Responsive(
                     child: Card(
-                      color: AppColors.orangeLight,
+                      color: AppColors.jamLight,
                       child: Padding(
                         padding: EdgeInsets.all(14),
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.auto_awesome,
-                              color: AppColors.orangeDark,
-                            ),
+                            Icon(Icons.auto_awesome, color: AppColors.jamDark),
                             SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 'Audits pre-fill from your goods inwards, temperature and corrective action records. '
                                 'Just review the evidence and answer what\'s left.',
-                                style: TextStyle(color: AppColors.orangeDark),
+                                style: TextStyle(color: AppColors.jamDark),
                               ),
                             ),
                           ],
@@ -76,7 +99,7 @@ class AuditsScreen extends StatelessWidget {
                       child: Card(
                         clipBehavior: Clip.antiAlias,
                         child: InkWell(
-                          onTap: () => _start(context, t),
+                          onTap: () => startAudit(context, t),
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Column(
@@ -86,7 +109,7 @@ class AuditsScreen extends StatelessWidget {
                                   children: [
                                     const Icon(
                                       Icons.fact_check,
-                                      color: AppColors.orange,
+                                      color: AppColors.jam,
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
@@ -100,7 +123,7 @@ class AuditsScreen extends StatelessWidget {
                                     ),
                                     const Icon(
                                       Icons.play_circle_fill,
-                                      color: AppColors.orange,
+                                      color: AppColors.jam,
                                       size: 30,
                                     ),
                                   ],

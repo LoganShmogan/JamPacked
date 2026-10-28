@@ -14,6 +14,54 @@ Map<String, dynamic> settings({String jurisdiction = 'NZ'}) => {
   'expiryWarningDays': 3,
 };
 
+Map<String, dynamic> business({
+  String id = 'b1',
+  String name = 'Kai Cafe',
+  String programme = 'NP2',
+  String role = 'admin',
+  bool archived = false,
+  int openCAs = 0,
+}) => {
+  '_id': id,
+  'name': name,
+  'programme': programme,
+  'sectors': <String>[],
+  'archived': archived,
+  'isOwner': true,
+  'role': role,
+  'openCorrectiveActions': openCAs,
+};
+
+/// A cut-down `businesses:regions`.
+final regions = {
+  'NZ': ['Auckland', 'Manawatū-Whanganui', 'Otago'],
+  'AU': ['New South Wales', 'Victoria'],
+};
+
+final programmes = [
+  {
+    'key': 'NP1',
+    'name': 'National Programme 1',
+    'risk': 'Lowest risk',
+    'whoFor': ['Store or transport food only'],
+    'sectors': [
+      {'key': 'transport', 'label': 'Transport and distribution'},
+    ],
+    'source': 'MPI',
+  },
+  {
+    'key': 'NP2',
+    'name': 'National Programme 2',
+    'risk': 'Low to medium risk',
+    'whoFor': ['Sell chilled or frozen foods'],
+    'sectors': [
+      {'key': 'ece', 'label': 'Early Childhood Centre (ECE)'},
+      {'key': 'bread', 'label': 'Bread'},
+    ],
+    'source': 'MPI',
+  },
+];
+
 Map<String, dynamic> summary({
   int deliveries = 2,
   int rejections = 0,
@@ -24,10 +72,17 @@ Map<String, dynamic> summary({
   int expiring = 0,
   int expired = 0,
   int inProgress = 0,
+  int stockLines = 4,
+  int onHold = 0,
+  int lowStock = 0,
   String jurisdiction = 'NZ',
 }) => {
   'businessName': 'Kai Cafe',
   'jurisdiction': jurisdiction,
+  'programme': 'NP2',
+  'stockLines': stockLines,
+  'onHold': onHold,
+  'lowStock': lowStock,
   'deliveriesToday': deliveries,
   'rejectionsToday': rejections,
   'tempChecksToday': temps,
@@ -116,7 +171,17 @@ Map<String, Handler> baseHandlers() => {
   'dashboard:summary': (_) => summary(),
   'deliveries:list': (_) => [delivery()],
   'deliveries:get': (_) => null,
-  'deliveries:expiring': (_) => [],
+  'stock:expiring': (_) => [],
+  'stock:onHand': (_) => [],
+  'stock:lowStock': (_) => [],
+  'stock:lot': (_) => null,
+  'stocktakes:list': (_) => [],
+  'stocktakes:get': (_) => null,
+  'locations:list': (_) => [],
+  'programmes:current': (_) => programme(),
+  'programmes:due': (_) => due(),
+  'records:list': (_) => [],
+  'customProgrammes:mine': (_) => [],
   'deliveries:trace': (_) => [],
   'deliveries:suggestionsForSupplier': (_) => [],
   'audits:templates': (_) => templates,
@@ -129,8 +194,121 @@ Map<String, Handler> baseHandlers() => {
   'temperature:list': (_) => [],
   'temperature:units': (_) => [],
   'auditLog:list': (_) => [],
-  'auth:listUsers': (_) => [],
+  'businesses:members': (_) => {'members': [], 'invites': []},
+  'businesses:mine': (_) => [business()],
+  'businesses:programmes': (_) => programmes,
+  'businesses:regions': (_) => regions,
 };
 
 FakeConvex fakeWith([Map<String, Handler> overrides = const {}]) =>
     FakeConvex({...baseHandlers(), ...overrides});
+
+Map<String, dynamic> lot({
+  String id = 'l1',
+  String name = 'Milk 2L',
+  String status = 'available',
+  num qty = 6,
+  int? useBy,
+  int? bestBefore,
+  bool expiringSoon = false,
+  String? location,
+  String? holdReason,
+}) => {
+  '_id': id,
+  'productName': name,
+  'storageType': 'chilled',
+  'unit': 'ea',
+  'qtyReceived': 6,
+  'qtyOnHand': qty,
+  'status': status,
+  'batchCode': 'B1',
+  'supplierName': 'Fresh Foods',
+  'receivedAt': t0,
+  'useBy': ?useBy,
+  'bestBefore': ?bestBefore,
+  'expiringSoon': expiringSoon,
+  'locationName': ?location,
+  'holdReason': ?holdReason,
+};
+
+final locations = [
+  {'_id': 'loc1', 'name': 'Chiller 1', 'kind': 'chiller', 'active': true},
+  {'_id': 'loc2', 'name': 'Old shelf', 'kind': 'dry', 'active': false},
+];
+
+final pestCheck = {
+  'key': 'pest_check',
+  'name': 'Pest check',
+  'description': 'Look for pests.',
+  'frequency': 'weekly',
+  'fields': [
+    {'key': 'area', 'label': 'Areas checked', 'type': 'text', 'required': true},
+    {
+      'key': 'found',
+      'label': 'Signs of pests found?',
+      'type': 'yesno',
+      'required': true,
+    },
+    {'key': 'count', 'label': 'Traps', 'type': 'number', 'unit': ' traps'},
+    {'key': 'next', 'label': 'Next visit', 'type': 'date'},
+  ],
+};
+
+Map<String, dynamic> programme({
+  String key = 'NP2',
+  List prompts = const [],
+  List? records,
+  List? schedule,
+  String? customProgrammeId,
+  bool ownsProgramme = false,
+  List sectorLabels = const [],
+}) => {
+  'key': key,
+  'name': key == 'custom' ? 'Our plan' : 'National Programme 2',
+  'sectors': <String>[],
+  'sectorLabels': sectorLabels,
+  'receivingPrompts': prompts,
+  'recordTypes': records ?? [pestCheck],
+  'templates': [
+    {
+      'key': 'np2_self_check',
+      'name': 'NP2 self-check',
+      'description': 'Self check',
+      'defaultPeriodDays': 30,
+      'frequency': 'monthly',
+      'questionCount': 18,
+    },
+  ],
+  'schedule':
+      schedule ??
+      [
+        {'key': 'chilled_check'},
+      ],
+  'customProgrammeId': ?customProgrammeId,
+  'ownsProgramme': ownsProgramme,
+};
+
+List<Map<String, dynamic>> due({bool allDone = false}) => [
+  {
+    'key': 'chilled_check',
+    'label': 'Check chilled food is at 5°C or lower',
+    'frequency': 'daily',
+    'satisfiedBy': {'kind': 'temperature'},
+    'done': true,
+    'lastAt': t0,
+  },
+  {
+    'key': 'pest_check',
+    'label': 'Pest check',
+    'frequency': 'weekly',
+    'satisfiedBy': {'kind': 'record', 'recordType': 'pest_check'},
+    'done': allDone,
+  },
+  {
+    'key': 'self_check',
+    'label': 'NP2 self-check',
+    'frequency': 'monthly',
+    'satisfiedBy': {'kind': 'audit', 'templateKey': 'np2_self_check'},
+    'done': allDone,
+  },
+];

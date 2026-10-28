@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* Colours from the JamPacked logo, matching the app (app/lib/theme.dart). */
+:root {
+  --bg: #fffaf4;
+  --surface: #ffffff;
+  --cream: #fde5cd;
+  --ink: #2b2b2b;
+  --muted: #6b6b6b;
+  --border: #ede6e1;
+  --jam: #c94a4e;
+  --jam-dark: #a8323a;
+  --mustard: #bf9100;
+  --on-jam: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1716;
+    --surface: #24201e;
+    --cream: #3a2c22;
+    --ink: #f3ece6;
+    --muted: #b3aaa3;
+    --border: #3a3330;
+    --jam: #e06665;
+    --jam-dark: #f08a88;
+    --mustard: #e0b23a;
+    --on-jam: #1a1716;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-cream: var(--cream);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-jam: var(--jam);
+  --color-jam-dark: var(--jam-dark);
+  --color-mustard: var(--mustard);
+  --color-on-jam: var(--on-jam);
+  --font-sans: var(--font-figtree);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}

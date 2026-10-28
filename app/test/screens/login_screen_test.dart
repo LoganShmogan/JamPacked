@@ -2,20 +2,27 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/login_screen.dart';
-import 'package:foodsafe/services/auth_service.dart';
+import 'package:jampacked/screens/login_screen.dart';
+import 'package:jampacked/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../fixtures.dart';
 import '../helpers.dart';
 
-const me = {'_id': 'u1', 'name': 'Sam', 'email': 'sam@x.co', 'role': 'admin'};
+const me = {'_id': 'u1', 'name': 'Sam', 'email': 'sam@x.co'};
 
 Future<(FakeConvex, AuthService)> pumpLogin(
   WidgetTester tester,
   Map<String, Handler> handlers,
 ) async {
   SharedPreferences.setMockInitialValues({});
-  final convex = FakeConvex({'auth:me': (_) => me, ...handlers});
+  final convex = FakeConvex({
+    'auth:me': (_) => me,
+    'businesses:mine': (_) => [business()],
+    'businesses:programmes': (_) => programmes,
+    'businesses:regions': (_) => regions,
+    ...handlers,
+  });
   final auth = AuthService(convex)..loading = false;
   await pumpScreen(tester, const LoginScreen(), convex: convex, auth: auth);
   return (convex, auth);
@@ -86,39 +93,180 @@ void main() {
     expect(find.byIcon(Icons.visibility_off), findsOneWidget);
   });
 
+  testWidgets('register: account details are validated before moving on', (
+    tester,
+  ) async {
+    final (convex, _) = await pumpLogin(tester, {});
+    await tester.tap(find.text('Create an account'));
+    await tester.pump();
+    expect(
+      find.text(
+        'Next you will set up your business and choose the programme it follows.',
+      ),
+      findsOneWidget,
+    );
+    await tester.enterText(field('Email'), 'sam@x.co');
+    await tester.enterText(field('Password'), 'short');
+    await tester.tap(find.text('Next'));
+    await tester.pump();
+    expect(find.text('Required'), findsOneWidget);
+    expect(find.text('At least 8 characters'), findsOneWidget);
+    expect(convex.calls, isEmpty);
+
+    await tester.tap(find.text('I already have an account'));
+    await tester.pump();
+    expect(field('Full name'), findsNothing);
+  });
+
+  Future<void> fillAccount(WidgetTester tester) async {
+    await tester.tap(find.text('Create an account'));
+    await tester.pump();
+    await tester.enterText(field('Full name'), ' Sam ');
+    await tester.enterText(field('Email'), 'sam@x.co');
+    await tester.enterText(field('Password'), 'long-enough');
+  }
+
   testWidgets(
-    'register mode validates name and password length, then registers',
+    'register: then the business, its programme and sectors, then creates both',
     (tester) async {
       final (convex, auth) = await pumpLogin(tester, {
         'auth:register': (_) => {'token': 'r'},
       });
-      await tester.tap(find.text('Create an account'));
-      await tester.pump();
-      expect(
-        find.text('The first account created becomes the business admin.'),
-        findsOneWidget,
-      );
-      await tester.enterText(field('Email'), 'sam@x.co');
-      await tester.enterText(field('Password'), 'short');
-      await tester.tap(find.text('Create account'));
-      await tester.pump();
-      expect(find.text('Required'), findsOneWidget);
-      expect(find.text('At least 8 characters'), findsOneWidget);
-
-      await tester.enterText(field('Full name'), ' Sam ');
-      await tester.enterText(field('Password'), 'long-enough');
-      await tester.tap(find.text('Create account'));
+      await fillAccount(tester);
+      await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
+      expect(find.text('Set up your main business'), findsOneWidget);
+      expect(find.text('• Sell chilled or frozen foods'), findsOneWidget);
+
+      // Nothing chosen yet.
+      await tapOn(tester, find.text('Create account'));
+      expect(find.text('Required'), findsNWidgets(2)); // name and region
+      expect(find.text('Choose a programme'), findsOneWidget);
+      expect(convex.callsTo('auth:register'), isEmpty);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Business name'),
+        ' Kai Cafe ',
+      );
+      // Choosing a state, then going back to NZ, clears it.
+      await tapOn(tester, find.text('Australia (FSANZ)'));
+      await pickRegion(tester, 'Victoria', label: 'State or territory');
+      await tapOn(tester, find.text('New Zealand (MPI)'));
+      expect(find.text('Victoria'), findsNothing);
+      await pickRegion(tester, 'Otago');
+      await tapOn(tester, find.text('NP1: National Programme 1'));
+      expect(find.text('Transport and distribution'), findsOneWidget);
+      await tapOn(tester, find.text('NP2: National Programme 2'));
+      expect(find.text('Transport and distribution'), findsNothing);
+      await tapOn(tester, find.text('Early Childhood Centre (ECE)'));
+      await tapOn(tester, find.text('Bread'));
+      await tapOn(tester, find.text('Bread')); // and off again
+      await tapOn(tester, find.text('Create account'));
       expect(convex.callsTo('auth:register').single.args, {
         'name': 'Sam',
         'email': 'sam@x.co',
         'password': 'long-enough',
+        'business': {
+          'name': 'Kai Cafe',
+          'jurisdiction': 'NZ',
+          'region': 'Otago',
+          'programme': 'NP2',
+          'sectors': ['ece'],
+        },
       });
       expect(auth.user, isNotNull);
-
-      await tester.tap(find.text('I already have an account'));
-      await tester.pump();
-      expect(field('Full name'), findsNothing);
+      expect(auth.business?.id, 'b1');
     },
   );
+
+  testWidgets('register: custom programme has no sectors; Back keeps details', (
+    tester,
+  ) async {
+    final (convex, _) = await pumpLogin(tester, {
+      'auth:register': (_) => {'token': 'r'},
+    });
+    await fillAccount(tester);
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tapOn(tester, find.text('Back'));
+    expect(find.text('Sam'), findsNothing); // trimmed on send, raw in field
+    expect(find.text(' Sam '), findsOneWidget);
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Business name'),
+      'Bar',
+    );
+    await tapOn(tester, find.text('Australia (FSANZ)'));
+    await pickRegion(tester, 'Victoria', label: 'State or territory');
+    await tapOn(tester, find.text('Custom programme'));
+    expect(find.text('WHAT DOES YOUR BUSINESS DO?'), findsNothing);
+    await tapOn(tester, find.text('Create account'));
+    expect(convex.callsTo('auth:register').single.args['business'], {
+      'name': 'Bar',
+      'jurisdiction': 'AU',
+      'region': 'Victoria',
+      'programme': 'custom',
+      'sectors': <String>[],
+    });
+  });
+
+  testWidgets('register: invited people skip the business step', (
+    tester,
+  ) async {
+    final (convex, _) = await pumpLogin(tester, {
+      'auth:register': (_) => {'token': 'r'},
+    });
+    await fillAccount(tester);
+    await tapOn(
+      tester,
+      find.text("I've been invited to join an existing business"),
+    );
+    expect(
+      find.text('Use the email address you were invited with.'),
+      findsOneWidget,
+    );
+    await tapOn(tester, find.text('Create account'));
+    expect(convex.callsTo('auth:register').single.args, {
+      'name': 'Sam',
+      'email': 'sam@x.co',
+      'password': 'long-enough',
+      'business': null, // dropped by the real client
+    });
+  });
+
+  testWidgets('register: programmes that fail to load can be retried', (
+    tester,
+  ) async {
+    var fail = true;
+    await pumpLogin(tester, {
+      'businesses:programmes': (_) =>
+          fail ? throw fakeError('Cannot reach the server') : programmes,
+    });
+    await fillAccount(tester);
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cannot reach the server'), findsOneWidget);
+    fail = false;
+    await tapOn(tester, find.text('Retry'));
+    expect(find.text('NP1: National Programme 1'), findsOneWidget);
+  });
+
+  testWidgets('register: regions that fail to load can be retried', (
+    tester,
+  ) async {
+    var fail = true;
+    await pumpLogin(tester, {
+      'businesses:regions': (_) =>
+          fail ? throw fakeError('Cannot reach the server') : regions,
+    });
+    await fillAccount(tester);
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cannot reach the server'), findsOneWidget);
+    fail = false;
+    await tapOn(tester, find.text('Retry'));
+    expect(find.text('Cannot reach the server'), findsNothing);
+    await pickRegion(tester, 'Auckland');
+  });
 }

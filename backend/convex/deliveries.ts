@@ -2,8 +2,10 @@ import { ConvexError, v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { MutationCtx, mutation, query } from "./_generated/server";
 import { logAudit } from "./lib/audit";
-import { isTempCompliant, loadSettings } from "./lib/settings";
-import { requireRole, requireUser } from "./lib/session";
+import { isTempCompliant } from "./lib/settings";
+import { inBusiness, requireMember, scoped } from "./lib/session";
+import { loadModule } from "./lib/module";
+import { createLot, recordMovement } from "./lib/stock";
 import { storageType } from "./schema";
 
 const itemInput = v.object({
@@ -22,15 +24,18 @@ const itemInput = v.object({
   allergens: v.array(v.string()),
   accepted: v.boolean(),
   rejectionReason: v.optional(v.string()),
+  locationId: v.optional(v.id("locations")), // where accepted stock is put away
 });
 
 async function raiseCA(
   ctx: MutationCtx,
   user: Doc<"users">,
+  businessId: Id<"businesses">,
   ca: { title: string; description?: string; severity: "low" | "medium" | "high"; sourceId: string },
 ) {
   const id = await ctx.db.insert("correctiveActions", {
     ...ca,
+    businessId,
     source: "goods_inward",
     status: "open",
     raisedAt: Date.now(),
@@ -38,6 +43,7 @@ async function raiseCA(
     raisedByName: user.name,
   });
   await logAudit(ctx, user, {
+    businessId,
     action: "create",
     entityType: "correctiveAction",
     entityId: id,
@@ -48,27 +54,36 @@ async function raiseCA(
 /** Goods inwards: one delivery with its line items. Compliance is computed server-side. */
 export const create = mutation({
   args: {
-    sessionToken: v.string(),
+    ...scoped,
     supplierId: v.id("suppliers"),
     receivedAt: v.optional(v.number()),
     invoiceNumber: v.optional(v.string()),
     vehicleClean: v.boolean(),
     vehicleTempC: v.optional(v.number()),
     notes: v.optional(v.string()),
+    // Answers to the programme's receiving prompts: true / false / null or absent (not applicable)
+    programmeAnswers: v.optional(
+      v.array(v.object({ key: v.string(), value: v.optional(v.union(v.boolean(), v.null())) })),
+    ),
     items: v.array(itemInput),
   },
-  handler: async (ctx, { sessionToken, items, ...args }) => {
-    const user = await requireUser(ctx, sessionToken);
+  handler: async (ctx, { sessionToken, businessId, items, programmeAnswers, ...args }) => {
+    const { user, business: settings } = await requireMember(ctx, sessionToken, businessId);
+    const prompts = (await loadModule(ctx, settings)).receivingPrompts;
+    const answers = (programmeAnswers ?? []).map((a) => {
+      const p = prompts.find((x) => x.key === a.key);
+      if (!p) throw new ConvexError(`Unknown receiving check: ${a.key}`);
+      return { key: a.key, value: a.value ?? null, text: p.text };
+    });
     if (items.length === 0) throw new ConvexError("Add at least one item");
-    const supplier = await ctx.db.get(args.supplierId);
-    if (!supplier) throw new ConvexError("Supplier not found");
-    const settings = await loadSettings(ctx);
+    const supplier = inBusiness(await ctx.db.get(args.supplierId), businessId, "Supplier");
     const receivedAt = args.receivedAt ?? Date.now();
 
     for (const item of items) {
       if (!item.accepted && !item.rejectionReason?.trim()) {
         throw new ConvexError(`Give a reason for rejecting ${item.productName}`);
       }
+      if (item.locationId) inBusiness(await ctx.db.get(item.locationId), businessId, "Location");
     }
     const acceptedCount = items.filter((i) => i.accepted).length;
     const status =
@@ -76,6 +91,8 @@ export const create = mutation({
 
     const deliveryId = await ctx.db.insert("deliveries", {
       ...args,
+      ...(answers.length ? { programmeAnswers: answers } : {}),
+      businessId,
       receivedAt,
       supplierName: supplier.name,
       supplierApproved: supplier.approved,
@@ -86,16 +103,17 @@ export const create = mutation({
     });
 
     const issues: string[] = [];
-    for (const item of items) {
+    for (const { locationId, ...item } of items) {
       // Auto-create catalogue entries so future deliveries/audits can pre-fill from them.
       let productId: Id<"products"> | undefined = item.productId;
       if (!productId) {
         const existing = item.barcode
-          ? await ctx.db.query("products").withIndex("by_barcode", (q) => q.eq("barcode", item.barcode)).first()
-          : await ctx.db.query("products").withIndex("by_name", (q) => q.eq("name", item.productName)).first();
+          ? await ctx.db.query("products").withIndex("by_business_barcode", (q) => q.eq("businessId", businessId).eq("barcode", item.barcode)).first()
+          : await ctx.db.query("products").withIndex("by_business_name", (q) => q.eq("businessId", businessId).eq("name", item.productName)).first();
         productId =
           existing?._id ??
           (await ctx.db.insert("products", {
+            businessId,
             name: item.productName,
             barcode: item.barcode,
             storageType: item.storageType,
@@ -106,8 +124,9 @@ export const create = mutation({
           }));
       }
       const temperatureCompliant = isTempCompliant(settings, item.storageType, item.temperatureC);
-      await ctx.db.insert("deliveryItems", {
+      const deliveryItemId = await ctx.db.insert("deliveryItems", {
         ...item,
+        businessId,
         productId,
         deliveryId,
         receivedAt,
@@ -115,11 +134,31 @@ export const create = mutation({
         temperatureCompliant,
         voided: false,
       });
+      // Accepted goods go into stock as a lot that can be traced, rotated, used and recalled.
+      if (item.accepted) {
+        await createLot(ctx, user, {
+          businessId,
+          productId,
+          productName: item.productName,
+          barcode: item.barcode,
+          deliveryId,
+          deliveryItemId,
+          supplierName: supplier.name,
+          batchCode: item.batchCode,
+          useBy: item.useBy,
+          bestBefore: item.bestBefore,
+          locationId,
+          storageType: item.storageType,
+          unit: item.unit,
+          qtyReceived: item.quantity,
+          receivedAt,
+        });
+      }
 
       const expired = item.useBy !== undefined && item.useBy < receivedAt;
       if (item.accepted && temperatureCompliant === false) {
         issues.push(`${item.productName} accepted at ${item.temperatureC ?? "unrecorded"}°C (${item.storageType})`);
-        await raiseCA(ctx, user, {
+        await raiseCA(ctx, user, businessId, {
           title: `Out-of-range temperature accepted: ${item.productName}`,
           description: `Received ${item.storageType} at ${item.temperatureC ?? "no reading"}°C from ${supplier.name}. Check product, discard if unsafe, and follow up with supplier.`,
           severity: "high",
@@ -127,7 +166,7 @@ export const create = mutation({
         });
       }
       if (item.accepted && expired) {
-        await raiseCA(ctx, user, {
+        await raiseCA(ctx, user, businessId, {
           title: `Expired product accepted: ${item.productName}`,
           description: `Use-by date had passed at time of receipt.`,
           severity: "high",
@@ -136,7 +175,7 @@ export const create = mutation({
       }
       if (!item.accepted) {
         issues.push(`${item.productName} rejected: ${item.rejectionReason}`);
-        await raiseCA(ctx, user, {
+        await raiseCA(ctx, user, businessId, {
           title: `Rejected at delivery: ${item.productName}`,
           description: `${item.rejectionReason}. Notify ${supplier.name} and arrange credit/replacement.`,
           severity: "medium",
@@ -145,15 +184,23 @@ export const create = mutation({
       }
     }
     if (!supplier.approved) {
-      await raiseCA(ctx, user, {
+      await raiseCA(ctx, user, businessId, {
         title: `Delivery from unapproved supplier: ${supplier.name}`,
         description: "Verify the supplier is registered/approved, or stop purchasing from them.",
         severity: "medium",
         sourceId: deliveryId,
       });
     }
+    for (const a of answers.filter((x) => x.value === false)) {
+      await raiseCA(ctx, user, businessId, {
+        title: `Receiving check failed: ${a.text}`,
+        description: `Delivery from ${supplier.name}.`,
+        severity: "medium",
+        sourceId: deliveryId,
+      });
+    }
     if (!args.vehicleClean) {
-      await raiseCA(ctx, user, {
+      await raiseCA(ctx, user, businessId, {
         title: `Delivery vehicle not clean: ${supplier.name}`,
         severity: "low",
         sourceId: deliveryId,
@@ -161,11 +208,12 @@ export const create = mutation({
     }
 
     await logAudit(ctx, user, {
+      businessId,
       action: "create",
       entityType: "delivery",
       entityId: deliveryId,
       summary: `Goods received from ${supplier.name}: ${items.length} item(s), ${status}${issues.length ? `. ${issues.join("; ")}` : ""}`,
-      changes: { ...args, items },
+      changes: { ...args, items, programmeAnswers: answers },
     });
     return deliveryId;
   },
@@ -173,17 +221,24 @@ export const create = mutation({
 
 /** Records are never deleted. A manager voids them with a reason, which stays in the trail. */
 export const voidDelivery = mutation({
-  args: { sessionToken: v.string(), id: v.id("deliveries"), reason: v.string() },
-  handler: async (ctx, { sessionToken, id, reason }) => {
-    const user = await requireRole(ctx, sessionToken, ["admin", "manager"]);
+  args: { ...scoped, id: v.id("deliveries"), reason: v.string() },
+  handler: async (ctx, { sessionToken, businessId, id, reason }) => {
+    const { user } = await requireMember(ctx, sessionToken, businessId, ["admin", "manager"]);
     if (!reason.trim()) throw new ConvexError("A reason is required to void a record");
-    const delivery = await ctx.db.get(id);
-    if (!delivery) throw new ConvexError("Delivery not found");
+    const delivery = inBusiness(await ctx.db.get(id), businessId, "Delivery");
     if (delivery.voided) return;
     await ctx.db.patch(id, { voided: true, voidReason: reason });
     const items = await ctx.db.query("deliveryItems").withIndex("by_delivery", (q) => q.eq("deliveryId", id)).collect();
-    for (const item of items) await ctx.db.patch(item._id, { voided: true });
+    for (const item of items) {
+      await ctx.db.patch(item._id, { voided: true });
+      // Take whatever is left of its stock out, with the reason in the lot's history.
+      const lot = await ctx.db.query("stockLots").withIndex("by_deliveryItem", (q) => q.eq("deliveryItemId", item._id)).unique();
+      if (lot && lot.status !== "depleted") {
+        await recordMovement(ctx, user, lot, { type: "void", qty: -lot.qtyOnHand, reason: `Delivery voided: ${reason}` }, { status: "depleted" });
+      }
+    }
     await logAudit(ctx, user, {
+      businessId,
       action: "void",
       entityType: "delivery",
       entityId: id,
@@ -193,13 +248,13 @@ export const voidDelivery = mutation({
 });
 
 export const updateNotes = mutation({
-  args: { sessionToken: v.string(), id: v.id("deliveries"), notes: v.string() },
-  handler: async (ctx, { sessionToken, id, notes }) => {
-    const user = await requireUser(ctx, sessionToken);
-    const delivery = await ctx.db.get(id);
-    if (!delivery) throw new ConvexError("Delivery not found");
+  args: { ...scoped, id: v.id("deliveries"), notes: v.string() },
+  handler: async (ctx, { sessionToken, businessId, id, notes }) => {
+    const { user } = await requireMember(ctx, sessionToken, businessId);
+    const delivery = inBusiness(await ctx.db.get(id), businessId, "Delivery");
     await ctx.db.patch(id, { notes });
     await logAudit(ctx, user, {
+      businessId,
       action: "update",
       entityType: "delivery",
       entityId: id,
@@ -210,10 +265,14 @@ export const updateNotes = mutation({
 });
 
 export const list = query({
-  args: { sessionToken: v.string(), limit: v.optional(v.number()) },
-  handler: async (ctx, { sessionToken, limit }) => {
-    await requireUser(ctx, sessionToken);
-    const deliveries = await ctx.db.query("deliveries").withIndex("by_receivedAt").order("desc").take(limit ?? 100);
+  args: { ...scoped, limit: v.optional(v.number()) },
+  handler: async (ctx, { sessionToken, businessId, limit }) => {
+    await requireMember(ctx, sessionToken, businessId);
+    const deliveries = await ctx.db
+      .query("deliveries")
+      .withIndex("by_business_receivedAt", (q) => q.eq("businessId", businessId))
+      .order("desc")
+      .take(limit ?? 100);
     return await Promise.all(
       deliveries.map(async (d) => {
         const items = await ctx.db.query("deliveryItems").withIndex("by_delivery", (q) => q.eq("deliveryId", d._id)).collect();
@@ -228,11 +287,11 @@ export const list = query({
 });
 
 export const get = query({
-  args: { sessionToken: v.string(), id: v.id("deliveries") },
-  handler: async (ctx, { sessionToken, id }) => {
-    await requireUser(ctx, sessionToken);
+  args: { ...scoped, id: v.id("deliveries") },
+  handler: async (ctx, { sessionToken, businessId, id }) => {
+    await requireMember(ctx, sessionToken, businessId);
     const delivery = await ctx.db.get(id);
-    if (!delivery) return null;
+    if (!delivery || delivery.businessId !== businessId) return null;
     const items = await ctx.db.query("deliveryItems").withIndex("by_delivery", (q) => q.eq("deliveryId", id)).collect();
     const history = await ctx.db
       .query("auditLog")
@@ -245,9 +304,10 @@ export const get = query({
 
 /** Pre-fill helper: products this supplier has delivered before, most recent first. */
 export const suggestionsForSupplier = query({
-  args: { sessionToken: v.string(), supplierId: v.id("suppliers") },
-  handler: async (ctx, { sessionToken, supplierId }) => {
-    await requireUser(ctx, sessionToken);
+  args: { ...scoped, supplierId: v.id("suppliers") },
+  handler: async (ctx, { sessionToken, businessId, supplierId }) => {
+    await requireMember(ctx, sessionToken, businessId);
+    inBusiness(await ctx.db.get(supplierId), businessId, "Supplier");
     const deliveries = await ctx.db
       .query("deliveries")
       .withIndex("by_supplier", (q) => q.eq("supplierId", supplierId))
@@ -270,35 +330,22 @@ export const suggestionsForSupplier = query({
   },
 });
 
-/** Stock received and accepted that is close to (or past) its use-by / best-before. */
-export const expiring = query({
-  args: { sessionToken: v.string() },
-  handler: async (ctx, { sessionToken }) => {
-    await requireUser(ctx, sessionToken);
-    const settings = await loadSettings(ctx);
-    const now = Date.now();
-    const horizon = now + settings.expiryWarningDays * 86_400_000;
-    const recent = await ctx.db
-      .query("deliveryItems")
-      .withIndex("by_receivedAt", (q) => q.gt("receivedAt", now - 90 * 86_400_000))
-      .collect();
-    return recent
-      .filter((i) => i.accepted && !i.voided)
-      .map((i) => ({ ...i, expiresAt: i.useBy ?? i.bestBefore }))
-      .filter((i) => i.expiresAt !== undefined && i.expiresAt <= horizon)
-      .sort((a, b) => a.expiresAt! - b.expiresAt!);
-  },
-});
-
 /** Traceability / recall: find every receipt of a batch code or product. */
 export const trace = query({
-  args: { sessionToken: v.string(), search: v.string() },
-  handler: async (ctx, { sessionToken, search }) => {
-    await requireUser(ctx, sessionToken);
+  args: { ...scoped, search: v.string() },
+  handler: async (ctx, { sessionToken, businessId, search }) => {
+    await requireMember(ctx, sessionToken, businessId);
     const term = search.trim().toLowerCase();
     if (!term) return [];
-    const byBatch = await ctx.db.query("deliveryItems").withIndex("by_batch", (q) => q.eq("batchCode", search.trim())).collect();
-    const recent = await ctx.db.query("deliveryItems").withIndex("by_receivedAt").order("desc").take(2000);
+    const byBatch = await ctx.db
+      .query("deliveryItems")
+      .withIndex("by_business_batch", (q) => q.eq("businessId", businessId).eq("batchCode", search.trim()))
+      .collect();
+    const recent = await ctx.db
+      .query("deliveryItems")
+      .withIndex("by_business_receivedAt", (q) => q.eq("businessId", businessId))
+      .order("desc")
+      .take(2000);
     const matches = new Map(byBatch.map((i) => [i._id, i]));
     for (const i of recent) {
       if (
@@ -310,7 +357,20 @@ export const trace = query({
     const out = [];
     for (const i of matches.values()) {
       const d = await ctx.db.get(i.deliveryId);
-      out.push({ ...i, supplierName: d?.supplierName ?? "", receivedByName: d?.receivedByName ?? "" });
+      // One step forward: what happened to the stock, and who it was dispatched to.
+      const lot = await ctx.db.query("stockLots").withIndex("by_deliveryItem", (q) => q.eq("deliveryItemId", i._id)).unique();
+      const movements = lot ? await ctx.db.query("stockMovements").withIndex("by_lot", (q) => q.eq("lotId", lot._id)).collect() : [];
+      out.push({
+        ...i,
+        supplierName: d?.supplierName ?? "",
+        receivedByName: d?.receivedByName ?? "",
+        lot: lot && {
+          _id: lot._id,
+          status: lot.status,
+          qtyOnHand: lot.qtyOnHand,
+          dispatched: movements.filter((m) => m.type === "dispatch").map((m) => ({ customer: m.customer!, qty: -m.qty, at: m.at })),
+        },
+      });
     }
     return out.sort((a, b) => b.receivedAt - a.receivedAt);
   },

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/admin_screens.dart';
-import 'package:foodsafe/theme.dart';
+import 'package:jampacked/screens/admin_screens.dart';
+import 'package:jampacked/theme.dart';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../fixtures.dart';
 import '../helpers.dart';
@@ -43,6 +45,7 @@ void main() {
       expect(convex.callsTo('auditLog:list').last.args, {
         'entityType': null,
         'limit': 500,
+        'businessId': 'b1',
         'sessionToken': 'tok',
       });
       await tester.tap(find.text('Goods in'));
@@ -88,7 +91,7 @@ void main() {
         );
         expect(
           tester.widget<Icon>(find.byIcon(Icons.edit_outlined)).color,
-          AppColors.orange,
+          AppColors.jam,
         );
         expect(find.text('Sam · 6 May 2024, 9:15 AM · update'), findsOneWidget);
 
@@ -107,34 +110,54 @@ void main() {
     );
   });
 
-  group('UsersScreen', () {
-    final users = [
-      user('u1', 'Sam', 'admin'),
-      user('u2', 'Kim', 'staff'),
-      user('u3', 'Old', 'manager', active: false),
-    ];
+  group('MembersScreen', () {
+    final members = {
+      'members': [
+        user('u1', 'Sam', 'admin'),
+        user('u2', 'Kim', 'staff'),
+        user('u3', 'Old', 'manager', active: false),
+      ],
+      'invites': [
+        {
+          'email': 'new@x.co',
+          'role': 'staff',
+          'invitedByName': 'Sam',
+          'createdAt': t0,
+        },
+      ],
+    };
 
-    testWidgets('managers see roles but cannot change them', (tester) async {
+    testWidgets('managers see roles and invites but cannot change or invite', (
+      tester,
+    ) async {
       await pumpScreen(
         tester,
-        const UsersScreen(),
-        convex: fakeWith({'auth:listUsers': (_) => users}),
+        const MembersScreen(),
+        convex: fakeWith({'businesses:members': (_) => members}),
         role: 'manager',
       );
       expect(find.byType(PopupMenuButton<String>), findsNothing);
-      expect(find.text('STAFF'), findsOneWidget);
-      expect(find.text('old@x.co · deactivated'), findsOneWidget);
+      expect(find.text('Invite'), findsNothing);
+      expect(find.text('old@x.co · removed'), findsOneWidget);
+      expect(find.text('INVITED'), findsOneWidget);
+      expect(find.text('new@x.co'), findsOneWidget);
+      expect(find.text('Invited by Sam on 6 May 2024'), findsOneWidget);
     });
 
-    testWidgets('admins can change other users but not themselves', (
+    testWidgets('no invites section when nobody is pending', (tester) async {
+      await pumpScreen(tester, const MembersScreen(), convex: fakeWith());
+      expect(find.text('INVITED'), findsNothing);
+    });
+
+    testWidgets('admins can change other members but not themselves', (
       tester,
     ) async {
       final convex = await pumpScreen(
         tester,
-        const UsersScreen(),
+        const MembersScreen(),
         convex: fakeWith({
-          'auth:listUsers': (_) => users,
-          'auth:updateUser': (_) => null,
+          'businesses:members': (_) => members,
+          'businesses:updateMember': (_) => null,
         }),
       );
       expect(
@@ -142,27 +165,89 @@ void main() {
         findsNWidgets(2),
       ); // not for u1 (me)
 
-      await tester.tap(find.text('STAFF'));
+      await tester.tap(find.text('STAFF').first);
       await tester.pumpAndSettle();
-      expect(find.text('Deactivate'), findsOneWidget);
+      expect(find.text('Remove from business'), findsOneWidget);
       await tester.tap(find.text('Make manager'));
       await tester.pumpAndSettle();
-      expect(convex.callsTo('auth:updateUser').last.args, {
+      expect(convex.callsTo('businesses:updateMember').last.args, {
         'userId': 'u2',
         'role': 'manager',
+        'businessId': 'b1',
         'sessionToken': 'tok',
       });
-      expect(find.text('User updated'), findsOneWidget);
+      expect(find.text('Member updated'), findsOneWidget);
 
       await tester.tap(find.text('MANAGER'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Reactivate'));
+      await tester.tap(find.text('Restore access'));
       await tester.pumpAndSettle();
-      expect(convex.callsTo('auth:updateUser').last.args, {
+      expect(convex.callsTo('businesses:updateMember').last.args, {
         'userId': 'u3',
         'active': true,
+        'businessId': 'b1',
         'sessionToken': 'tok',
       });
+    });
+
+    for (final (added, message) in [
+      (true, 'Added to the business'),
+      (
+        false,
+        'Invited. They join when they create an account with that email.',
+      ),
+    ]) {
+      testWidgets('admins invite by email and role (added: $added)', (
+        tester,
+      ) async {
+        final convex = await pumpScreen(
+          tester,
+          const MembersScreen(),
+          convex: fakeWith({
+            'businesses:invite': (_) => {'added': added},
+          }),
+        );
+        await tester.tap(find.text('Invite'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField), ' kim@x.co ');
+        await tester.tap(find.text('staff'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('manager').last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Invite'));
+        await tester.pumpAndSettle();
+        expect(convex.callsTo('businesses:invite').single.args, {
+          'email': 'kim@x.co',
+          'role': 'manager',
+          'businessId': 'b1',
+          'sessionToken': 'tok',
+        });
+        expect(find.text(message), findsOneWidget);
+      });
+    }
+
+    testWidgets('cancelling or a failed invite sends nothing more', (
+      tester,
+    ) async {
+      final convex = await pumpScreen(
+        tester,
+        const MembersScreen(),
+        convex: fakeWith({
+          'businesses:invite': fails('kim@x.co has already been invited'),
+        }),
+      );
+      await tester.tap(find.text('Invite'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(convex.callsTo('businesses:invite'), isEmpty);
+
+      await tester.tap(find.text('Invite'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'kim@x.co');
+      await tester.tap(find.widgetWithText(FilledButton, 'Invite'));
+      await tester.pumpAndSettle();
+      expect(find.text('kim@x.co has already been invited'), findsOneWidget);
     });
   });
 
@@ -181,6 +266,7 @@ void main() {
       await tester.tap(find.text('Australia (FSANZ)'));
       await tester.pumpAndSettle();
       expect(find.text('Council food business licence no.'), findsOneWidget);
+      await pickRegion(tester, 'Victoria', label: 'State or territory');
 
       await tester.enterText(
         find.widgetWithText(TextField, 'Business name'),
@@ -204,9 +290,98 @@ void main() {
         'hotMinC': null,
         'expiryWarningDays': 3.0,
         'jurisdiction': 'AU',
+        'region': 'Victoria',
+        'businessId': 'b1',
         'sessionToken': 'tok',
       });
       expect(find.text('Settings saved'), findsOneWidget);
+    });
+
+    testWidgets('shows the saved region; changing country clears it', (
+      tester,
+    ) async {
+      final convex = await pumpScreen(
+        tester,
+        const SettingsScreen(),
+        convex: fakeWith({
+          'settings:get': (_) => {...settings(), 'region': 'Otago'},
+          'settings:update': (_) => null,
+        }),
+      );
+      expect(find.text('Otago'), findsOneWidget);
+      await tapOn(tester, find.text('Save'));
+      expect(convex.callsTo('settings:update').last.args['region'], 'Otago');
+
+      await tapOn(tester, find.text('Australia (FSANZ)'));
+      expect(find.text('Otago'), findsNothing);
+      await tapOn(tester, find.text('Save'));
+      expect(
+        convex.callsTo('settings:update').last.args.containsKey('region'),
+        isFalse,
+      );
+    });
+
+    testWidgets('archiving goes back to the business picker', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final convex = fakeWith({'businesses:setArchived': (_) => null});
+      final auth = signedIn(convex);
+      await pumpScreen(
+        tester,
+        const SettingsScreen(),
+        convex: convex,
+        auth: auth,
+      );
+      expect(find.text('Restore this business'), findsNothing);
+      await tapOn(tester, find.text('Archive this business'));
+      expect(convex.callsTo('businesses:setArchived').single.args, {
+        'archived': true,
+        'businessId': 'b1',
+        'sessionToken': 'tok',
+      });
+      expect(auth.business, isNull);
+      expect(convex.callsTo('businesses:mine'), hasLength(1));
+    });
+
+    testWidgets('a failed archive stays put', (tester) async {
+      final convex = fakeWith({'businesses:setArchived': fails('Nope')});
+      final auth = signedIn(convex);
+      await pumpScreen(
+        tester,
+        const SettingsScreen(),
+        convex: convex,
+        auth: auth,
+      );
+      await tapOn(tester, find.text('Archive this business'));
+      expect(find.text('Nope'), findsOneWidget);
+      expect(auth.business, isNotNull);
+    });
+
+    testWidgets('an archived business can be restored', (tester) async {
+      final convex = fakeWith({
+        'settings:get': (_) => {...settings(), 'archived': true},
+        'businesses:setArchived': (_) => null,
+      });
+      await pumpScreen(tester, const SettingsScreen(), convex: convex);
+      await tapOn(tester, find.text('Restore this business'));
+      expect(convex.callsTo('businesses:setArchived').single.args, {
+        'archived': false,
+        'businessId': 'b1',
+        'sessionToken': 'tok',
+      });
+      expect(find.text('Business restored'), findsOneWidget);
+      expect(find.text('Archive this business'), findsOneWidget);
+      expect(convex.callsTo('businesses:mine'), hasLength(1));
+    });
+
+    testWidgets('a failed restore keeps the restore button', (tester) async {
+      final convex = fakeWith({
+        'settings:get': (_) => {...settings(), 'archived': true},
+        'businesses:setArchived': fails('Nope'),
+      });
+      await pumpScreen(tester, const SettingsScreen(), convex: convex);
+      await tapOn(tester, find.text('Restore this business'));
+      expect(find.text('Nope'), findsOneWidget);
+      expect(find.text('Restore this business'), findsOneWidget);
     });
   });
 }

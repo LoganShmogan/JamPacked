@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/services/auth_service.dart';
-import 'package:foodsafe/services/convex_client.dart';
-import 'package:foodsafe/theme.dart';
-import 'package:foodsafe/widgets/common.dart';
+import 'package:jampacked/services/auth_service.dart';
+import 'package:jampacked/services/convex_client.dart';
+import 'package:jampacked/theme.dart';
+import 'package:jampacked/widgets/common.dart';
 
 import '../helpers.dart';
 
@@ -75,9 +75,9 @@ void main() {
       expect(await ctx.m('x:m'), 'm');
       expect(await ctx.a('x:a'), 'a');
       expect(convex.calls.map((c) => c.args), [
-        {'id': 1, 'sessionToken': 'tok'},
-        {'sessionToken': 'tok'},
-        {'sessionToken': 'tok'},
+        {'id': 1, 'businessId': 'b1', 'sessionToken': 'tok'},
+        {'businessId': 'b1', 'sessionToken': 'tok'},
+        {'businessId': 'b1', 'sessionToken': 'tok'},
       ]);
     });
 
@@ -154,7 +154,11 @@ void main() {
       await pumpScreen(tester, qb(args: {'n': 1}), convex: convex);
       expect(find.text('data: hello 1'), findsOneWidget);
       expect(find.byType(RefreshIndicator), findsOneWidget);
-      expect(convex.calls.single.args, {'n': 1, 'sessionToken': 'tok'});
+      expect(convex.calls.single.args, {
+        'n': 1,
+        'businessId': 'b1',
+        'sessionToken': 'tok',
+      });
     });
 
     testWidgets('spinner is visible before the first response', (tester) async {
@@ -287,7 +291,7 @@ void main() {
       expect(colorOf('ok'), AppColors.ok);
       expect(colorOf('warn'), AppColors.warn);
       expect(colorOf('bad'), AppColors.bad);
-      expect(colorOf('brand'), AppColors.orangeDark);
+      expect(colorOf('brand'), AppColors.jamDark);
       expect(colorOf('neutral'), AppColors.muted);
       expect(find.byIcon(Icons.check), findsOneWidget);
     });

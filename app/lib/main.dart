@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'config.dart';
+import 'screens/business_picker_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
@@ -17,26 +18,28 @@ void main() {
         Provider.value(value: convex),
         ChangeNotifierProvider.value(value: auth),
       ],
-      child: const NzSafetyHealthApp(),
+      child: const JamPackedApp(),
     ),
   );
 }
 
-class NzSafetyHealthApp extends StatelessWidget {
-  const NzSafetyHealthApp({super.key});
+class JamPackedApp extends StatelessWidget {
+  const JamPackedApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthService>();
     return MaterialApp(
-      title: 'NZSafetyHealthApp',
+      title: 'JamPacked',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       home: auth.loading
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : auth.user == null
           ? const LoginScreen()
-          : HomeShell(key: ValueKey(auth.user!.id)),
+          : auth.business == null
+          ? const BusinessPickerScreen()
+          : HomeShell(key: ValueKey(auth.business!.id)),
     );
   }
 }

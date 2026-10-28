@@ -44,8 +44,8 @@ class SuppliersScreen extends StatelessWidget {
                 child: Card(
                   child: ListTile(
                     leading: const CircleAvatar(
-                      backgroundColor: AppColors.orangeLight,
-                      child: Icon(Icons.storefront, color: AppColors.orange),
+                      backgroundColor: AppColors.jamLight,
+                      child: Icon(Icons.storefront, color: AppColors.jam),
                     ),
                     title: Text(
                       s['name'],

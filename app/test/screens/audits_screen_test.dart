@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/audit_detail_screen.dart';
-import 'package:foodsafe/screens/audits_screen.dart';
-import 'package:foodsafe/widgets/common.dart';
+import 'package:jampacked/screens/audit_detail_screen.dart';
+import 'package:jampacked/screens/audits_screen.dart';
+import 'package:jampacked/screens/programme_screen.dart';
+import 'package:jampacked/widgets/common.dart';
 
 import '../fixtures.dart';
 import '../helpers.dart';
@@ -67,6 +68,12 @@ void main() {
       expect(find.byType(AuditDetailScreen), findsNothing);
     },
   );
+
+  testWidgets('the programme card opens the programme', (tester) async {
+    await pumpScreen(tester, const AuditsScreen(), convex: fakeWith());
+    await tapOn(tester, find.text('Your programme'));
+    expect(find.byType(ProgrammeScreen), findsOneWidget);
+  });
 
   testWidgets('history: empty state', (tester) async {
     await pumpScreen(tester, const AuditsScreen(), convex: fakeWith());

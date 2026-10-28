@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../theme.dart';
+
 /// Returns the first barcode scanned (or typed) via Navigator.pop.
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -77,7 +79,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               width: 260,
               height: 160,
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFF26B21), width: 3),
+                border: Border.all(color: AppColors.jam, width: 3),
                 borderRadius: BorderRadius.circular(16),
               ),
             ),

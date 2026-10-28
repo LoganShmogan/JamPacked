@@ -1,4 +1,4 @@
-import { Doc } from "../_generated/dataModel";
+import { Doc, Id } from "../_generated/dataModel";
 import { MutationCtx } from "../_generated/server";
 
 /** Append an entry to the immutable audit trail. Every write in the app goes through here. */
@@ -6,6 +6,7 @@ export async function logAudit(
   ctx: MutationCtx,
   user: Pick<Doc<"users">, "_id" | "name"> | null,
   entry: {
+    businessId?: Id<"businesses">; // absent only for account events (register, sign-in, sign-out)
     action: string;
     entityType: string;
     entityId?: string;

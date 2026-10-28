@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/services/auth_service.dart';
-import 'package:foodsafe/services/convex_client.dart';
-import 'package:foodsafe/theme.dart';
+import 'package:jampacked/services/auth_service.dart';
+import 'package:jampacked/services/convex_client.dart';
+import 'package:jampacked/theme.dart';
 import 'package:provider/provider.dart';
 
 typedef Handler = Object? Function(Map<String, dynamic> args);
@@ -78,15 +78,27 @@ Handler fails(String message) =>
 AppUser userWith(String role, {String id = 'u1', String name = 'Sam Cook'}) =>
     AppUser(id, name, 'sam@example.com', role);
 
-/// A signed-in [AuthService] backed by [convex] (no network, no prefs).
+Business businessWith(
+  String role, {
+  String id = 'b1',
+  String name = 'Kai Cafe',
+}) => Business(id, name, 'NP2', role);
+
+/// A signed-in [AuthService] backed by [convex] (no network, no prefs), working in
+/// business `b1` with [role].
 AuthService signedIn(
   ConvexClient convex, {
   String role = 'admin',
   AppUser? user,
-}) => AuthService(convex)
-  ..token = 'tok'
-  ..user = user ?? userWith(role)
-  ..loading = false;
+}) {
+  final b = businessWith(user?.role ?? role);
+  return AuthService(convex)
+    ..token = 'tok'
+    ..user = user ?? userWith(role)
+    ..businesses = [b]
+    ..business = b
+    ..loading = false;
+}
 
 /// [child] inside the app's providers, theme and a [MaterialApp].
 Widget wrapProviders(ConvexClient convex, AuthService auth, Widget child) =>
@@ -123,6 +135,20 @@ Future<void> tapOn(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
+/// Opens the region dropdown (labelled [label]) and picks [region].
+Future<void> pickRegion(
+  WidgetTester tester,
+  String region, {
+  String label = 'Region',
+}) async {
+  await tapOn(
+    tester,
+    find.widgetWithText(DropdownButtonFormField<String>, label),
+  );
+  await tester.tap(find.text(region).last);
   await tester.pumpAndSettle();
 }
 

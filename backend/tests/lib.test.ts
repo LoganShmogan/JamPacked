@@ -1,10 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { diff, logAudit } from "../convex/lib/audit";
+import { checkSectors } from "../convex/lib/business";
 import { hashPassword, randomHex, verifyPassword } from "../convex/lib/password";
-import { getUser, requireRole, requireUser } from "../convex/lib/session";
-import { DEFAULT_SETTINGS, isTempCompliant, loadSettings, unitCompliant } from "../convex/lib/settings";
+import { getUser, inBusiness, requireMember, requireUser } from "../convex/lib/session";
+import { DEFAULT_SETTINGS, isTempCompliant, unitCompliant } from "../convex/lib/settings";
 import { TEMPLATES } from "../convex/lib/templates";
-import { DAY, auditLog, setup, signIn } from "./helpers";
+import { DAY, addBusiness, auditLog, setup, signIn } from "./helpers";
 
 describe("lib/password", () => {
   test("randomHex returns 2 hex chars per byte and differs between calls", () => {
@@ -56,15 +57,6 @@ describe("lib/audit", () => {
 });
 
 describe("lib/settings", () => {
-  test("loadSettings returns defaults when no row exists, else the stored row", async () => {
-    const t = setup();
-    expect(await t.run((ctx) => loadSettings(ctx))).toEqual(DEFAULT_SETTINGS);
-    await t.run((ctx) => ctx.db.insert("settings", { ...DEFAULT_SETTINGS, businessName: "Cafe", chilledMaxC: 4 }));
-    const s = await t.run((ctx) => loadSettings(ctx));
-    expect(s).toEqual({ ...DEFAULT_SETTINGS, businessName: "Cafe", chilledMaxC: 4 });
-    expect(s).not.toHaveProperty("_id");
-  });
-
   test.each([
     ["ambient", 30, null],
     ["chilled", undefined, false],
@@ -126,13 +118,49 @@ describe("lib/session", () => {
     await expect(t.run((ctx) => requireUser(ctx, "nope"))).rejects.toThrow("Not signed in");
   });
 
-  test("requireRole allows listed roles and rejects others", async () => {
+  test("requireMember allows active members holding a listed role", async () => {
     const t = setup();
-    const { token } = await signIn(t, "staff");
-    expect((await t.run((ctx) => requireRole(ctx, token, ["staff"]))).role).toBe("staff");
-    await expect(t.run((ctx) => requireRole(ctx, token, ["admin", "manager"]))).rejects.toThrow(
+    const { token, businessId } = await signIn(t, "staff");
+    const r = await t.run((ctx) => requireMember(ctx, token, businessId, ["staff"]));
+    expect(r.role).toBe("staff");
+    expect(r.business._id).toBe(businessId);
+    expect((await t.run((ctx) => requireMember(ctx, token, businessId))).user.name).toBe("Staff 0");
+    await expect(t.run((ctx) => requireMember(ctx, token, businessId, ["admin", "manager"]))).rejects.toThrow(
       "This action requires one of: admin, manager",
     );
+  });
+
+  test("requireMember rejects other businesses, removed members and missing businesses", async () => {
+    const t = setup();
+    const { userId, token, businessId } = await signIn(t, "admin");
+    const other = await addBusiness(t, userId);
+    await expect(t.run((ctx) => requireMember(ctx, token, other))).rejects.toThrow("You don't have access to this business");
+    await t.run(async (ctx) => {
+      const m = (await ctx.db.query("memberships").first())!;
+      await ctx.db.patch(m._id, { active: false });
+    });
+    await expect(t.run((ctx) => requireMember(ctx, token, businessId))).rejects.toThrow("You don't have access");
+    await t.run((ctx) => ctx.db.delete(other));
+    await expect(t.run((ctx) => requireMember(ctx, token, other))).rejects.toThrow("You don't have access");
+  });
+
+  test("inBusiness only returns records belonging to the business", async () => {
+    const t = setup();
+    const { userId, businessId } = await signIn(t);
+    const other = await addBusiness(t, userId);
+    const doc = { businessId, name: "x" };
+    expect(inBusiness(doc, businessId, "Thing")).toBe(doc);
+    expect(() => inBusiness(doc, other, "Thing")).toThrow("Thing not found");
+    expect(() => inBusiness(null, businessId, "Thing")).toThrow("Thing not found");
+  });
+});
+
+describe("lib/business", () => {
+  test("checkSectors accepts the programme's own sectors only; custom programmes have none", () => {
+    expect(() => checkSectors("NP1", ["honey", "transport"])).not.toThrow();
+    expect(() => checkSectors("NP1", ["ece"])).toThrow("Not a NP1 sector: ece");
+    expect(() => checkSectors("custom", [])).not.toThrow();
+    expect(() => checkSectors("custom", ["honey"])).toThrow("Not a custom sector: honey");
   });
 });
 

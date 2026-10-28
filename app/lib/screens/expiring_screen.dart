@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'lot_detail_screen.dart';
 
 class ExpiringScreen extends StatelessWidget {
   const ExpiringScreen({super.key});
@@ -11,7 +12,7 @@ class ExpiringScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Expiring Stock')),
       body: QueryBuilder(
-        path: 'deliveries:expiring',
+        path: 'stock:expiring',
         builder: (context, data) {
           final list = data as List;
           if (list.isEmpty) {
@@ -34,9 +35,14 @@ class ExpiringScreen extends StatelessWidget {
               return Responsive(
                 child: Card(
                   child: ListTile(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => LotDetailScreen(id: it['_id']),
+                      ),
+                    ),
                     leading: Icon(
                       storageIcons[it['storageType']],
-                      color: AppColors.orange,
+                      color: AppColors.jam,
                     ),
                     title: Text(
                       it['productName'],
@@ -45,7 +51,7 @@ class ExpiringScreen extends StatelessWidget {
                     subtitle: Text(
                       '${isUseBy ? 'Use by' : 'Best before'} ${fmtDate(it['expiresAt'])}'
                       '${it['batchCode'] != null ? ' · Batch ${it['batchCode']}' : ''}\n'
-                      'Received ${fmtDate(it['receivedAt'])} · ${fmtNum(it['quantity'])} ${it['unit']}',
+                      'Received ${fmtDate(it['receivedAt'])} · ${fmtNum(it['qtyOnHand'])} ${it['unit']} on hand',
                     ),
                     isThreeLine: true,
                     trailing: past

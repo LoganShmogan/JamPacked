@@ -1,10 +1,11 @@
 // Read-only list screens: expiring stock, trace & recall, products.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/delivery_detail_screen.dart';
-import 'package:foodsafe/screens/expiring_screen.dart';
-import 'package:foodsafe/screens/products_screen.dart';
-import 'package:foodsafe/screens/trace_screen.dart';
+import 'package:jampacked/screens/delivery_detail_screen.dart';
+import 'package:jampacked/screens/expiring_screen.dart';
+import 'package:jampacked/screens/lot_detail_screen.dart';
+import 'package:jampacked/screens/products_screen.dart';
+import 'package:jampacked/screens/trace_screen.dart';
 
 import '../fixtures.dart';
 import '../helpers.dart';
@@ -30,15 +31,16 @@ void main() {
         if (useBy) 'useBy': expiresAt else 'bestBefore': expiresAt,
         'batchCode': batch,
         'storageType': 'chilled',
+        '_id': name,
         'receivedAt': t0,
-        'quantity': 2,
+        'qtyOnHand': 2,
         'unit': 'kg',
       };
       await pumpScreen(
         tester,
         const ExpiringScreen(),
         convex: fakeWith({
-          'deliveries:expiring': (_) => [
+          'stock:expiring': (_) => [
             it('Old milk', msAgo(const Duration(days: 1)), batch: 'L1'),
             it('Old crackers', msAgo(const Duration(days: 1)), useBy: false),
             it('Ham', msFromNow(const Duration(hours: 5))),
@@ -53,9 +55,11 @@ void main() {
       expect(find.textContaining('· Batch L1'), findsOneWidget);
       expect(find.textContaining('Best before'), findsOneWidget);
       expect(
-        find.textContaining('Received 6 May 2024 · 2 kg'),
+        find.textContaining('Received 6 May 2024 · 2 kg on hand'),
         findsNWidgets(4),
       );
+      await tapOn(tester, find.text('Ham'));
+      expect(find.byType(LotDetailScreen), findsOneWidget);
     });
   });
 
@@ -122,9 +126,152 @@ void main() {
       await tapOn(tester, find.text('Milk'));
       expect(find.byType(DeliveryDetailScreen), findsOneWidget);
     });
+
+    Map<String, dynamic> stocked(
+      String name,
+      String status, {
+      List dispatched = const [],
+    }) => {
+      ...hit(name),
+      'lot': {
+        '_id': 'lot-$name',
+        'status': status,
+        'qtyOnHand': 2,
+        'dispatched': dispatched,
+      },
+    };
+
+    Future<FakeConvex> search(
+      WidgetTester tester, {
+      String role = 'admin',
+      Handler? recall,
+    }) async {
+      final convex = await pumpScreen(
+        tester,
+        const TraceScreen(),
+        convex: fakeWith({
+          'deliveries:trace': (_) => [
+            stocked(
+              'Milk',
+              'available',
+              dispatched: [
+                {'customer': 'Cafe Two', 'qty': 1, 'at': t0},
+              ],
+            ),
+            stocked('Cream', 'hold'),
+            stocked('Butter', 'available'),
+            hit('Fish', accepted: false),
+          ],
+          'stock:recall':
+              recall ?? (_) => {'held': 2, 'correctiveActionId': 'c1'},
+        }),
+        role: role,
+      );
+      await tester.enterText(find.byType(TextField), 'LOT1');
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+      return convex;
+    }
+
+    testWidgets('shows stock left, who it went to, and held lots', (
+      tester,
+    ) async {
+      await search(tester, role: 'staff');
+      expect(find.textContaining('2 ea still in stock'), findsNWidgets(3));
+      expect(find.textContaining('Dispatched to Cafe Two (1)'), findsOneWidget);
+      expect(find.text('ON HOLD'), findsOneWidget);
+      expect(find.textContaining('Recall:'), findsNothing); // staff
+    });
+
+    testWidgets('managers recall: holds the lots still available', (
+      tester,
+    ) async {
+      final convex = await search(tester);
+      await tapOn(tester, find.text('Recall: hold 2 lot(s) still in stock'));
+      await tapOn(tester, find.text('Cancel'));
+      expect(convex.callsTo('stock:recall'), isEmpty);
+      await tapOn(tester, find.text('Recall: hold 2 lot(s) still in stock'));
+      await answerDialog(tester, 'Supplier recall', button: 'Hold stock');
+      expect(convex.callsTo('stock:recall').single.args, {
+        'lotIds': ['lot-Milk', 'lot-Butter'],
+        'reason': 'Supplier recall',
+        'businessId': 'b1',
+        'sessionToken': 'tok',
+      });
+      expect(
+        find.text('2 lot(s) on hold. Corrective action raised'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a failed recall shows the error', (tester) async {
+      await search(tester, recall: fails('None of that stock is available'));
+      await tapOn(tester, find.text('Recall: hold 2 lot(s) still in stock'));
+      await answerDialog(tester, 'x', button: 'Hold stock');
+      expect(find.text('None of that stock is available'), findsOneWidget);
+    });
   });
 
   group('ProductsScreen', () {
+    testWidgets('managers set par levels; staff cannot', (tester) async {
+      final list = [
+        {
+          '_id': 'p1',
+          'name': 'Milk',
+          'storageType': 'chilled',
+          'allergens': <String>[],
+          'parLevel': 10,
+          'reorderQty': 12,
+        },
+        {
+          '_id': 'p2',
+          'name': 'Salt',
+          'storageType': 'ambient',
+          'allergens': <String>[],
+          'parLevel': 2,
+        },
+      ];
+      final convex = await pumpScreen(
+        tester,
+        const ProductsScreen(),
+        convex: fakeWith({
+          'products:list': (_) => list,
+          'products:update': (_) => null,
+        }),
+      );
+      expect(find.text('Par 10 · order 12'), findsOneWidget);
+      expect(find.text('Par 2'), findsOneWidget);
+      await tapOn(tester, find.text('Milk'));
+      expect(find.text('Reorder Milk'), findsOneWidget);
+      await tapOn(tester, find.text('Cancel'));
+      expect(convex.callsTo('products:update'), isEmpty);
+
+      await tapOn(tester, find.text('Salt'));
+      final fields = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(fields.first, '5');
+      await tester.enterText(fields.last, '20');
+      await tapOn(tester, find.text('Save'));
+      expect(convex.callsTo('products:update').single.args, {
+        'id': 'p2',
+        'parLevel': 5.0,
+        'reorderQty': 20.0,
+        'businessId': 'b1',
+        'sessionToken': 'tok',
+      });
+
+      await pumpScreen(
+        tester,
+        const ProductsScreen(),
+        convex: fakeWith({'products:list': (_) => list}),
+        role: 'staff',
+      );
+      await tapOn(tester, find.text('Milk'));
+      expect(find.text('Reorder Milk'), findsNothing);
+    });
+
     testWidgets('empty state', (tester) async {
       await pumpScreen(tester, const ProductsScreen(), convex: fakeWith());
       expect(find.text('No products yet'), findsOneWidget);

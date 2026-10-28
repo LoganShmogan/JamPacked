@@ -11,13 +11,27 @@ extension AppContext on BuildContext {
   AuthService get auth => read<AuthService>();
   String get token => read<AuthService>().token ?? '';
 
-  /// Shorthands that add the session token to every call.
+  /// Id of the business being worked in, or null on the business picker.
+  String? get businessId => read<AuthService>().business?.id;
+
+  /// Shorthands that add the session token, and the current business, to every call.
+  Map<String, dynamic> _scoped(Map<String, dynamic> args) => {
+    'businessId': ?businessId,
+    ...args,
+    'sessionToken': token,
+  };
   Future<dynamic> q(String path, [Map<String, dynamic> args = const {}]) =>
-      convex.query(path, {...args, 'sessionToken': token});
+      convex.query(path, _scoped(args));
   Future<dynamic> m(String path, [Map<String, dynamic> args = const {}]) =>
-      convex.mutation(path, {...args, 'sessionToken': token});
+      convex.mutation(path, _scoped(args));
   Future<dynamic> a(String path, [Map<String, dynamic> args = const {}]) =>
-      convex.action(path, {...args, 'sessionToken': token});
+      convex.action(path, _scoped(args));
+
+  /// For functions that belong to the user rather than a business (e.g. their custom programmes).
+  Future<dynamic> userQ(String path, [Map<String, dynamic> args = const {}]) =>
+      convex.query(path, {...args, 'sessionToken': token});
+  Future<dynamic> userM(String path, [Map<String, dynamic> args = const {}]) =>
+      convex.mutation(path, {...args, 'sessionToken': token});
 
   void toast(String msg, {bool error = false}) {
     ScaffoldMessenger.of(this)
@@ -50,6 +64,14 @@ DateTime fromMs(dynamic ms) =>
     DateTime.fromMillisecondsSinceEpoch((ms as num).toInt());
 String fmtDateTime(dynamic ms) => ms == null ? '-' : _dt.format(fromMs(ms));
 String fmtDate(dynamic ms) => ms == null ? '-' : _d.format(fromMs(ms));
+
+/// Records are never deleted, and kept at least this long (convex/lib/retention.ts).
+const retentionYears = 7;
+String keptUntil(dynamic ms) {
+  final d = fromMs(ms);
+  return _d.format(DateTime(d.year + retentionYears, d.month, d.day));
+}
+
 int localDayStartMs() {
   final n = DateTime.now();
   return DateTime(n.year, n.month, n.day).millisecondsSinceEpoch;
@@ -69,11 +91,15 @@ class QueryBuilder extends StatefulWidget {
     this.args = const {},
     required this.builder,
     this.refreshable = true,
+    this.userScoped = false,
   });
   final String path;
   final Map<String, dynamic> args;
   final Widget Function(BuildContext context, dynamic data) builder;
   final bool refreshable;
+
+  /// Query belongs to the user, not the current business (no businessId is sent).
+  final bool userScoped;
 
   @override
   State<QueryBuilder> createState() => _QueryBuilderState();
@@ -110,7 +136,9 @@ class _QueryBuilderState extends State<QueryBuilder> {
 
   Future<void> _load() async {
     try {
-      final d = await context.q(widget.path, widget.args);
+      final d = widget.userScoped
+          ? await context.userQ(widget.path, widget.args)
+          : await context.q(widget.path, widget.args);
       if (mounted) setState(() => (_data = d, _error = null, _loading = false));
     } on ConvexException catch (e) {
       if (mounted) setState(() => (_error = e.message, _loading = false));
@@ -139,11 +167,7 @@ class _QueryBuilderState extends State<QueryBuilder> {
     }
     final child = widget.builder(context, _data);
     return widget.refreshable
-        ? RefreshIndicator(
-            color: AppColors.orange,
-            onRefresh: _load,
-            child: child,
-          )
+        ? RefreshIndicator(color: AppColors.jam, onRefresh: _load, child: child)
         : child;
   }
 }
@@ -162,7 +186,7 @@ class Pill extends StatelessWidget {
       Tone.ok => (AppColors.okLight, AppColors.ok),
       Tone.warn => (AppColors.warnLight, AppColors.warn),
       Tone.bad => (AppColors.badLight, AppColors.bad),
-      Tone.brand => (AppColors.orangeLight, AppColors.orangeDark),
+      Tone.brand => (AppColors.jamLight, AppColors.jamDark),
       Tone.neutral => (const Color(0xFFF1F1F1), AppColors.muted),
     };
     return Container(
@@ -239,8 +263,8 @@ class EmptyState extends StatelessWidget {
       const SizedBox(height: 40),
       CircleAvatar(
         radius: 36,
-        backgroundColor: AppColors.orangeLight,
-        child: Icon(icon, size: 36, color: AppColors.orange),
+        backgroundColor: AppColors.jamLight,
+        child: Icon(icon, size: 36, color: AppColors.jam),
       ),
       const SizedBox(height: 16),
       Text(
@@ -281,6 +305,24 @@ class InfoRow extends StatelessWidget {
           ),
         ),
       ],
+    ),
+  );
+}
+
+/// The JamPacked jar logo, with rounded corners like an app icon.
+class AppLogo extends StatelessWidget {
+  const AppLogo({super.key, this.size = 48});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(size * 0.22),
+    child: Image.asset(
+      'assets/logo.jpg',
+      width: size,
+      height: size,
+      semanticLabel: 'JamPacked',
     ),
   );
 }

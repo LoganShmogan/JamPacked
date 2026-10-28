@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/scanner_screen.dart';
+import 'package:jampacked/screens/scanner_screen.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../helpers.dart';

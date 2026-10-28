@@ -3,10 +3,13 @@ import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
 import '../theme.dart';
+import '../widgets/business_form.dart';
 import '../widgets/common.dart';
+import 'corrective_actions_screen.dart';
 import 'expiring_screen.dart';
 import 'goods_in_form_screen.dart';
 import 'home_shell.dart';
+import 'programme_screen.dart';
 import 'suppliers_screen.dart';
 import 'temperature_screen.dart';
 import 'trace_screen.dart';
@@ -30,7 +33,8 @@ class DashboardScreen extends StatelessWidget {
               SliverToBoxAdapter(
                 child: _Header(
                   name: user.name,
-                  business: d['businessName'],
+                  business:
+                      '${d['businessName']} · ${programmeLabel(d['programme'])}',
                   jurisdiction: d['jurisdiction'],
                 ),
               ),
@@ -85,7 +89,8 @@ class DashboardScreen extends StatelessWidget {
                                   ? Tone.warn
                                   : Tone.ok,
                               icon: Icons.report_problem,
-                              onTap: () => shell.go(3),
+                              onTap: () =>
+                                  push(const CorrectiveActionsScreen()),
                             ),
                             _Kpi(
                               label: 'Expiring soon',
@@ -103,6 +108,52 @@ class DashboardScreen extends StatelessWidget {
                             ),
                           ],
                         ),
+                        const SectionTitle('Stock'),
+                        _KpiGrid(
+                          children: [
+                            _Kpi(
+                              label: 'On hand',
+                              value: fmtNum(d['stockLines']),
+                              sub: 'lots in stock',
+                              tone: Tone.neutral,
+                              icon: Icons.inventory_2,
+                              onTap: () => shell.go(2),
+                            ),
+                            _Kpi(
+                              label: 'On hold',
+                              value: fmtNum(d['onHold']),
+                              sub: d['onHold'] > 0
+                                  ? 'Needs a decision'
+                                  : 'Nothing held',
+                              tone: d['onHold'] > 0 ? Tone.bad : Tone.ok,
+                              icon: Icons.block,
+                              onTap: () => shell.go(2),
+                            ),
+                            _Kpi(
+                              label: 'Low stock',
+                              value: fmtNum(d['lowStock']),
+                              sub: d['lowStock'] > 0
+                                  ? 'Below par: reorder'
+                                  : 'All above par',
+                              tone: d['lowStock'] > 0 ? Tone.warn : Tone.ok,
+                              icon: Icons.trending_down,
+                              onTap: () => shell.go(2),
+                            ),
+                          ],
+                        ),
+                        SectionTitle(
+                          'Due',
+                          trailing: TextButton(
+                            onPressed: () => push(const ProgrammeScreen()),
+                            child: const Text('Programme'),
+                          ),
+                        ),
+                        QueryBuilder(
+                          path: 'programmes:current',
+                          refreshable: false,
+                          builder: (context, m) =>
+                              DueList(programme: m, onlyDue: true),
+                        ),
                         const SectionTitle('Quick actions'),
                         _TileGrid(
                           tiles: [
@@ -119,9 +170,14 @@ class DashboardScreen extends StatelessWidget {
                                   push(const TemperatureScreen(autoOpen: true)),
                             ),
                             _Tile(
+                              'Stock',
+                              Icons.inventory_2,
+                              () => shell.go(2),
+                            ),
+                            _Tile(
                               'Start audit',
                               Icons.fact_check,
-                              () => shell.go(2),
+                              () => shell.go(3),
                             ),
                             _Tile(
                               'Trace / recall',
@@ -146,13 +202,13 @@ class DashboardScreen extends StatelessWidget {
                             child: ListTile(
                               leading: const Icon(
                                 Icons.pending_actions,
-                                color: AppColors.orange,
+                                color: AppColors.jam,
                               ),
                               title: Text(
                                 '${fmtNum(d['inProgressAudits'])} audit(s) in progress',
                               ),
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () => shell.go(2),
+                              onTap: () => shell.go(3),
                             ),
                           ),
                         ],
@@ -169,6 +225,13 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
+/// The dashboard greeting for the hour of the day (0-23).
+String greetingFor(int hour) => hour < 12
+    ? 'Good morning'
+    : hour < 17
+    ? 'Good afternoon'
+    : 'Good evening';
+
 class _Header extends StatelessWidget {
   const _Header({
     required this.name,
@@ -178,16 +241,11 @@ class _Header extends StatelessWidget {
   final String name, business, jurisdiction;
   @override
   Widget build(BuildContext context) {
-    final hour = DateTime.now().hour;
-    final greeting = hour < 12
-        ? 'Good morning'
-        : hour < 17
-        ? 'Good afternoon'
-        : 'Good evening';
+    final greeting = greetingFor(DateTime.now().hour);
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.orange, AppColors.orangeDark],
+          colors: [AppColors.jam, AppColors.jamDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -293,7 +351,7 @@ class _Kpi extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(icon, size: 18, color: AppColors.orange),
+                  Icon(icon, size: 18, color: AppColors.jam),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -359,7 +417,7 @@ class _TileGrid extends StatelessWidget {
               width: w,
               height: 104,
               child: Material(
-                color: t.primary ? AppColors.orange : Colors.white,
+                color: t.primary ? AppColors.jam : Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                   side: t.primary
@@ -377,7 +435,7 @@ class _TileGrid extends StatelessWidget {
                         Icon(
                           t.icon,
                           size: 32,
-                          color: t.primary ? Colors.white : AppColors.orange,
+                          color: t.primary ? Colors.white : AppColors.jam,
                         ),
                         const SizedBox(height: 8),
                         Text(

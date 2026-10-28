@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/audits_screen.dart';
-import 'package:foodsafe/screens/corrective_actions_screen.dart';
-import 'package:foodsafe/screens/expiring_screen.dart';
-import 'package:foodsafe/screens/goods_in_form_screen.dart';
-import 'package:foodsafe/screens/goods_in_screen.dart';
-import 'package:foodsafe/screens/home_shell.dart';
-import 'package:foodsafe/screens/more_screen.dart';
-import 'package:foodsafe/screens/suppliers_screen.dart';
-import 'package:foodsafe/screens/temperature_screen.dart';
-import 'package:foodsafe/screens/trace_screen.dart';
+import 'package:jampacked/screens/audits_screen.dart';
+import 'package:jampacked/screens/corrective_actions_screen.dart';
+import 'package:jampacked/screens/dashboard_screen.dart';
+import 'package:jampacked/screens/expiring_screen.dart';
+import 'package:jampacked/screens/goods_in_form_screen.dart';
+import 'package:jampacked/screens/goods_in_screen.dart';
+import 'package:jampacked/screens/home_shell.dart';
+import 'package:jampacked/screens/more_screen.dart';
+import 'package:jampacked/screens/programme_screen.dart';
+import 'package:jampacked/screens/stock_screen.dart';
+import 'package:jampacked/screens/suppliers_screen.dart';
+import 'package:jampacked/screens/temperature_screen.dart';
+import 'package:jampacked/screens/trace_screen.dart';
 
 import '../fixtures.dart';
 import '../helpers.dart';
@@ -19,6 +22,15 @@ int tab(WidgetTester tester) =>
     tester.widget<IndexedStack>(find.byType(IndexedStack)).index!;
 
 void main() {
+  test('the greeting follows the time of day', () {
+    expect(greetingFor(0), 'Good morning');
+    expect(greetingFor(11), 'Good morning');
+    expect(greetingFor(12), 'Good afternoon');
+    expect(greetingFor(16), 'Good afternoon');
+    expect(greetingFor(17), 'Good evening');
+    expect(greetingFor(23), 'Good evening');
+  });
+
   group('HomeShell', () {
     testWidgets('phone layout: bottom navigation switches tabs', (
       tester,
@@ -33,8 +45,8 @@ void main() {
       expect(find.byType(NavigationRail), findsNothing);
       for (final (label, i) in [
         ('Goods In', 1),
-        ('Audits', 2),
-        ('Actions', 3),
+        ('Stock', 2),
+        ('Checks', 3),
         ('More', 4),
         ('Home', 0),
       ]) {
@@ -60,17 +72,12 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(NavigationRail),
-          matching: find.text('Audits'),
+          matching: find.text('Checks'),
         ),
       );
       await tester.pumpAndSettle();
-      expect(tab(tester), 2);
-      for (final s in [
-        GoodsInScreen,
-        AuditsScreen,
-        CorrectiveActionsScreen,
-        MoreScreen,
-      ]) {
+      expect(tab(tester), 3);
+      for (final s in [GoodsInScreen, StockScreen, AuditsScreen, MoreScreen]) {
         expect(find.byType(s, skipOffstage: false), findsOneWidget);
       }
     });
@@ -96,7 +103,7 @@ void main() {
         find.textContaining(RegExp(r'^Good (morning|afternoon|evening), Sam$')),
         findsOneWidget,
       );
-      expect(find.text('Kai Cafe'), findsOneWidget);
+      expect(find.text('Kai Cafe · NP2'), findsOneWidget);
       expect(find.text('🇳🇿 MPI'), findsOneWidget);
       expect(
         convex.callsTo('dashboard:summary').first.args['dayStart'],
@@ -111,6 +118,8 @@ void main() {
         'All within limits',
         'No high severity',
         'Nothing expired',
+        'Nothing held',
+        'All above par',
       ]) {
         expect(find.text(t), findsOneWidget);
       }
@@ -130,6 +139,8 @@ void main() {
           expiring: 4,
           expired: 2,
           inProgress: 2,
+          onHold: 1,
+          lowStock: 3,
           jurisdiction: 'AU',
         ),
       );
@@ -139,6 +150,8 @@ void main() {
         '1 high severity',
         '2 past use-by!',
         '2 audit(s) in progress',
+        'Needs a decision',
+        'Below par: reorder',
       ]) {
         expect(find.text(t), findsOneWidget);
       }
@@ -157,19 +170,39 @@ void main() {
 
     testWidgets('KPI cards and in-progress card switch tabs', (tester) async {
       await pumpDash(tester, summary(inProgress: 1));
+      Future<void> home() async {
+        await tester.tap(
+          find.descendant(
+            of: find.byType(NavigationBar),
+            matching: find.text('Home'),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
       await tapOn(tester, find.text('Deliveries'));
       expect(tab(tester), 1);
-      await tester.tap(find.text('Home'));
-      await tester.pumpAndSettle();
-      await tapOn(tester, find.text('Open actions'));
-      expect(tab(tester), 3);
-      await tester.tap(find.text('Home'));
-      await tester.pumpAndSettle();
-      await tapOn(tester, find.text('1 audit(s) in progress'));
-      expect(tab(tester), 2);
-      await tester.tap(find.text('Home'));
-      await tester.pumpAndSettle();
-      await tapOn(tester, find.text('Start audit'));
+      for (final (label, i) in [
+        ('1 audit(s) in progress', 3),
+        ('Start audit', 3),
+        ('On hand', 2),
+        ('On hold', 2),
+        ('Low stock', 2),
+      ]) {
+        await home();
+        await tapOn(tester, find.text(label));
+        expect(tab(tester), i, reason: label);
+      }
+      await home();
+      await tapOn(
+        tester,
+        find
+            .descendant(
+              of: find.byType(Material).hitTestable(),
+              matching: find.text('Stock'),
+            )
+            .first,
+      );
       expect(tab(tester), 2);
     });
 
@@ -180,6 +213,7 @@ void main() {
       ('Trace / recall', TraceScreen),
       ('Suppliers', SuppliersScreen),
       ('Expiring stock', ExpiringScreen),
+      ('Open actions', CorrectiveActionsScreen),
     ]) {
       testWidgets('"$label" opens $screen', (tester) async {
         await pumpDash(tester, summary());
@@ -187,6 +221,19 @@ void main() {
         expect(find.byType(screen), findsOneWidget);
       });
     }
+
+    testWidgets('lists what is due; the Programme link opens the programme', (
+      tester,
+    ) async {
+      await pumpDash(tester, summary());
+      expect(find.text('Pest check'), findsOneWidget);
+      expect(
+        find.text('Check chilled food is at 5°C or lower'),
+        findsNothing,
+      ); // done
+      await tapOn(tester, find.widgetWithText(TextButton, 'Programme'));
+      expect(find.byType(ProgrammeScreen), findsOneWidget);
+    });
 
     testWidgets('"Temperature check" opens the recorder straight away', (
       tester,

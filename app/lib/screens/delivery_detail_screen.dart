@@ -96,10 +96,30 @@ class DeliveryDetailScreen extends StatelessWidget {
                                 '${fmtNum(d['vehicleTempC'])}°C',
                               ),
                             InfoRow('Notes', d['notes'] ?? '-'),
+                            InfoRow('Kept until', keptUntil(d['receivedAt'])),
                           ],
                         ),
                       ),
                     ),
+                    if (d['programmeAnswers'] != null) ...[
+                      const SectionTitle('Programme checks'),
+                      Card(
+                        child: Column(
+                          children: [
+                            for (final a in d['programmeAnswers'])
+                              ListTile(
+                                dense: true,
+                                title: Text(a['text']),
+                                trailing: switch (a['value']) {
+                                  true => const Pill('Yes', tone: Tone.ok),
+                                  false => const Pill('No', tone: Tone.bad),
+                                  _ => const Pill('N/A'),
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                     SectionTitle('Items (${items.length})'),
                     for (final i in items) ...[
                       _ItemCard(item: i),
@@ -189,7 +209,7 @@ class _ItemCard extends StatelessWidget {
               children: [
                 Icon(
                   storageIcons[item['storageType']],
-                  color: AppColors.orange,
+                  color: AppColors.jam,
                   size: 20,
                 ),
                 const SizedBox(width: 8),

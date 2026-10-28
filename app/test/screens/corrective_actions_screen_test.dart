@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodsafe/screens/corrective_actions_screen.dart';
+import 'package:jampacked/screens/corrective_actions_screen.dart';
 
 import '../fixtures.dart';
 import '../helpers.dart';
@@ -87,6 +87,7 @@ void main() {
     expect(convex.callsTo('correctiveActions:close').single.args, {
       'id': 'c1',
       'resolution': 'Binned it',
+      'businessId': 'b1',
       'sessionToken': 'tok',
     });
     expect(find.text('Closed'), findsWidgets);
@@ -116,6 +117,7 @@ void main() {
       'title': 'Pest sighting',
       'description': 'Called exterminator',
       'severity': 'high',
+      'businessId': 'b1',
       'sessionToken': 'tok',
     });
     expect(find.text('Corrective action raised'), findsOneWidget);

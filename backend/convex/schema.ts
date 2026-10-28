@@ -10,17 +10,85 @@ export const storageType = v.union(
   v.literal("ambient"),
 );
 
+export const locationKind = v.union(
+  v.literal("chiller"),
+  v.literal("freezer"),
+  v.literal("dry"),
+  v.literal("display"),
+  v.literal("other"),
+);
+
+export const movementType = v.union(
+  v.literal("receive"),
+  v.literal("use"),
+  v.literal("sell"),
+  v.literal("dispatch"),
+  v.literal("waste"),
+  v.literal("adjust"),
+  v.literal("stocktake"),
+  v.literal("transfer"),
+  v.literal("hold"),
+  v.literal("release"),
+  v.literal("void"),
+);
+
+export const frequency = v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"), v.literal("yearly"));
+
+/** A custom programme's parts, shaped like the built-in modules in convex/lib/programmes.ts. */
+export const customField = v.object({
+  key: v.string(),
+  label: v.string(),
+  type: v.union(v.literal("yesno"), v.literal("number"), v.literal("text"), v.literal("date")),
+  required: v.optional(v.boolean()),
+  unit: v.optional(v.string()),
+  failIf: v.optional(
+    v.object({ equals: v.optional(v.boolean()), above: v.optional(v.number()), below: v.optional(v.number()), message: v.string() }),
+  ),
+});
+export const customRecordType = v.object({
+  key: v.string(),
+  name: v.string(),
+  description: v.string(),
+  fields: v.array(customField),
+  frequency: v.optional(frequency),
+});
+export const customPrompt = v.object({ key: v.string(), text: v.string(), guidance: v.optional(v.string()) });
+export const customChecklist = v.object({
+  key: v.string(),
+  name: v.string(),
+  description: v.string(),
+  defaultPeriodDays: v.number(),
+  frequency: v.optional(frequency),
+  questions: v.array(
+    v.object({
+      id: v.string(),
+      section: v.string(),
+      text: v.string(),
+      type: v.union(v.literal("yesno"), v.literal("number"), v.literal("text")),
+      guidance: v.optional(v.string()),
+      autoFill: v.optional(v.string()), // kept when copied from a built-in checklist
+    }),
+  ),
+});
+
 export const answerValue = v.union(v.string(), v.number(), v.boolean(), v.null());
+
+export const programmeKey = v.union(v.literal("NP1"), v.literal("NP2"), v.literal("NP3"), v.literal("custom"));
+
+// Every record belongs to one business. Optional only so existing single-business data still
+// validates until `migrations:toMultiBusiness` has stamped it; all writes set it.
+const businessId = v.optional(v.id("businesses"));
 
 export default defineSchema({
   // ---- Accounts (local dev auth; to be replaced by Clerk) ----
   users: defineTable({
     email: v.string(),
     name: v.string(),
-    role,
+    role: v.optional(role), // legacy single-business role; roles now live on memberships
     passwordHash: v.string(),
     passwordSalt: v.string(),
     active: v.boolean(),
+    platformAdmin: v.optional(v.boolean()), // JamPacked staff: can see the owner dashboard (platform.ts)
     createdAt: v.number(),
   }).index("by_email", ["email"]),
 
@@ -30,7 +98,62 @@ export default defineSchema({
     expiresAt: v.number(),
   }).index("by_token", ["token"]),
 
-  // ---- Business settings (single row) ----
+  // ---- Businesses: one account can own or work at several ----
+  businesses: defineTable({
+    name: v.string(),
+    jurisdiction: v.union(v.literal("NZ"), v.literal("AU")),
+    region: v.optional(v.string()), // NZ region or AU state (convex/lib/regions.ts); unset on older businesses
+    registrationNumber: v.optional(v.string()), // NZ FCP/NP registration or AU council licence
+    address: v.optional(v.string()),
+    chilledMaxC: v.number(),
+    frozenMaxC: v.number(),
+    hotMinC: v.number(),
+    expiryWarningDays: v.number(),
+    programme: programmeKey, // the standard this business follows (convex/lib/programmes.ts)
+    customProgrammeId: v.optional(v.id("customProgrammes")), // when programme is "custom"
+    sectors: v.array(v.string()), // programme sectors that apply, e.g. "ece", "transport"
+    ownerId: v.id("users"),
+    archived: v.boolean(), // businesses are archived, never deleted (records kept 7 years)
+    createdAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  // Programmes people build themselves; owned by a user so they can reuse them across businesses.
+  customProgrammes: defineTable({
+    ownerId: v.id("users"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    dailyChilledCheck: v.boolean(),
+    receivingPrompts: v.array(customPrompt),
+    recordTypes: v.array(customRecordType),
+    templates: v.array(customChecklist),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner", ["ownerId"]),
+
+  memberships: defineTable({
+    userId: v.id("users"),
+    businessId: v.id("businesses"),
+    role,
+    active: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_business", ["businessId"])
+    .index("by_user_business", ["userId", "businessId"]),
+
+  // Staff invited by email before they have an account; claimed when they register.
+  invites: defineTable({
+    businessId: v.id("businesses"),
+    email: v.string(),
+    role,
+    invitedByName: v.string(),
+    createdAt: v.number(),
+    acceptedAt: v.optional(v.number()),
+  })
+    .index("by_email", ["email"])
+    .index("by_business", ["businessId"]),
+
+  // Legacy single-row settings, read once by migrations:toMultiBusiness.
   settings: defineTable({
     businessName: v.string(),
     jurisdiction: v.union(v.literal("NZ"), v.literal("AU")),
@@ -43,6 +166,7 @@ export default defineSchema({
   }),
 
   suppliers: defineTable({
+    businessId,
     name: v.string(),
     contactName: v.optional(v.string()),
     phone: v.optional(v.string()),
@@ -53,9 +177,10 @@ export default defineSchema({
     approvalNotes: v.optional(v.string()),
     active: v.boolean(),
     createdAt: v.number(),
-  }).index("by_name", ["name"]),
+  }).index("by_business_name", ["businessId", "name"]),
 
   products: defineTable({
+    businessId,
     name: v.string(),
     brand: v.optional(v.string()),
     barcode: v.optional(v.string()),
@@ -65,14 +190,17 @@ export default defineSchema({
     novaGroup: v.optional(v.number()), // 1-4 (ultra-processed = 4), from Open Food Facts
     imageUrl: v.optional(v.string()),
     defaultSupplierId: v.optional(v.id("suppliers")),
+    parLevel: v.optional(v.number()), // reorder when on hand falls below this
+    reorderQty: v.optional(v.number()),
     active: v.boolean(),
     createdAt: v.number(),
   })
-    .index("by_barcode", ["barcode"])
-    .index("by_name", ["name"]),
+    .index("by_business_barcode", ["businessId", "barcode"])
+    .index("by_business_name", ["businessId", "name"]),
 
   // ---- Goods inwards (receiving) ----
   deliveries: defineTable({
+    businessId,
     receivedAt: v.number(),
     supplierId: v.id("suppliers"),
     supplierName: v.string(),
@@ -82,15 +210,20 @@ export default defineSchema({
     vehicleTempC: v.optional(v.number()),
     status: v.union(v.literal("accepted"), v.literal("partial"), v.literal("rejected")),
     notes: v.optional(v.string()),
+    // The programme's extra receiving checks (true / false / null = not applicable)
+    programmeAnswers: v.optional(
+      v.array(v.object({ key: v.string(), text: v.string(), value: v.union(v.boolean(), v.null()) })),
+    ),
     receivedById: v.id("users"),
     receivedByName: v.string(),
     voided: v.boolean(),
     voidReason: v.optional(v.string()),
   })
-    .index("by_receivedAt", ["receivedAt"])
+    .index("by_business_receivedAt", ["businessId", "receivedAt"])
     .index("by_supplier", ["supplierId", "receivedAt"]),
 
   deliveryItems: defineTable({
+    businessId,
     deliveryId: v.id("deliveries"),
     receivedAt: v.number(),
     supplierId: v.id("suppliers"),
@@ -113,12 +246,105 @@ export default defineSchema({
     voided: v.boolean(),
   })
     .index("by_delivery", ["deliveryId"])
-    .index("by_receivedAt", ["receivedAt"])
-    .index("by_batch", ["batchCode"])
+    .index("by_business_receivedAt", ["businessId", "receivedAt"])
+    .index("by_business_batch", ["businessId", "batchCode"])
     .index("by_product", ["productId", "receivedAt"]),
+
+  // ---- Stock: lots on hand, where they are and everything that happened to them ----
+  locations: defineTable({
+    businessId: v.id("businesses"),
+    name: v.string(),
+    kind: locationKind,
+    active: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_business", ["businessId"]),
+
+  // One lot per accepted delivery line (or opening stock). FIFO by use-by / best-before.
+  stockLots: defineTable({
+    businessId: v.id("businesses"),
+    productId: v.optional(v.id("products")),
+    productName: v.string(),
+    barcode: v.optional(v.string()),
+    deliveryId: v.optional(v.id("deliveries")),
+    deliveryItemId: v.optional(v.id("deliveryItems")),
+    supplierName: v.optional(v.string()),
+    batchCode: v.optional(v.string()),
+    useBy: v.optional(v.number()),
+    bestBefore: v.optional(v.number()),
+    locationId: v.optional(v.id("locations")),
+    storageType,
+    unit: v.string(),
+    qtyReceived: v.number(),
+    qtyOnHand: v.number(),
+    status: v.union(v.literal("available"), v.literal("hold"), v.literal("depleted")),
+    holdReason: v.optional(v.string()),
+    receivedAt: v.number(),
+  })
+    .index("by_business_status", ["businessId", "status"])
+    .index("by_business_product", ["businessId", "productId"])
+    .index("by_business_batch", ["businessId", "batchCode"])
+    .index("by_deliveryItem", ["deliveryItemId"]),
+
+  // Append-only: qty is the signed change to the lot's on-hand quantity.
+  stockMovements: defineTable({
+    businessId: v.id("businesses"),
+    lotId: v.id("stockLots"),
+    productName: v.string(),
+    type: movementType,
+    qty: v.number(),
+    qtyAfter: v.number(),
+    reason: v.optional(v.string()),
+    customer: v.optional(v.string()), // dispatch: who the food went to (NP tracing "one step forward")
+    toLocationId: v.optional(v.id("locations")),
+    at: v.number(),
+    byId: v.id("users"),
+    byName: v.string(),
+  })
+    .index("by_lot", ["lotId", "at"])
+    .index("by_business_at", ["businessId", "at"]),
+
+  stocktakes: defineTable({
+    businessId: v.id("businesses"),
+    locationId: v.optional(v.id("locations")),
+    title: v.string(),
+    status: v.union(v.literal("in_progress"), v.literal("completed")),
+    startedAt: v.number(),
+    startedByName: v.string(),
+    completedAt: v.optional(v.number()),
+    completedByName: v.optional(v.string()),
+    lines: v.array(
+      v.object({
+        lotId: v.id("stockLots"),
+        productName: v.string(),
+        batchCode: v.optional(v.string()),
+        unit: v.string(),
+        expected: v.number(),
+        counted: v.union(v.number(), v.null()),
+      }),
+    ),
+  }).index("by_business_startedAt", ["businessId", "startedAt"]),
+
+  // ---- Programme records: pest checks, calibration, training, mock recalls, cooking... ----
+  // One generic table; what fields each record type has comes from the business's programme.
+  records: defineTable({
+    businessId: v.id("businesses"),
+    programme: v.string(),
+    recordType: v.string(),
+    recordName: v.string(),
+    values: v.record(v.string(), answerValue),
+    issues: v.array(v.string()), // limits this record failed; each raised a corrective action
+    at: v.number(),
+    byId: v.id("users"),
+    byName: v.string(),
+    voided: v.boolean(),
+    voidReason: v.optional(v.string()),
+  })
+    .index("by_business_at", ["businessId", "at"])
+    .index("by_business_type", ["businessId", "recordType", "at"]),
 
   // ---- Temperature monitoring ----
   temperatureLogs: defineTable({
+    businessId,
     checkedAt: v.number(),
     unitName: v.string(),
     unitType: v.union(
@@ -133,10 +359,11 @@ export default defineSchema({
     correctiveAction: v.optional(v.string()),
     checkedById: v.id("users"),
     checkedByName: v.string(),
-  }).index("by_checkedAt", ["checkedAt"]),
+  }).index("by_business_checkedAt", ["businessId", "checkedAt"]),
 
-    // ---- Audits / inspections (templates live in convex/lib/templates.ts) ----
+  // ---- Audits / inspections (templates live in convex/lib/templates.ts) ----
   audits: defineTable({
+    businessId,
     templateKey: v.string(),
     templateName: v.string(),
     standardRef: v.string(),
@@ -167,16 +394,19 @@ export default defineSchema({
         answeredAt: v.optional(v.number()),
       }),
     ),
-  }).index("by_startedAt", ["startedAt"]),
+  }).index("by_business_startedAt", ["businessId", "startedAt"]),
 
   // ---- Corrective actions / non-conformances ----
   correctiveActions: defineTable({
+    businessId,
     title: v.string(),
     description: v.optional(v.string()),
     source: v.union(
       v.literal("goods_inward"),
       v.literal("temperature"),
       v.literal("audit"),
+      v.literal("stock"),
+      v.literal("record"),
       v.literal("manual"),
     ),
     sourceId: v.optional(v.string()),
@@ -188,10 +418,13 @@ export default defineSchema({
     closedAt: v.optional(v.number()),
     closedByName: v.optional(v.string()),
     resolution: v.optional(v.string()),
-  }).index("by_status", ["status", "raisedAt"]),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_business_status", ["businessId", "status", "raisedAt"]),
 
   // ---- Immutable audit trail: who did what, when ----
   auditLog: defineTable({
+    businessId,
     at: v.number(),
     userId: v.optional(v.id("users")),
     userName: v.string(),
@@ -201,7 +434,7 @@ export default defineSchema({
     summary: v.string(),
     changes: v.optional(v.any()),
   })
-    .index("by_at", ["at"])
+    .index("by_business_at", ["businessId", "at"])
     .index("by_entity", ["entityType", "entityId", "at"])
-    .index("by_user", ["userId", "at"]),
+    .index("by_business_user", ["businessId", "userId", "at"]),
 });

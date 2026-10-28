@@ -2,7 +2,10 @@
 // and AU (FSANZ Food Standards Code Std 3.2.2, 3.2.2A). Questions with `autoFill` are answered from
 // goods inwards, temperature logs and corrective actions for the audit period.
 
-export type Question = {
+/** Limits an item to businesses in (or not in) certain programme sectors. */
+export type SectorScoped = { sectors?: string[]; excludeSectors?: string[] };
+
+export type Question = SectorScoped & {
   id: string;
   section: string;
   text: string;
@@ -11,6 +14,8 @@ export type Question = {
   guidance?: string;
 };
 
+export type Frequency = "daily" | "weekly" | "monthly" | "yearly";
+
 export type Template = {
   key: string;
   name: string;
@@ -18,6 +23,8 @@ export type Template = {
   standardRef: string;
   defaultPeriodDays: number;
   questions: Question[];
+  /** How often a programme expects it; drives the "Due" list. */
+  frequency?: Frequency;
 };
 
 export const TEMPLATES: Template[] = [
@@ -73,6 +80,9 @@ export const TEMPLATES: Template[] = [
       { id: "mr4", section: "Suppliers", text: "All goods came from approved suppliers", type: "yesno", autoFill: "gi.allApprovedSuppliers" },
       { id: "mr5", section: "Suppliers", text: "Supplier rejection rate (%)", type: "number", autoFill: "gi.rejectionRate" },
       { id: "mr6", section: "Traceability", text: "All accepted goods are traceable (batch + date mark)", type: "yesno", autoFill: "gi.traceable" },
+      { id: "mr11", section: "Stock", text: "A stocktake was completed this month", type: "yesno", autoFill: "stock.stocktakeDone" },
+      { id: "mr12", section: "Stock", text: "No stock on hand is past its use-by date", type: "yesno", autoFill: "stock.noExpired" },
+      { id: "mr13", section: "Stock", text: "Nothing is left on hold without a decision", type: "yesno", autoFill: "stock.noneOnHold", guidance: "Held stock must be released, returned or wasted, with a record of what you did." },
       { id: "mr7", section: "Problems", text: "All corrective actions are closed", type: "yesno", autoFill: "ca.allClosed" },
       { id: "mr8", section: "Problems", text: "Recurring problems identified and procedures updated", type: "text" },
       { id: "mr9", section: "People", text: "Food handlers have current food safety training", type: "yesno" },
