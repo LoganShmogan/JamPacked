@@ -4,6 +4,8 @@ import { defineConfig } from "vitest/config";
 
 // Dates on the dashboard are formatted in local time; pin it so the tests pass anywhere.
 process.env.TZ = "Pacific/Auckland";
+// next.config.ts sets trailingSlash; this is how Next tells <Link> about it, so links match the build.
+process.env.__NEXT_TRAILING_SLASH = "true";
 
 export default defineConfig({
   plugins: [react()],
