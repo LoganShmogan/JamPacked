@@ -35,9 +35,10 @@ export const viewport: Viewport = {
 };
 
 const nav = [
+  ["Features", "/features/"],
   ["Programmes", "/programmes/"],
   ["Store", "/store/"],
-  ["FAQ", "/#faq"],
+  ["FAQ", "/faq/"],
   ["Contact", "/contact/"],
 ];
 
@@ -57,7 +58,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Image src="/logo.jpg" alt="" width={36} height={36} className="rounded-lg" />
               JamPacked
             </Link>
-            <div className="hidden items-center gap-5 text-sm sm:flex">
+            <div className="hidden items-center gap-5 text-sm md:flex">
               {nav.map(([label, href]) => (
                 <Link key={href} href={href} className="text-muted hover:text-ink">{label}</Link>
               ))}
@@ -66,7 +67,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </Link>
             </div>
             {/* Phones: a plain disclosure menu, so it works before (and without) any JavaScript. */}
-            <details className="relative sm:hidden">
+            <details className="relative md:hidden">
               <summary aria-label="Menu" className="list-none rounded-lg border border-border px-3 py-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
                 Menu
               </summary>
