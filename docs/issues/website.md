@@ -27,7 +27,17 @@ Pages:
 ## To do
 - [x] Scaffold `web/` (Next.js, Convex client, Tailwind), add to the README and DOCUMENTATION.md
 - [x] Landing page with features, programmes and FAQ; contact by email
-- [ ] Pricing page (once prices are decided, see [billing-stripe.md](billing-stripe.md))
+- [x] Store page (`/store/`): one licence per business, monthly / yearly. Prices, trial length and Stripe
+  Payment Links are set in `web/src/lib/site.ts` (`pricing`); until then it says "price on request" and Buy
+  opens an email
+- [x] After-payment page (`/welcome/`): sends Android to Google Play, iPhone/iPad to the App Store, and
+  everything else to the web app (phones also go to the web app until the store URLs are set in `site.ts`).
+  Set each Payment Link's confirmation page to `https://jampacked.co.nz/welcome/` in Stripe
+- [ ] Decide prices and trial length, create the Payment Links, and fill in `pricing` in `site.ts`
+- [x] Programme pages (`/programmes/`, `/programmes/np1|np2|np3|custom/`), contact page, legal pages
+  (`/legal/terms|privacy|cookies/`, drafts), mobile menu
+- [x] SEO: per-page titles, descriptions and canonical URLs; JSON-LD (Organization, SoftwareApplication with
+  offers, FAQPage, BreadcrumbList); every public page in the sitemap; `/welcome/` and `/admin/` not indexed
 - [ ] Download section with App Store / Google Play badges (once the apps are listed)
 - [ ] JamPacked email addresses: the site uses `contact@savepoint.co.nz` until they exist (`web/src/lib/site.ts`)
 - [ ] Add Clerk (`@clerk/nextjs`) once [clerk-authentication.md](clerk-authentication.md) is done

@@ -7,6 +7,9 @@ There are no terms, privacy policy or other legal pages. Apple, Google and Strip
 privacy policy and terms before launch.
 
 ## To do
+**Drafts are on the website** (`web/src/app/legal/`, dated 28 October 2026): Terms, Privacy Policy, and
+Cookies & data. They still need a lawyer's review, the data storage location, and a sub-processors list.
+
 Documents (published on the website under `/legal/...`, linked from the app's sign-up screen and More menu):
 - [ ] **Terms of Service / subscription agreement:** licence per business, trials, billing, renewals,
   cancellation, refunds, what happens to data when a subscription ends (read-only, records kept 7 years,
