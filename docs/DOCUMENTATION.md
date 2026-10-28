@@ -102,7 +102,7 @@ Live: https://app.jampacked.co.nz
 ## 3. Repository layout
 
 ```
-NZSafetyHealthApp/
+JamPacked/
 ├── README.md                    Quick start
 ├── docs/DOCUMENTATION.md        This file
 ├── docs/TESTING.md              Unit tests: running, structure, helpers, coverage
