@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Faqs } from "@/components/Faqs";
 import { JsonLd } from "@/components/JsonLd";
-import { breadcrumbs, faqPage, pageMetadata, softwareApplication } from "@/lib/seo";
+import { licenceFaqs } from "@/lib/content";
+import { breadcrumbs, pageMetadata, softwareApplication } from "@/lib/seo";
 import { site } from "@/lib/site";
 import { PlanPicker } from "./PlanPicker";
 
@@ -25,18 +27,10 @@ const steps = [
   ["Set up your business", "Sign in, pick your programme and invite your team. Records start with your first delivery."],
 ];
 
-const faqs: [string, string][] = [
-  ["Do I need a licence for each site?", "You need one licence per business in the app. A business can have several storage locations; separate businesses (for example, two cafés with their own registrations) each need a licence."],
-  ["Can I cancel?", "Yes. Your licence runs to the end of the period you've paid for. After that the business becomes read-only: nothing is deleted and you can still view and export your records."],
-  ["Can I buy in the app?", "No. Licences are only sold on this website. The app is free to download; it unlocks your business once its licence is active."],
-  ["Do prices include GST?", "Yes, prices are in New Zealand dollars and include GST."],
-];
-
 export default function Store() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-12">
       <JsonLd data={softwareApplication()} />
-      <JsonLd data={faqPage(faqs)} />
       <JsonLd data={breadcrumbs([["Home", "/"], ["Store", "/store/"]])} />
       <h1 className="text-3xl font-bold sm:text-4xl">One licence per business</h1>
       <p className="mt-4 max-w-2xl text-lg text-muted">
@@ -67,14 +61,8 @@ export default function Store() {
       </ol>
 
       <h2 className="mt-14 text-2xl font-bold">Licence questions</h2>
-      <div className="mt-4 max-w-3xl divide-y divide-border">
-        {faqs.map(([q, a]) => (
-          <details key={q} className="py-4">
-            <summary className="cursor-pointer font-semibold marker:text-jam">{q}</summary>
-            <p className="mt-2 text-muted">{a}</p>
-          </details>
-        ))}
-      </div>
+      <div className="mt-4 max-w-3xl"><Faqs items={licenceFaqs} /></div>
+      <Link href="/faq/" className="mt-4 inline-block font-semibold text-jam hover:underline">All questions →</Link>
 
       <p className="mt-10 text-sm text-muted">
         Already have a licence? <a href={site.appUrl} className="font-semibold text-jam hover:underline">Sign in to the app</a>.

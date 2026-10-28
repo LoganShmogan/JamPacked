@@ -40,7 +40,9 @@ describe("store", () => {
     );
     expect(screen.getByText("Every programme: NP1, NP2, NP3 and custom")).toBeInTheDocument();
     const ld = [...container.querySelectorAll('script[type="application/ld+json"]')].map((s) => JSON.parse(s.innerHTML));
-    expect(ld.map((d) => d["@type"])).toEqual(["SoftwareApplication", "FAQPage", "BreadcrumbList"]);
+    expect(ld.map((d) => d["@type"])).toEqual(["SoftwareApplication", "BreadcrumbList"]); // FAQPage lives on /faq/
+    expect(screen.getByText("Can I cancel?")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "All questions →" })).toHaveAttribute("href", "/faq/");
     expect(ld[0].offers).toBeUndefined();
     expect(storeMetadata.alternates).toEqual({ canonical: "/store/" });
   });

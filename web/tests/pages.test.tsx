@@ -8,6 +8,8 @@ import AdminLayout, { metadata as adminMetadata } from "@/app/admin/layout";
 import Programmes from "@/app/programmes/page";
 import Programme, { generateMetadata, generateStaticParams } from "@/app/programmes/[slug]/page";
 import Contact from "@/app/contact/page";
+import Features from "@/app/features/page";
+import Faq from "@/app/faq/page";
 import Terms from "@/app/legal/terms/page";
 import Privacy from "@/app/legal/privacy/page";
 import Cookies from "@/app/legal/cookies/page";
@@ -25,39 +27,60 @@ const ldTypes = (container: HTMLElement) =>
   [...container.querySelectorAll('script[type="application/ld+json"]')].map((s) => JSON.parse(s.innerHTML)["@type"]);
 
 describe("landing page", () => {
-  afterEach(() => {
-    pricing.plans[0].price = null;
-  });
-
-  test("says what JamPacked does and sends people to the store and the programmes", () => {
+  test("an overview that links out to its own pages, not to parts of itself", () => {
     const { container } = render(<Home />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Food safety records that fill themselves in.");
-    expect(screen.getAllByRole("link", { name: "Get JamPacked" })[0]).toHaveAttribute("href", "/store/");
+    expect(screen.getByRole("link", { name: "Get JamPacked" })).toHaveAttribute("href", "/store/");
     expect(screen.getByRole("link", { name: "Find your programme" })).toHaveAttribute("href", "/programmes/");
+    expect(screen.getByRole("link", { name: "See all features →" })).toHaveAttribute("href", "/features/");
     expect(screen.getByRole("link", { name: "See pricing" })).toHaveAttribute("href", "/store/");
+    expect(screen.getByRole("link", { name: "Read the FAQ" })).toHaveAttribute("href", "/faq/");
+    expect(screen.getByRole("link", { name: "Contact us" })).toHaveAttribute("href", "/contact/");
     expect(screen.getAllByRole("listitem").map((li) => within(li).getByRole("heading").textContent)).toEqual([
       "Receive", "Store", "Trace", "Audit",
     ]);
     for (const [name, slug] of [["National Programme 1", "np1"], ["National Programme 2", "np2"], ["National Programme 3", "np3"], ["Custom programme", "custom"]]) {
       expect(screen.getByRole("link", { name: new RegExp(name) })).toHaveAttribute("href", `/programmes/${slug}/`);
     }
-    expect(screen.getByText(/not\s+endorsed by MPI or FSANZ/)).toBeInTheDocument();
-    expect(ldTypes(container)).toEqual(["SoftwareApplication", "FAQPage"]);
+    expect(screen.getByText(/not endorsed by MPI or FSANZ/)).toBeInTheDocument();
+    expect([...container.querySelectorAll("a")].filter((a) => a.getAttribute("href")!.includes("#"))).toEqual([]);
+    expect(ldTypes(container)).toEqual(["SoftwareApplication"]);
     expect(homeMetadata.title).toEqual({ absolute: "JamPacked: food safety records that fill themselves in" });
     expect(homeMetadata.alternates).toEqual({ canonical: "/" });
   });
+});
 
-  test("the FAQ answers who it's for, MPI's role and price", () => {
-    const { container } = render(<Home />);
-    expect(container.querySelectorAll("#faq details")).toHaveLength(6);
-    expect(screen.getByText(/No\. JamPacked helps you keep the records/)).toBeInTheDocument();
-    expect(screen.getByText(new RegExp(`Pricing is being finalised: email ${site.email}`))).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "/contact/");
+test("features page: how it works and every feature group", () => {
+  const { container } = render(<Features />);
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Features");
+  for (const g of ["How it works", "Deliveries and stock", "Food safety records", "Your team and your records"]) {
+    expect(screen.getByRole("heading", { level: 2, name: g })).toBeInTheDocument();
+  }
+  expect(screen.getByRole("heading", { name: "Holds, recalls and stocktakes" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Get JamPacked" })).toHaveAttribute("href", "/store/");
+  expect(ldTypes(container)).toEqual(["BreadcrumbList"]);
+});
+
+describe("FAQ page", () => {
+  afterEach(() => {
+    pricing.plans[0].price = null;
   });
 
-  test("once the monthly price is set, the FAQ quotes it", () => {
+  test("general and licence questions, all marked up for search", () => {
+    const { container } = render(<Faq />);
+    expect(container.querySelectorAll("details")).toHaveLength(10);
+    expect(screen.getByText(/No\. JamPacked helps you keep the records/)).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`Pricing is being finalised: email ${site.email}`))).toBeInTheDocument();
+    expect(screen.getByText("Can I buy in the app?")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "/contact/");
+    const ld = [...container.querySelectorAll('script[type="application/ld+json"]')].map((s) => JSON.parse(s.innerHTML));
+    expect(ld.map((d) => d["@type"])).toEqual(["FAQPage", "BreadcrumbList"]);
+    expect(ld[0].mainEntity).toHaveLength(10);
+  });
+
+  test("once the monthly price is set, the price answer quotes it", () => {
     pricing.plans[0].price = 49;
-    render(<Home />);
+    render(<Faq />);
     expect(screen.getByText(/^\$49 a month per business \(incl\. GST\)/)).toBeInTheDocument();
   });
 });
@@ -138,7 +161,7 @@ describe("layout", () => {
     expect(html).toContain("<p>child</p>");
     expect(html).toContain(`© ${new Date().getFullYear()} Save Point Limited, trading as JamPacked · NZBN 9429053325013`);
     expect(html).toContain(`href="mailto:${site.email}"`);
-    for (const href of ["/programmes/", "/store/", "/#faq", "/contact/", "/legal/terms/", "/legal/privacy/", "/legal/cookies/", site.appUrl]) {
+    for (const href of ["/features/", "/programmes/", "/store/", "/faq/", "/contact/", "/legal/terms/", "/legal/privacy/", "/legal/cookies/", site.appUrl]) {
       expect(html).toContain(`href="${href}"`);
     }
     expect(html).toContain('"@type":"Organization"');
@@ -164,8 +187,8 @@ test("robots.txt blocks /admin and /welcome and points at the sitemap", () => {
 test("the sitemap lists every public page", () => {
   const entries = sitemap();
   expect(entries.map((e) => e.url.replace(site.url, ""))).toEqual([
-    "/", "/store/", "/programmes/", "/programmes/np1/", "/programmes/np2/", "/programmes/np3/", "/programmes/custom/",
-    "/contact/", "/legal/terms/", "/legal/privacy/", "/legal/cookies/",
+    "/", "/store/", "/features/", "/programmes/", "/programmes/np1/", "/programmes/np2/", "/programmes/np3/",
+    "/programmes/custom/", "/faq/", "/contact/", "/legal/terms/", "/legal/privacy/", "/legal/cookies/",
   ]);
   expect(entries[0]).toEqual({ url: "https://jampacked.co.nz/", changeFrequency: "monthly", priority: 1 });
   expect(entries.at(-1)).toMatchObject({ changeFrequency: "yearly", priority: 0.3 });

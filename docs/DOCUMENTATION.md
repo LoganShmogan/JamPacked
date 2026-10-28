@@ -705,7 +705,7 @@ Internet → Cloudflare → cloudflared tunnel (loganserver) → Caddy (127.0.0.
    → http://app.jampacked.co.nz { reverse_proxy foodsafe:80 }   (Docker network "web")
      http://jampacked.co.nz, www { reverse_proxy foodsafe:80 }
    → foodsafe (nginx), by hostname:
-       jampacked.co.nz, www → the website (web/out, in ~/foodsafe/site)
+       jampacked.co.nz → the website (web/out, in ~/foodsafe/site); www → 301 to jampacked.co.nz
        anything else        → the Flutter web build; /api/* → foodsafe-convex:3210 (network "internal")
    → foodsafe-convex: self-hosted Convex backend, data in volume foodsafe_convex-data
 ```
