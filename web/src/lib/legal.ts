@@ -11,7 +11,7 @@ export const legalDocs = {
     title: "Privacy Policy",
     href: "/legal/privacy/",
     updated: "31 October 2026",
-    summary: "What personal information JamPacked holds (including customers and suppliers you enter), why, who it's shared with, how long it's kept and your rights.",
+    summary: "What personal information JamPacked holds (including customers and suppliers you enter, and how long tasks take), why, who it's shared with, how long it's kept and your rights.",
   },
   cookies: {
     title: "Cookies & data policy",

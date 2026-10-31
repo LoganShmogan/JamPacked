@@ -61,15 +61,25 @@ Coverage reports:
 
 All three `coverage/` folders are git-ignored.
 
+**App screenshots** (`app/screenshots/`) live outside `app/test/`, so they're not part of the normal run or
+coverage. `flutter test screenshots` re-renders them into `web/public/screenshots/` every time (they show
+dates relative to today, so they're a generator rather than a check).
+
 ### Website tests (`web/tests/`)
 
-- `pages.test.tsx`: the landing page, layout (footer company details, metadata), `/admin` being
-  hidden from search engines, robots.txt and the sitemap.
+- `pages.test.tsx`: the landing page (including the screenshot showcase), features, FAQ, programme
+  pages, legal pages, the layout (header menu, footer company details, metadata), `/admin` being hidden
+  from search engines, robots.txt and the sitemap.
+- `store.test.tsx`: the plans by programme, monthly / yearly, Buy links and the search-engine offers;
+  the after-payment welcome page.
+- `help.test.tsx`: the Help page, that `src/lib/guides.json` matches the app's
+  `app/assets/help/guides.json` (run `npm run sync-guides` if not), that every screenshot file exists,
+  the phone frame and `duration`.
 - `lib.test.tsx`: PostHog stays off without a key and stores nothing in the browser with one; the
   Convex URL defaults to production.
 - `admin.test.tsx`: the owner dashboard with `@/lib/convex` mocked: signing in, wrong passwords,
   customers being refused, restoring and expiring a session, blocked browser storage, every chart,
-  the business list, Refresh and Sign out.
+  task times, the business list, Refresh and Sign out.
 - `setup.ts` swaps `next/font/google` and `next/image` for plain stand-ins (they need a Next build),
   and `vitest.config.mts` pins the time zone to `Pacific/Auckland` so dates format the same on any
   machine.
@@ -102,6 +112,7 @@ Tests live in `backend/tests/`, outside `convex/`, so `npx convex deploy` never 
 | `catalogue.test.ts` | Business settings (diffs, programme and sector changes, admin-only), suppliers, products and the Open Food Facts `lookupBarcode` action with `fetch` stubbed. |
 | `deliveries.test.ts` | Goods inwards: validation, status, product auto-cataloguing, every auto-raised corrective action, voiding, notes, list, get, supplier suggestions, expiring stock and trace. |
 | `stock.test.ts` | Lots from goods inwards (put-away, void takes stock out, trace forward), on hand (FIFO, flags, location filter), every movement type and its validation, hold/release, opening stock, par levels, recall, locations and stocktakes (mid-count movements, variance CAs). |
+| `analytics.test.ts` | Task timings (stored per member, outliers dropped, no audit-log entry, membership required), the Insights numbers (every count, voided rows left out, the period, the business's and the person's own medians) and task times on the owner dashboard. |
 | `production.test.ts` | Recipes (validation, names from the catalogue), one barcode per product, remembered units, `plan` (scaling, first-expiring-first, skipping held / out-of-date / other-unit stock, no lot promised twice, shortfalls), making a batch (stock out and in, allergens carried through, new made products, batch codes), validation, trace both ways, and past customers. |
 | `programmes.test.ts` | Module consistency and sector filtering for NP1/NP2/NP3, `failures`, the `current` module, the **Due** list for each kind of schedule item, programme records (validation, limits → CAs, void), receiving checks on deliveries, programme checklists and record-based facts. |
 | `customProgrammes.test.ts` | Validation of custom parts, building the schedule, create blank / copy, assign, edit, reuse across businesses, ownership. |
@@ -210,6 +221,7 @@ app/test/
 | `suppliers_screen_test` | List, role permissions, create / edit form, history, pop results. |
 | `record_lists_test` | Expiring stock labels, trace & recall (stock left, dispatched to, made from it, batches made here, recall), products (supplies / made filter, recipes, par levels, new made product). |
 | `production_screen_test` | Batch list and detail, making a batch from a recipe (plan, shortfalls, save) or one-off (new product, picking stock, scanning, removing lines, use-by), validation and errors, the recipe editor and staff read-only. |
+| `help_insights_test` | The guides file (complete, unique ids), the Help screen (guides, steps, tips, search, copying the email, loading) and Insights (numbers, task times, period picker, `fmtDuration` / `fmtHours`). |
 | `widgets/product_picker_test` | Catalogue search by name / brand / barcode, "New:" for unlisted names, scanning a known and unknown barcode. |
 | `admin_screens_test` | Audit trail filters and change-detail dialog, members and invites, business settings, archive / restore. |
 | `scanner_screen_test` | Scan pops once, "Type it" entry, camera error message. |

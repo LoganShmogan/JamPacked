@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { JsonLd } from "@/components/JsonLd";
+import { Phone } from "@/components/Phone";
 import { priceSummary, steps } from "@/lib/content";
 import { programmes } from "@/lib/programmes";
+import { shots } from "@/lib/screenshots";
 import { pageMetadata, softwareApplication } from "@/lib/seo";
 import { pricing, site } from "@/lib/site";
 
@@ -55,6 +57,19 @@ export default function Home() {
           ))}
         </ol>
         <Link href="/features/" className="mt-6 inline-block font-semibold text-jam hover:underline">See all features →</Link>
+      </section>
+
+      <section className="border-t border-border bg-cream">
+        <div className="mx-auto max-w-5xl px-4 py-14">
+          <h2 className="text-2xl font-bold">See it in action</h2>
+          <p className="mt-3 max-w-2xl text-muted">The real app, on a phone at the back door.</p>
+          <div className="-mx-4 mt-8 flex snap-x gap-6 overflow-x-auto px-4 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+            {[shots.receive, shots.production, shots.trace, shots.insights].map((s) => (
+              <Phone key={s.src} shot={s} className="w-56 shrink-0 snap-center sm:w-auto" />
+            ))}
+          </div>
+          <Link href="/help/" className="mt-6 inline-block font-semibold text-jam hover:underline">How to use it, step by step →</Link>
+        </div>
       </section>
 
       <section className="border-t border-border bg-surface">

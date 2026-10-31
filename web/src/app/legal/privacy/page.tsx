@@ -32,6 +32,7 @@ export default function Privacy() {
               <li><strong>Business details:</strong> business name, address, country and region, and registration number.</li>
               <li><strong>Records you enter:</strong> deliveries, stock, your product catalogue, recipes and production batches, temperatures, programme records and audits, including the name of the person who entered or changed each one.</li>
               <li><strong>People your business deals with:</strong> supplier contact details and the names of customers stock is dispatched to, as your business enters them. JamPacked remembers them so they can be picked again instead of retyped.</li>
+              <li><strong>How long tasks take:</strong> when someone saves a delivery, batch, temperature check or programme record, the app notes how long the form was open, with who and which business. Your business sees these as typical times on its Insights screen (its own numbers only, no one compared with anyone else), and we look at them across all businesses, without names, to make JamPacked quicker to use.</li>
               <li><strong>Purchases:</strong> who bought a paid licence, which plan and when. The free NP1 plan involves no payment. Card details go straight to Stripe; we don&apos;t see them.</li>
               <li><strong>Messages:</strong> what you send us by email.</li>
               <li><strong>Website use:</strong> if analytics are on, which pages are visited, without cookies (see the <Link href="/legal/cookies/" className="underline">Cookies &amp; data policy</Link>).</li>

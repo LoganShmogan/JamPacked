@@ -41,6 +41,11 @@ describe("landing page", () => {
       "Receive", "Store", "Make", "Trace", "Audit",
     ]);
     expect(screen.getByRole("heading", { name: "Type it once. Scan it forever." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "See it in action" })).toBeInTheDocument();
+    expect(screen.getAllByRole("figure").map((f) => f.querySelector("img")!.getAttribute("src"))).toEqual([
+      "/screenshots/receive.png", "/screenshots/production.png", "/screenshots/trace.png", "/screenshots/insights.png",
+    ]);
+    expect(screen.getByRole("link", { name: "How to use it, step by step →" })).toHaveAttribute("href", "/help/");
     expect(screen.getByText(/NP1 is free for one person with no staff\. NP2 is \$50 a month or \$500 a year/)).toBeInTheDocument();
     expect(screen.getByText(/30-day money-back guarantee/)).toBeInTheDocument();
     for (const [name, slug] of [["National Programme 1", "np1"], ["National Programme 2", "np2"], ["National Programme 3", "np3"], ["Custom programme", "custom"]]) {
@@ -61,6 +66,10 @@ test("features page: how it works and every feature group", () => {
     expect(screen.getByRole("heading", { level: 2, name: g })).toBeInTheDocument();
   }
   expect(screen.getByRole("heading", { name: "Holds, recalls and stocktakes" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Insights" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "A look inside" })).toBeInTheDocument();
+  expect(screen.getAllByRole("figure")).toHaveLength(7);
+  expect(screen.getByRole("link", { name: "See the step-by-step guides" })).toHaveAttribute("href", "/help/");
   expect(screen.getByRole("link", { name: "Get JamPacked" })).toHaveAttribute("href", "/store/");
   expect(ldTypes(container)).toEqual(["BreadcrumbList"]);
 });
@@ -68,7 +77,7 @@ test("features page: how it works and every feature group", () => {
 describe("FAQ page", () => {
   test("general and licence questions, all marked up for search", () => {
     const { container } = render(<Faq />);
-    expect(container.querySelectorAll("details")).toHaveLength(13);
+    expect(container.querySelectorAll("details")).toHaveLength(14);
     expect(screen.getByText(/No\. JamPacked helps you keep the records/)).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -79,11 +88,12 @@ describe("FAQ page", () => {
     expect(screen.getByText(/once an NP1 business adds staff, it's charged at the NP2 price/)).toBeInTheDocument();
     expect(screen.getByText(/email us within 30 days of paying/)).toBeInTheDocument();
     expect(screen.getByText("Do I have to type everything in?")).toBeInTheDocument();
+    expect(screen.getByText(/More › Help & support, for step-by-step guides/)).toBeInTheDocument();
     expect(screen.getByText("Can I buy in the app?")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "/contact/");
     const ld = [...container.querySelectorAll('script[type="application/ld+json"]')].map((s) => JSON.parse(s.innerHTML));
     expect(ld.map((d) => d["@type"])).toEqual(["FAQPage", "BreadcrumbList"]);
-    expect(ld[0].mainEntity).toHaveLength(13);
+    expect(ld[0].mainEntity).toHaveLength(14);
   });
 });
 
@@ -196,6 +206,7 @@ describe("legal pages", () => {
     expect(screen.getByRole("heading", { name: /Information about other people/ })).toBeInTheDocument();
     expect(screen.getByText(/the barcode number, and nothing else, is sent to Open Food Facts/)).toBeInTheDocument();
     expect(screen.getByText(/The free NP1 plan involves no payment/)).toBeInTheDocument();
+    expect(screen.getByText(/the app notes how long the form was open/)).toBeInTheDocument();
   });
 
   test("the cookie policy says the site sets no cookies, and what the app keeps", () => {
@@ -213,12 +224,13 @@ describe("layout", () => {
     expect(html).toContain("<p>child</p>");
     expect(html).toContain(`© ${new Date().getFullYear()} Save Point Limited, trading as JamPacked · NZBN 9429053325013`);
     expect(html).toContain(`href="mailto:${site.email}"`);
-    for (const href of ["/features/", "/programmes/", "/store/", "/faq/", "/contact/", "/legal/", "/legal/terms/", "/legal/privacy/", "/legal/cookies/", site.appUrl]) {
+    for (const href of ["/features/", "/programmes/", "/store/", "/help/", "/faq/", "/contact/", "/legal/", "/legal/terms/", "/legal/privacy/", "/legal/cookies/", site.appUrl]) {
       expect(html).toContain(`href="${href}"`);
     }
     // Legal is in the header (desktop and the phone menu), not only the footer.
     const header = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
     expect(header.match(/href="\/legal\/"/g)).toHaveLength(2);
+    expect(header.match(/href="\/help\/"/g)).toHaveLength(2);
     expect(html).toContain('"@type":"Organization"');
     expect(metadata.metadataBase?.toString()).toBe(`${site.url}/`);
     expect(metadata.description).toBe(site.description);
@@ -243,7 +255,7 @@ test("the sitemap lists every public page", () => {
   const entries = sitemap();
   expect(entries.map((e) => e.url.replace(site.url, ""))).toEqual([
     "/", "/store/", "/features/", "/programmes/", "/programmes/np1/", "/programmes/np2/", "/programmes/np3/",
-    "/programmes/custom/", "/faq/", "/contact/", "/legal/", "/legal/terms/", "/legal/privacy/", "/legal/cookies/",
+    "/programmes/custom/", "/help/", "/faq/", "/contact/", "/legal/", "/legal/terms/", "/legal/privacy/", "/legal/cookies/",
   ]);
   expect(entries[0]).toEqual({ url: "https://jampacked.co.nz/", changeFrequency: "monthly", priority: 1 });
   expect(entries.at(-1)).toMatchObject({ changeFrequency: "yearly", priority: 0.3 });

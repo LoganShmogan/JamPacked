@@ -28,7 +28,9 @@ Documents (published on the website under `/legal/...`, linked from the app's si
 - [ ] **Compliance disclaimer:** the app helps keep records but doesn't replace the business's registered
   programme, verifier or EHO; templates are a starting point; not endorsed by MPI / FSANZ
 - [ ] **Refund & cancellation policy** (can sit inside the terms)
-- [ ] **Sub-processors list** (Convex, Clerk, Stripe, Vercel, PostHog, Open Food Facts lookups)
+- [ ] **Sub-processors list** (Convex, Clerk, Stripe, Vercel, PostHog, Open Food Facts lookups, and Anthropic
+  and an email provider once the support chatbot is on: [support-chatbot.md](support-chatbot.md))
+- [x] Privacy Policy covers task timings (how long forms are open, shown on Insights) (31 Oct 2026)
 - [ ] In-app: tick box to accept the terms at sign-up, record which version and when (audit log)
 - [ ] In-app: a "Legal" entry in More (and on sign-up) opening `https://jampacked.co.nz/legal/` (needs `url_launcher`)
 - [ ] Lawyer to check the new clauses: NP1 → NP2 when staff are added (read-only until paid), plan change

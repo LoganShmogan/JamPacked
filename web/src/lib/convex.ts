@@ -21,6 +21,7 @@ export type Overview = {
     byCountry: { country: string; count: number; regions: { region: string; count: number }[] }[];
   };
   signupsByWeek: { users: Week[]; businesses: Week[] };
+  taskTimes: { task: string; count: number; medianMs: number | null; businesses: number }[];
   businessList: {
     _id: string;
     name: string;

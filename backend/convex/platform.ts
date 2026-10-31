@@ -3,10 +3,11 @@
 // their records; activity reads one audit log row per business. No business's records are returned.
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalAction, internalMutation, query } from "./_generated/server";
+import { QueryCtx, internalAction, internalMutation, query } from "./_generated/server";
 import { logAudit } from "./lib/audit";
 import { hashPassword } from "./lib/password";
 import { checkRegion } from "./lib/regions";
+import { TASKS, median } from "./analytics";
 import { requirePlatformAdmin } from "./lib/session";
 
 const DAY = 86_400_000;
@@ -40,6 +41,14 @@ function byCountry(businesses: { jurisdiction: string; region: string | null }[]
       regions: sorted([...regions].map(([region, count]) => ({ region, count }))),
     })),
   );
+}
+
+async function taskTimes(ctx: QueryCtx, now: number) {
+  const timings = await ctx.db.query("taskTimings").withIndex("by_at", (q) => q.gte("at", now - 30 * DAY)).collect();
+  return TASKS.map((task) => {
+    const durations = timings.filter((t) => t.task === task).map((t) => t.durationMs);
+    return { task, count: durations.length, medianMs: median(durations), businesses: new Set(timings.filter((t) => t.task === task).map((t) => t.businessId)).size };
+  });
 }
 
 export const overview = query({
@@ -93,6 +102,8 @@ export const overview = query({
         users: weekly(users.map((u) => u.createdAt), now),
         businesses: weekly(businesses.map((b) => b.createdAt), now),
       },
+      // How long tasks take across every business, last 30 days. Durations only: no records.
+      taskTimes: await taskTimes(ctx, now),
       // Newest first: the support view (status and activity, not records).
       businessList: perBusiness.sort((a, b) => b.createdAt - a.createdAt),
     };

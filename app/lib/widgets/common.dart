@@ -33,6 +33,13 @@ extension AppContext on BuildContext {
   Future<dynamic> userM(String path, [Map<String, dynamic> args = const {}]) =>
       convex.mutation(path, {...args, 'sessionToken': token});
 
+  /// Reports how long a task took, from [started] to now (convex/analytics.ts), for the Insights
+  /// screen and the owner dashboard. Fire and forget: it never gets in the way of the task itself.
+  void recordTask(String task, DateTime started) => m('analytics:recordTask', {
+    'task': task,
+    'durationMs': DateTime.now().difference(started).inMilliseconds,
+  }).ignore();
+
   void toast(String msg, {bool error = false}) {
     ScaffoldMessenger.of(this)
       ..hideCurrentSnackBar()

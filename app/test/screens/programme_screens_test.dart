@@ -431,6 +431,10 @@ void main() {
       expect(args['values'], containsPair('found', true));
       expect(args['values'], containsPair('count', 3.0));
       expect(args['values']['next'], isA<int>());
+      // Timed for Insights; there's no handler, so the call fails, and that never gets in the way.
+      final timing = convex.callsTo('analytics:recordTask').single.args;
+      expect(timing['task'], 'record');
+      expect(timing['durationMs'], isA<int>());
       expect(find.byType(RecordFormScreen), findsNothing);
       expect(find.text('Pest check saved'), findsOneWidget);
     });

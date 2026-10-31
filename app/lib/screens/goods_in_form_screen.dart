@@ -29,6 +29,7 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
   bool _vehicleClean = true;
   final List<Map<String, dynamic>> _items = [];
   bool _saving = false;
+  final _started = DateTime.now(); // timed for Insights
 
   @override
   void initState() {
@@ -164,7 +165,9 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
     );
     if (!mounted) return;
     setState(() => _saving = false);
-    if (id != null) Navigator.pop(context);
+    if (id == null) return;
+    context.recordTask('goodsIn', _started);
+    Navigator.pop(context);
   }
 
   @override
@@ -632,7 +635,11 @@ class _ItemEditorScreenState extends State<ItemEditorScreen> {
                       for (final e in storageLabels.entries)
                         ButtonSegment(
                           value: e.key,
-                          label: Text(e.value.split(' ').first),
+                          // Shrinks rather than breaking a word on narrow phones.
+                          label: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(e.value.split(' ').first),
+                          ),
                           icon: Icon(storageIcons[e.key]),
                         ),
                     ],

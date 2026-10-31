@@ -318,6 +318,10 @@ void main() {
         });
         expect(find.text('Batch P0001 made'), findsOneWidget);
         expect(find.byType(ProductionFormScreen), findsNothing);
+        expect(
+          convex.callsTo('analytics:recordTask').single.args['task'],
+          'production',
+        );
       },
     );
 
@@ -410,6 +414,10 @@ void main() {
         expect(args.containsKey('notes'), isFalse);
         expect(args['useBy'], isA<int>());
         expect(find.text('Batch P0001 has already been used'), findsOneWidget);
+        expect(
+          convex.callsTo('analytics:recordTask'),
+          isEmpty,
+        ); // not saved, not timed
         expect(find.byType(ProductionFormScreen), findsOneWidget);
       },
     );

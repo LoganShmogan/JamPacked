@@ -36,6 +36,11 @@ Pages:
 - [x] Decide prices (see [billing-stripe.md](billing-stripe.md)); shown on the store, FAQ, programme pages and home page
 - [ ] Create the Payment Links (NP2, NP3, Custom × monthly / yearly) and fill in `checkoutUrls` in `site.ts`
 - [x] Production and "enter it once" on the home, features and FAQ pages
+- [x] Help page (`/help/`, in the header menu): the app's how-to guides, synced from
+  `app/assets/help/guides.json` before each build (`npm run sync-guides`; a test fails if they drift)
+- [x] Screenshots of the app (`web/public/screenshots/`, made by `app/screenshots/` with demo data) on the
+  home page ("See it in action"), the features page ("A look inside") and the Help page
+- [ ] Support chat on `/help/` ([support-chatbot.md](support-chatbot.md))
 - [x] Legal index page (`/legal/`) in the header menu (desktop and phone), linked from each legal document;
   legal documents updated for plans, money-back, production and customer details
 - [x] Programme pages (`/programmes/`, `/programmes/np1|np2|np3|custom/`), contact page, legal pages

@@ -1,0 +1,220 @@
+{
+  "_comment": "How-to guides, written once: the app's Help screen and the website's /help/ page both read this file. Keep the button names in step with the screens. 'screenshot' names a file in web/public/screenshots/ (made by app/screenshots/).",
+  "supportEmail": "contact@savepoint.co.nz",
+  "guides": [
+    {
+      "id": "getting-started",
+      "title": "Getting started",
+      "icon": "start",
+      "summary": "Create your account and business, pick your programme and bring your team in.",
+      "where": "Sign-in screen",
+      "steps": [
+        "On the sign-in screen, choose to create an account and enter your name, email and a password.",
+        "Next, name your main business, pick where it is, and choose the programme it follows: NP1, NP2, NP3 or a custom programme. You're its admin.",
+        "Tick the business types that apply (for example ECE or bread) so you're only asked for the checks you need.",
+        "Invite your staff from More › Members. They sign up with the email you invited and tick \"I've been invited\"."
+      ],
+      "tip": "One account can work across several businesses. Each day you pick the one you're working in.",
+      "screenshot": "home"
+    },
+    {
+      "id": "receive-goods",
+      "title": "Receive a delivery",
+      "icon": "delivery",
+      "summary": "Check each item at the back door, accept or reject it, and put it away.",
+      "where": "Goods In tab, or Home › Receive goods",
+      "steps": [
+        "Choose the supplier (or add a new one), then enter the invoice or docket number and check the delivery vehicle.",
+        "Add each item: tap Scan to read its barcode, tap Add item, or tap one of the products this supplier usually brings.",
+        "For each item, record the probe temperature, batch code and use-by or best-before date, and check the packaging, label and allergens.",
+        "Accept or Reject it. A rejected item needs a reason. Accepted items can be put away to a location.",
+        "Answer your programme's receiving checks, then save. Accepted goods go into stock, and any problems become corrective actions."
+      ],
+      "tip": "JamPacked warns you when a temperature is out of range or a use-by date has passed, before you accept it.",
+      "screenshot": "receive"
+    },
+    {
+      "id": "enter-once",
+      "title": "Pick or scan instead of typing",
+      "icon": "scan",
+      "summary": "Anything you've entered once is there to pick or scan next time.",
+      "where": "Goods In, Production and recipes",
+      "steps": [
+        "When adding an item at goods inwards, tap the list icon next to Product to pick it from your catalogue, or tap Scan to read its barcode.",
+        "Wherever you choose a product (making a batch, adding a recipe ingredient), search by name, brand or barcode, or tap the scan icon at the top.",
+        "Its unit, storage and allergens fill in for you. A barcode always brings back the same product.",
+        "When you dispatch stock, tap a customer you've sent to before instead of typing their name."
+      ],
+      "tip": "New products are added to your catalogue automatically the first time they're delivered or made."
+    },
+    {
+      "id": "stock",
+      "title": "Use, sell, dispatch or waste stock",
+      "icon": "stock",
+      "summary": "Everything in stock, first-expiring first, and what you can do with it.",
+      "where": "Stock tab",
+      "steps": [
+        "On hand lists every lot, oldest use-by first. Filter by location at the top.",
+        "Tap a lot to Use, Sell, Dispatch (say who it went to), Waste (say why) or Move it.",
+        "Put suspect stock on Hold so nobody uses it. Managers can Release it or Adjust the quantity.",
+        "Low stock shows products below their reorder level. Set reorder levels in More › Products."
+      ],
+      "tip": "DISCARD means past its use-by and PAST BB means past best-before. Held or out-of-date stock can only be wasted.",
+      "screenshot": "stock"
+    },
+    {
+      "id": "make-a-batch",
+      "title": "Make a batch",
+      "icon": "production",
+      "summary": "Record what you made: ingredients come out of stock and the batch goes in.",
+      "where": "More › Production › Make a batch, or Home › Make a batch",
+      "steps": [
+        "Tap What are you making? and pick the product, or type a new name.",
+        "If it has a recipe, enter how much you made. The ingredients are filled in from stock, first expiring first, and anything you're short of is flagged. Tap Work out ingredients for this after changing the amount.",
+        "Without a recipe it's a one-off: tap Add from stock for each thing you used and enter how much.",
+        "Check the batch code and use-by date (both are filled in for you), choose where it's put away, and tap Save batch."
+      ],
+      "tip": "The batch carries every allergen in what went into it, and traces back to each supplier batch.",
+      "screenshot": "production"
+    },
+    {
+      "id": "recipes",
+      "title": "Add a recipe",
+      "icon": "recipe",
+      "summary": "Enter a recipe once, then make batches from it.",
+      "where": "More › Products (managers)",
+      "steps": [
+        "Tap a product and choose Add a recipe, or tap Product you make to start a new one.",
+        "Enter how much one batch makes and its unit, and the shelf life in days if it has one.",
+        "Tap Add and pick each ingredient: supplies you receive or other things you make. Enter how much one batch takes.",
+        "Tap Save recipe. Production › Recipes lists everything you make."
+      ]
+    },
+    {
+      "id": "temperatures",
+      "title": "Record a temperature check",
+      "icon": "temperature",
+      "summary": "Chillers, freezers, hot holding, cooking and cooling.",
+      "where": "More › Temperature checks, or Home › Temperature check",
+      "steps": [
+        "Tap Record.",
+        "Tap one of your units, or type a new one and choose its type.",
+        "Enter the temperature. If it's out of range, say what you did about it.",
+        "Tap Save reading. An out-of-range reading raises a corrective action."
+      ]
+    },
+    {
+      "id": "programme",
+      "title": "Your programme and the Due list",
+      "icon": "programme",
+      "summary": "What your programme asks for, and what's still due this period.",
+      "where": "Checks tab › Your programme, or the Due list on Home",
+      "steps": [
+        "The Due list shows the records your programme still needs, such as pest checks, thermometer checks or a mock recall.",
+        "Tap an item to fill in its record. Answers outside your programme's limits raise corrective actions.",
+        "Your programme also lists what's asked at goods inwards and its checklists.",
+        "Admins can Change programme, or Edit programme on a custom one."
+      ]
+    },
+    {
+      "id": "audits",
+      "title": "Run an audit",
+      "icon": "audit",
+      "summary": "Self-checks that fill themselves in from your records.",
+      "where": "Checks tab › Start new",
+      "steps": [
+        "Choose a checklist. Questions JamPacked can answer from your deliveries, temperatures and records are filled in, with the evidence.",
+        "Answer the rest, adding notes where you need to.",
+        "Tap Sign off when you're done. The audit is locked, and every \"No\" raises a corrective action.",
+        "Past audits and their scores are under History."
+      ]
+    },
+    {
+      "id": "corrective-actions",
+      "title": "Deal with a corrective action",
+      "icon": "warning",
+      "summary": "Problems and how they were fixed.",
+      "where": "More › Corrective actions, or Open actions on Home",
+      "steps": [
+        "Corrective actions are raised automatically, for example for rejected goods, out-of-range temperatures and failed checks.",
+        "Open one from the Open tab, then tap Close out and say what you did.",
+        "To record a problem yourself, tap Raise."
+      ]
+    },
+    {
+      "id": "trace",
+      "title": "Trace and recall",
+      "icon": "trace",
+      "summary": "Find where a batch came from, what was made from it and where it went.",
+      "where": "More › Trace & recall, or Home › Trace / recall",
+      "steps": [
+        "Search a batch code, product name or barcode.",
+        "See each delivery it arrived on, what you made from it, how much is left and who it was dispatched to. Batches you made show what went into them.",
+        "Managers can tap Recall to put everything still in stock on hold at once. A corrective action lists it all."
+      ],
+      "screenshot": "trace"
+    },
+    {
+      "id": "stocktake",
+      "title": "Do a stocktake",
+      "icon": "count",
+      "summary": "Count your stock and correct it.",
+      "where": "Stock tab › Stocktakes (managers start one)",
+      "steps": [
+        "Tap Start stocktake and choose everything or one location.",
+        "Count each line and enter what's actually there.",
+        "Complete it when every line is counted. Stock is corrected to your counts, and big differences raise a corrective action."
+      ]
+    },
+    {
+      "id": "suppliers",
+      "title": "Manage suppliers",
+      "icon": "supplier",
+      "summary": "Your approved supplier list.",
+      "where": "More › Suppliers",
+      "steps": [
+        "Add a supplier with their contact details and registration number.",
+        "Turn on Approved supplier once you've checked them. A delivery from an unapproved supplier raises a corrective action.",
+        "Open a supplier to see their recent deliveries."
+      ]
+    },
+    {
+      "id": "insights",
+      "title": "See how your business is doing",
+      "icon": "insights",
+      "summary": "Your business's numbers and how long everyday tasks take.",
+      "where": "More › Insights",
+      "steps": [
+        "Choose the last 7, 30 or 90 days.",
+        "See deliveries, rejected items, batches made, temperature checks in range, records, waste and corrective actions.",
+        "How long tasks take shows the business's typical time for receiving goods, making a batch, temperature checks and records, next to your own."
+      ],
+      "tip": "Times are only counted from when a form is opened to when it's saved, so they show how long the paperwork takes.",
+      "screenshot": "insights"
+    },
+    {
+      "id": "team",
+      "title": "Staff, roles and businesses",
+      "icon": "team",
+      "summary": "Who can do what, and working across several businesses.",
+      "where": "More › Members, Switch business, Add another business",
+      "steps": [
+        "Staff record deliveries, stock, temperatures and records. Managers also run stocktakes, recalls and recipes. Admins also change settings and export.",
+        "Admins invite people from More › Members and can change their role or remove them.",
+        "To work in another business, tap Switch business. To start one, tap Add another business."
+      ]
+    },
+    {
+      "id": "export",
+      "title": "Export your records",
+      "icon": "export",
+      "summary": "A full copy of everything, kept for 7 years.",
+      "where": "More › Export records (admins)",
+      "steps": [
+        "Tap Export all records (JSON).",
+        "JamPacked gathers every record your business has and saves it as one file: shared on a phone, downloaded on the web."
+      ],
+      "tip": "Records are never deleted: they're voided with a reason, so your history is always complete."
+    }
+  ]
+}
