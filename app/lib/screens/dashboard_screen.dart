@@ -8,6 +8,7 @@ import '../widgets/common.dart';
 import 'corrective_actions_screen.dart';
 import 'expiring_screen.dart';
 import 'goods_in_form_screen.dart';
+import 'help_screen.dart';
 import 'home_shell.dart';
 import 'production_screen.dart';
 import 'programme_screen.dart';
@@ -300,6 +301,12 @@ class _Header extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+            ),
+            IconButton(
+              tooltip: 'Help & support',
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const HelpScreen())),
+              icon: const Icon(Icons.help_outline, color: Colors.white),
             ),
           ],
         ),

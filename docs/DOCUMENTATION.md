@@ -138,6 +138,7 @@ JamPacked/
 │       ├── dashboard.ts         Home screen summary
 │       ├── exportData.ts        Admin export of every record a business has
 │       ├── platform.ts          Owner dashboard numbers (platform admins only)
+│       ├── analytics.ts         Task timings from the app, a business's Insights numbers
 │       ├── migrations.ts        One-off: single-business install → multi-business
 │       ├── lib/
 │       │   ├── session.ts       requireUser / requireMember / requirePlatformAdmin / inBusiness
@@ -156,6 +157,8 @@ JamPacked/
 │   ├── pubspec.yaml
 │   ├── test/                    Unit & widget tests (see docs/TESTING.md)
 │   ├── tool/check_coverage.dart Fails unless line coverage is 100%
+│   ├── screenshots/             Renders the website's screenshots from demo data (not in the normal test run)
+│   ├── assets/help/guides.json  The how-to guides: the app's Help screen and the website's /help/ page
 │   └── lib/
 │       ├── main.dart            Providers, MaterialApp, auth gate (sign in → business → app)
 │       ├── config.dart          CONVEX_URL (dart-define)
@@ -174,12 +177,16 @@ JamPacked/
 │   └── src/
 │       ├── app/page.tsx         Landing page: how it works, enter-it-once, programmes, pricing teaser
 │       ├── app/features|faq|programmes|contact/  The other public pages
+│       ├── app/help/            How-to guides with screenshots (from lib/guides.json, synced from the app)
 │       ├── app/legal/           Legal index (in the header menu) + terms, privacy, cookies
 │       ├── lib/legal.ts         Legal documents' titles, links and "Last updated" dates
 │       ├── app/store/           Pricing: a plan per programme, monthly / yearly (PlanPicker.tsx)
 │       ├── app/admin/page.tsx   Owner dashboard (platform admins only)
 │       ├── lib/site.ts          Company details, contact email, URLs, pricing (plans, money-back days)
 │       ├── lib/content.ts       Shared copy: steps, features, FAQs, price sentences
+│       ├── lib/guides.json      Copy of app/assets/help/guides.json (scripts/sync-guides.mjs, run before build)
+│       ├── lib/screenshots.ts   The app screenshots in public/screenshots/, with alt text and captions
+│       ├── components/Phone.tsx A screenshot in a phone frame
 │       ├── lib/convex.ts        Convex client + the backend functions the site calls
 │       └── components/Analytics.tsx  PostHog page views (off unless a key is set)
 └── deploy/
@@ -245,6 +252,9 @@ multi-business change still validates until `migrations:toMultiBusiness` has run
   `sourceId?`, `severity`, `status`, `raised*`, `closed*`, `resolution?`.
 - `auditLog`: `businessId?` (absent only for account events: register, sign-in, sign-out), `at`, `userId?`,
   `userName`, `action`, `entityType`, `entityId?`, `summary`, `changes?`.
+- `taskTimings`: `businessId`, `userId`, `task` (goodsIn/production/temperature/record), `durationMs`, `at`
+  (`by_business_at`, `by_at`). Usage data, not a food safety record: written without an audit-log entry, but
+  exported with everything else.
 
 ## 5. Backend (Convex) reference
 
@@ -341,6 +351,15 @@ vehicle (low) → one audit-log entry.
 | `customProgrammes:create(name, copyFrom?, businessId?)` | user (admin of `businessId` if given) | Blank or a copy of NP1/2/3 (sector tags dropped, checklist keys prefixed `custom_`); optionally put straight onto the business. |
 | `customProgrammes:update(id, ...)` | owner | Validated: unique keys, names, ≥1 field per record and question per checklist, no clash with built-in audit keys. |
 | `customProgrammes:useForBusiness(id)` | admin + owner | |
+
+### `analytics`
+| Function | Role | Description |
+|---|---|---|
+| `analytics:recordTask(task, durationMs)` | any | The app reports how long a task took, from opening the form to saving it. Under 1 second or over 4 hours is dropped (a double tap, or a form left open). |
+| `analytics:insights(days?)` | any | The Insights screen for the last `days` (7 to 365, default 30): deliveries, items received and rejected, batches made, temperature checks and how many were in range, programme records, waste and dispatch movements, corrective actions raised and closed with the median time to close, and per task the business's median time and the signed-in person's own. Business totals only: no person-by-person comparison. |
+
+`platform:overview` also returns `taskTimes`: per task, the median time, how many times it was done and by
+how many businesses, across every business for the last 30 days.
 
 ### Other modules
 - `temperature:record/list/units` (any); rules in `lib/settings.ts → unitCompliant`.
@@ -529,7 +548,8 @@ create an account and a business of their own); no rate limiting on login; no pa
 
 ## 10. Audit trail, record integrity & 7-year retention
 
-- `logAudit()` is called by **every** mutation after it writes, tagged with the business. Entries contain
+- `logAudit()` is called by **every** mutation that changes a record after it writes, tagged with the business
+  (the one exception is `analytics:recordTask`, which stores usage data, not a record). Entries contain
   user, time, action, entity, a readable summary and `changes` (field diffs or the create payload).
 - **Records are kept for at least 7 years** (`lib/retention.ts → RETENTION_YEARS`; MPI requires 4). In
   practice nothing is ever removed:
@@ -573,6 +593,7 @@ Note: a Convex admin (dashboard / admin key) can still edit data directly. Prote
 | `context.userQ / userM` | User-level calls (custom programmes): session token only |
 | `context.run(fn, success:)` | Runs a call; shows errors (and optional success) as snackbars; returns null on failure |
 | `context.toast(msg, error:)` | Snackbar |
+| `context.recordTask(task, started)` | Reports how long a task took (fire and forget; a failure never affects the task) |
 | `QueryBuilder(path, args, builder, userScoped:)` | Loads a query, shows spinner/error+retry, refetches on any mutation, pull-to-refresh |
 | `Pill(text, tone:, icon:)` | Status chip; tones `ok`, `warn`, `bad`, `neutral`, `brand` |
 | `SectionTitle`, `EmptyState`, `InfoRow`, `Responsive` | Layout helpers; `Responsive` caps width on tablets/web |
@@ -604,7 +625,7 @@ business is chosen, else `HomeShell` (keyed by business, so switching rebuilds e
 | `login_screen.dart` | Sign in / create account (account → business & programme, or "I've been invited") |
 | `business_picker_screen.dart` | Your businesses (programme, role, open actions, archived) + `AddBusinessScreen` |
 | `home_shell.dart` | Tab container |
-| `dashboard_screen.dart` | Home: header (business · programme), today's KPIs, stock KPIs, Due list, quick actions |
+| `dashboard_screen.dart` | Home: header (business · programme, ? for Help & support), today's KPIs, stock KPIs, Due list, quick actions |
 | `goods_in_screen.dart` | Delivery list |
 | `goods_in_form_screen.dart` | Receive goods form (incl. programme checks) + `ItemEditorScreen` (incl. put-away location) |
 | `stock_screen.dart` | Stock tab: On hand / Low stock / Stocktakes; `AddStockScreen`, `LotCard`, `LocationPicker` |
@@ -615,6 +636,8 @@ business is chosen, else `HomeShell` (keyed by business, so switching rebuilds e
 | `records_screen.dart` | `RecordsScreen` (history, void) and `RecordFormScreen` (generic form from fields) |
 | `custom_programme_editor.dart` | Custom programme builder + `RecordTypeEditor`, `ChecklistEditor` |
 | `export_screen.dart` | Export every record as JSON |
+| `insights_screen.dart` | Insights: the business's numbers for 7 / 30 / 90 days and how long tasks take (business and you) |
+| `help_screen.dart` | Help & support: searchable guides from `assets/help/guides.json`, and the support email (copy) |
 | `scanner_screen.dart` | Camera barcode scanner (with "Type it" fallback) |
 | `delivery_detail_screen.dart` | Delivery record, items, edit notes, void, history |
 | `audits_screen.dart` | Checks tab: programme card, Start-new (templates + programme checklists) / History; `startAudit()` |
@@ -626,7 +649,7 @@ business is chosen, else `HomeShell` (keyed by business, so switching rebuilds e
 | `production_screen.dart` | `ProductionScreen` (batches), `ProductionRunScreen` (one batch: inputs, stock, dispatches), `ProductionFormScreen` (make a batch), `LotPickerScreen` (usable stock), `RecipeScreen` |
 | `expiring_screen.dart` | Expiring / expired stock on hand |
 | `trace_screen.dart` | Trace & recall: receipts (and what was made from them) and batches made here, what's left, dispatched to; Recall button |
-| `more_screen.dart` | Profile, business (switch / programme / add), records, compliance, sign out |
+| `more_screen.dart` | Profile, business (switch / programme / add / Insights), records, compliance, Help & support, sign out |
 | `admin_screens.dart` | `AuditTrailScreen`, `MembersScreen` (invites), `SettingsScreen` (archive / restore) |
 
 ### Packages
@@ -648,7 +671,7 @@ http dev), iOS `NSCameraUsageDescription`, web title/theme colour.
   **Add business** creates another one you run. Archived businesses are under "Show archived".
 
 ### Home
-- Header: greeting, business name and programme, NZ/MPI or AU/FSANZ badge.
+- Header: greeting, business name and programme, NZ/MPI or AU/FSANZ badge, and **?** for Help & support.
 - **Today**: Deliveries, Temp checks, Open actions, Expiring soon. **Stock**: on hand, on hold, low stock.
 - **Due**: what your programme still needs this period (tap to do it). **Programme** opens the full list.
 - **Quick actions**: Receive goods, Temperature check, Make a batch, Stock, Start audit, Trace / recall,
@@ -705,11 +728,24 @@ action is raised listing it.
 ### Corrective actions, temperature checks, suppliers, products, expiring stock
 As before; corrective actions are now under **More** and the Home "Open actions" card.
 
+### Insights
+**More › Insights.** Pick the last 7, 30 or 90 days. Shows deliveries (and items), rejected items, batches
+made, temperature checks and the share in range, programme records, stock wasted, dispatches and corrective
+actions (with how long they typically take to close). **How long tasks take** lists the typical time to receive
+goods, make a batch, record a temperature and fill in a programme record, for the business and for you. It's
+timed from opening the form to saving it. Nobody is compared with anybody else.
+
+### Help & support
+The **?** on Home, or **More › Help & support**: step-by-step guides for every task, searchable ("How do I..."),
+and the support email address (tap to copy). The same guides are on the website at `/help/`. They live in
+one file, `app/assets/help/guides.json`; keep their button names in step with the screens.
+
 ### More
-- **Business**: switch business, your programme, add another business.
+- **Business**: switch business, your programme, Insights, add another business.
 - **Records**: corrective actions, temperature checks, suppliers, production, products, expiring stock, trace & recall.
 - **Compliance** (managers): audit trail, **Members** (admins invite and change roles);
   admins also get **Business settings** (archive / restore at the bottom) and **Export records**.
+- **Support**: Help & support.
 
 ## 13. Local development
 
@@ -739,6 +775,11 @@ flutter run -d <iphone>     --dart-define=CONVEX_URL=http://<your-LAN-ip>:3210
 - Website: `cd web && npm install && NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210 npm run dev`
   (http://localhost:3000; the owner dashboard is `/admin`). `npm run lint` and `npm run build` check it.
   Without `NEXT_PUBLIC_CONVEX_URL` it talks to production.
+- **Help guides:** edit `app/assets/help/guides.json` only. `npm run build` (and `npm run sync-guides`) copies
+  it to `web/src/lib/guides.json`; commit both. A website test fails if they differ.
+- **Screenshots** for the website: after changing a screen that's shown, run `cd app && flutter test screenshots`.
+  It renders the screens from demo data with the app's fonts and rewrites `web/public/screenshots/*.png`
+  (always: the demo data is dated relative to today, so there's nothing stable to compare against).
 - After adding a backend module, regenerate `convex/_generated/api.d.ts` with
   `npx convex codegen --typecheck disable` (uses the local deployment) so tests can reference it.
 

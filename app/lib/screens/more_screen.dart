@@ -11,6 +11,8 @@ import 'export_screen.dart';
 import 'programme_screen.dart';
 import 'business_picker_screen.dart';
 import 'expiring_screen.dart';
+import 'help_screen.dart';
+import 'insights_screen.dart';
 import 'production_screen.dart';
 import 'products_screen.dart';
 import 'suppliers_screen.dart';
@@ -105,6 +107,13 @@ class MoreScreen extends StatelessWidget {
                         'Programme',
                         'What your programme asks for',
                         const ProgrammeScreen(),
+                      ),
+                      const Divider(),
+                      tile(
+                        Icons.insights,
+                        'Insights',
+                        'What your business did and how long tasks take',
+                        const InsightsScreen(),
                       ),
                       const Divider(),
                       tile(
@@ -209,6 +218,15 @@ class MoreScreen extends StatelessWidget {
                     ),
                   ),
                 ],
+                const SectionTitle('Support'),
+                Card(
+                  child: tile(
+                    Icons.help_outline,
+                    'Help & support',
+                    'How to do things in JamPacked, and how to reach us',
+                    const HelpScreen(),
+                  ),
+                ),
                 const SizedBox(height: 24),
                 OutlinedButton.icon(
                   onPressed: () => context.auth.logout(),

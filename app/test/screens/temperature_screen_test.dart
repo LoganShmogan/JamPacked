@@ -79,6 +79,10 @@ void main() {
       'sessionToken': 'tok',
     });
     expect(find.text('Recorded: within limits'), findsOneWidget);
+    // Timed for Insights; there's no handler, so the call fails, and that never gets in the way.
+    final timing = convex.callsTo('analytics:recordTask').single.args;
+    expect(timing['task'], 'temperature');
+    expect(timing['durationMs'], isA<int>());
   });
 
   testWidgets('out-of-range reading with type picked from the dropdown', (

@@ -11,7 +11,7 @@ One account can run several businesses; you pick the one you're working in each 
 ```
 backend/   Convex functions + schema (TypeScript)
 app/       Flutter app
-web/       Website at jampacked.co.nz: landing, features, programmes, pricing, FAQ, legal, owner dashboard (/admin), Next.js
+web/       Website at jampacked.co.nz: landing, features, programmes, pricing, help, FAQ, legal, owner dashboard (/admin), Next.js
 ```
 
 ## Run it locally
@@ -72,6 +72,8 @@ Open issues and to-dos before launch (hosting, Clerk, store release, scaling) ar
 | **Temperature checks** | Chillers, freezers, hot holding, cooking (≥75°C), cooling. Out-of-range readings require a corrective action. |
 | **Trace & recall** | Search batch code / product / barcode → which deliveries, when, from whom, what was made from it, how much is left and who it was dispatched to; batches made here show what went into them. One tap puts all of it on hold and raises a recall corrective action. |
 | **Expiring stock** | Stock on hand approaching or past use-by / best-before. |
+| **Insights** | More › Insights: what the business did over 7, 30 or 90 days, and how long everyday tasks take (receiving goods, making a batch, temperature checks, records), for the business and for you. Timed in the app from opening a form to saving it; no staff league tables. |
+| **Help & support** | The ? on Home (or More › Help & support): searchable step-by-step guides, the same ones as the website's `/help/` page (one file, `app/assets/help/guides.json`), and the support email. A support chatbot that hands over to a person is planned ([`docs/issues/support-chatbot.md`](docs/issues/support-chatbot.md)). |
 | **Records kept 7 years** | Every write (and sign-in, sign-out, failed sign-in) is logged with who, when, what and a field-level diff. Nothing is deleted: records are **voided with a reason**, businesses archived, stock changes append-only; a test enforces it. Admins can export everything as JSON. |
 
 ### Compliance basis

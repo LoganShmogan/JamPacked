@@ -419,7 +419,11 @@ class _AddStockScreenState extends State<AddStockScreen> {
                     for (final e in storageLabels.entries)
                       ButtonSegment(
                         value: e.key,
-                        label: Text(e.value.split(' ').first),
+                        // Shrinks rather than breaking a word on narrow phones.
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(e.value.split(' ').first),
+                        ),
                       ),
                   ],
                   selected: {_storage},

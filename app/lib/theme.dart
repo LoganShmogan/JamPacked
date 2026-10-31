@@ -106,6 +106,13 @@ ThemeData buildTheme() {
       ),
     ),
     chipTheme: const ChipThemeData(side: BorderSide(color: AppColors.border)),
+    // Tab bars sit under the jam-coloured app bar, so their labels and indicator are white.
+    tabBarTheme: const TabBarThemeData(
+      labelColor: Colors.white,
+      unselectedLabelColor: Colors.white70,
+      indicatorColor: Colors.white,
+      dividerColor: Colors.transparent,
+    ),
     dividerTheme: const DividerThemeData(color: AppColors.border, space: 1),
   );
 }

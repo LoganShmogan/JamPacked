@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "sync-guides": "node scripts/sync-guides.mjs",
+    "prebuild": "node scripts/sync-guides.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

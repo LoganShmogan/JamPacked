@@ -18,13 +18,16 @@ folder while developing and add to it as new problems turn up.
 | [Website & in-app usage analytics](analytics-tracking.md) | Medium | In progress |
 | [Owner dashboard (business metrics)](owner-dashboard.md) | Medium | In progress |
 | [Customer compliance reports](customer-reports.md) | Medium | Open |
+| [Support chatbot, handing over to a person](support-chatbot.md) | Medium | Planned |
 | [Finish the multi-business migration](multi-business-cleanup.md) | Low | Open |
 
 ## Launch plan
 
 Decisions so far: subscription per business, priced by programme (NP1 free for one user; NP2 $50/mo or $500/yr;
 NP3 $100/$1000; Custom $120/$1200; 30-day money-back, no trial) sold on the website with Stripe;
-Next.js website on Vercel; Convex Cloud; Clerk for sign-in everywhere; PostHog for analytics.
+Next.js website on Vercel; Convex Cloud; Clerk for sign-in everywhere; PostHog for website and funnel analytics,
+with task timings and the in-app Insights kept in our own database; a Claude support chatbot that hands over
+to a person ([support-chatbot.md](support-chatbot.md)).
 
 ```
 www.<domain>   Next.js (Vercel): landing, pricing, legal, checkout, billing, reports, owner dashboard

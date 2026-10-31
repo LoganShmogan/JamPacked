@@ -28,6 +28,7 @@ class _TemperatureScreenState extends State<TemperatureScreen> {
   }
 
   Future<void> _record() async {
+    final started = DateTime.now(); // timed for Insights
     final units =
         (await context.run(() => context.q('temperature:units'))) as List? ??
         [];
@@ -136,6 +137,7 @@ class _TemperatureScreenState extends State<TemperatureScreen> {
       }),
     );
     if (r != null && mounted) {
+      context.recordTask('temperature', started);
       context.toast(
         r['compliant']
             ? 'Recorded: within limits'

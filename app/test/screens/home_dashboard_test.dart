@@ -6,6 +6,7 @@ import 'package:jampacked/screens/dashboard_screen.dart';
 import 'package:jampacked/screens/expiring_screen.dart';
 import 'package:jampacked/screens/goods_in_form_screen.dart';
 import 'package:jampacked/screens/goods_in_screen.dart';
+import 'package:jampacked/screens/help_screen.dart';
 import 'package:jampacked/screens/home_shell.dart';
 import 'package:jampacked/screens/more_screen.dart';
 import 'package:jampacked/screens/production_screen.dart';
@@ -223,6 +224,12 @@ void main() {
         expect(find.byType(screen), findsOneWidget);
       });
     }
+
+    testWidgets('the help button opens Help & support', (tester) async {
+      await pumpDash(tester, summary());
+      await tapOn(tester, find.byTooltip('Help & support'));
+      expect(find.byType(HelpScreen), findsOneWidget);
+    });
 
     testWidgets('lists what is due; the Programme link opens the programme', (
       tester,

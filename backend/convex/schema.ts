@@ -80,6 +80,9 @@ export const recipe = v.object({
 
 export const productKind = v.union(v.literal("supply"), v.literal("made"));
 
+/** Tasks the app times from opening the form to saving it (analytics.ts). */
+export const timedTask = v.union(v.literal("goodsIn"), v.literal("production"), v.literal("temperature"), v.literal("record"));
+
 export const answerValue = v.union(v.string(), v.number(), v.boolean(), v.null());
 
 export const programmeKey = v.union(v.literal("NP1"), v.literal("NP2"), v.literal("NP3"), v.literal("custom"));
@@ -469,6 +472,17 @@ export default defineSchema({
   })
     .index("by_business", ["businessId"])
     .index("by_business_status", ["businessId", "status", "raisedAt"]),
+
+  // ---- Usage: how long tasks take (analytics.ts). Usage data, not food safety records: no audit-log entry. ----
+  taskTimings: defineTable({
+    businessId: v.id("businesses"),
+    userId: v.id("users"),
+    task: timedTask,
+    durationMs: v.number(),
+    at: v.number(),
+  })
+    .index("by_business_at", ["businessId", "at"])
+    .index("by_at", ["at"]),
 
   // ---- Immutable audit trail: who did what, when ----
   auditLog: defineTable({

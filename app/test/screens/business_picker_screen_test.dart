@@ -29,7 +29,9 @@ void main() {
     final auth = picking(convex, list);
     await pumpScreen(
       tester,
-      const BusinessPickerScreen(),
+      // Not const, so the constructor runs and counts towards coverage.
+      // ignore: prefer_const_constructors
+      BusinessPickerScreen(),
       convex: convex,
       auth: auth,
     );

@@ -188,6 +188,7 @@ Map<String, Handler> baseHandlers() => {
   'production:get': (_) => null,
   'production:batchCode': (_) => 'P0001',
   'stock:customers': (_) => [],
+  'analytics:insights': (_) => insights(),
   'deliveries:suggestionsForSupplier': (_) => [],
   'audits:templates': (_) => templates,
   'audits:list': (_) => [],
@@ -317,3 +318,51 @@ List<Map<String, dynamic>> due({bool allDone = false}) => [
     'done': allDone,
   },
 ];
+
+Map<String, dynamic> insights({int days = 30, bool empty = false}) => {
+  'days': days,
+  'deliveries': empty ? 0 : 12,
+  'itemsReceived': empty ? 0 : 40,
+  'itemsRejected': empty ? 0 : 2,
+  'batchesMade': empty ? 0 : 6,
+  'temperatureChecks': empty ? 0 : 60,
+  'temperatureInRange': empty ? 0 : 57,
+  'records': empty ? 0 : 9,
+  'wasteMovements': empty ? 0 : 3,
+  'dispatches': empty ? 0 : 14,
+  'correctiveActions': {
+    'raised': empty ? 0 : 5,
+    'closed': empty ? 0 : 4,
+    'medianHoursToClose': empty ? null : 30,
+  },
+  'tasks': [
+    {
+      'task': 'goodsIn',
+      'count': empty ? 0 : 12,
+      'medianMs': empty ? null : 272000,
+      'myCount': empty ? 0 : 5,
+      'myMedianMs': empty ? null : 241000,
+    },
+    {
+      'task': 'production',
+      'count': empty ? 0 : 6,
+      'medianMs': empty ? null : 95000,
+      'myCount': 0,
+      'myMedianMs': null,
+    },
+    {
+      'task': 'temperature',
+      'count': empty ? 0 : 60,
+      'medianMs': empty ? null : 21000,
+      'myCount': empty ? 0 : 30,
+      'myMedianMs': empty ? null : 18000,
+    },
+    {
+      'task': 'record',
+      'count': 0,
+      'medianMs': null,
+      'myCount': 0,
+      'myMedianMs': null,
+    },
+  ],
+};

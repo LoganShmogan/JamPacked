@@ -4,6 +4,7 @@
 // only works for users with `platformAdmin` set; the check happens in Convex (platform:overview).
 import { useEffect, useState } from "react";
 import { convex, fns, type Overview } from "@/lib/convex";
+import { duration } from "@/lib/format";
 
 const TOKEN_KEY = "jampacked-admin-token";
 
@@ -130,6 +131,8 @@ export default function AdminPage() {
         <ByCountry countries={b.byCountry} />
       </div>
 
+      <TaskTimes rows={data.taskTimes} />
+
       <section className="mt-6 rounded-xl border border-border bg-surface">
         <h2 className="px-5 pt-4 font-semibold">Businesses</h2>
         <div className="overflow-x-auto">
@@ -163,9 +166,45 @@ export default function AdminPage() {
         </div>
       </section>
       <p className="mt-4 text-xs text-muted">
-        Counts only: no business&apos;s records are shown here. Usage funnels will live in PostHog once it&apos;s set up.
+        Counts and durations only: no business&apos;s records are shown here. Usage funnels will live in PostHog once it&apos;s set up.
       </p>
     </div>
+  );
+}
+
+const TASKS: Record<string, string> = {
+  goodsIn: "Receiving goods",
+  production: "Making a batch",
+  temperature: "Temperature check",
+  record: "Programme record",
+};
+
+/** How long tasks take in the app, across every business (the typical time, from opening the form to saving it). */
+function TaskTimes({ rows }: { rows: Overview["taskTimes"] }) {
+  return (
+    <section className="mt-6 rounded-xl border border-border bg-surface">
+      <h2 className="px-5 pt-4 font-semibold">How long tasks take, last 30 days</h2>
+      <table className="mt-2 w-full text-left text-sm">
+        <thead className="text-muted">
+          <tr className="border-b border-border">
+            <th className="px-5 py-2 font-medium">Task</th>
+            <th className="px-3 py-2 font-medium text-right">Typical time</th>
+            <th className="px-3 py-2 font-medium text-right">Times done</th>
+            <th className="px-5 py-2 font-medium text-right">Businesses</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.task} className="border-b border-border last:border-0">
+              <td className="px-5 py-2">{TASKS[r.task] ?? r.task}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{duration(r.medianMs)}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{r.count}</td>
+              <td className="px-5 py-2 text-right tabular-nums">{r.businesses}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   );
 }
 

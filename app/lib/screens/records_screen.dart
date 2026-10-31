@@ -156,6 +156,7 @@ class _RecordFormScreenState extends State<RecordFormScreen> {
   };
   final _picked = <String, Object?>{}; // yes/no and date answers
   bool _saving = false;
+  final _started = DateTime.now(); // timed for Insights
 
   Future<void> _save() async {
     final values = <String, dynamic>{};
@@ -182,7 +183,9 @@ class _RecordFormScreenState extends State<RecordFormScreen> {
     );
     if (!mounted) return;
     setState(() => _saving = false);
-    if (id != null) nav.pop();
+    if (id == null) return;
+    context.recordTask('record', _started);
+    nav.pop();
   }
 
   Widget _field(Map f) {

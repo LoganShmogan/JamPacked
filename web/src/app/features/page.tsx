@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { JsonLd } from "@/components/JsonLd";
+import { Phone } from "@/components/Phone";
 import { featureGroups, steps } from "@/lib/content";
+import { shots } from "@/lib/screenshots";
 import { breadcrumbs, pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata(
@@ -43,6 +45,16 @@ export default function Features() {
           </div>
         </section>
       ))}
+
+      <section className="mt-14">
+        <h2 className="text-2xl font-bold">A look inside</h2>
+        <div className="mt-6 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
+          {Object.values(shots).map((s) => <Phone key={s.src} shot={s} />)}
+        </div>
+        <p className="mt-6 text-muted">
+          Want to know how something works? <Link href="/help/" className="font-semibold text-jam hover:underline">See the step-by-step guides</Link>.
+        </p>
+      </section>
 
       <div className="mt-14 flex flex-col gap-4 rounded-xl bg-cream p-6 sm:flex-row sm:items-center sm:justify-between">
         <div>

@@ -26,6 +26,9 @@ There's no way for us to see how the business is doing: sign-ups, free NP1 busin
 - [x] `/admin` page (`web/src/app/admin/page.tsx`): KPI tiles, sign-ups per week, programme and country
   breakdown, business list
 - [ ] Subscriptions by status and plan, MRR, churn, NP1 → paid conversion and money-back refunds (needs [billing-stripe.md](billing-stripe.md))
+- [x] How long tasks take across all businesses, last 30 days (typical time, times done, businesses), from
+  `taskTimings` ([analytics-tracking.md](analytics-tracking.md))
+- [ ] Support tickets from the chatbot ([support-chatbot.md](support-chatbot.md))
 - [x] Per-business view for support (programme, members, signed up, last activity) without their records
 - [x] Platform admin accounts on the live server for Logan (logan@savepoint.co.nz) and Tim
   (timcoulson5@gmail.com), 27 Oct 2026

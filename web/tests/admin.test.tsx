@@ -33,6 +33,11 @@ function overview(over: Partial<Overview["businesses"]> = {}, list?: Overview["b
       ...over,
     },
     signupsByWeek: { users: weeks([0, 1, 0, 3]), businesses: weeks([2, 0, 0, 1]) },
+    taskTimes: [
+      { task: "goodsIn", count: 40, medianMs: 272_000, businesses: 3 },
+      { task: "temperature", count: 0, medianMs: null, businesses: 0 },
+      { task: "somethingNew", count: 1, medianMs: 5_000, businesses: 1 },
+    ],
     businessList: list ?? [
       { _id: "b1", name: "Kai Cafe", programme: "NP2", jurisdiction: "NZ", region: "Otago", archived: false, createdAt: NOW - 2 * DAY, members: 3, lastActivityAt: Date.now() },
       { _id: "b2", name: "Old Co", programme: "NP1", jurisdiction: "AU", region: null, archived: true, createdAt: NOW - 40 * DAY, members: 1, lastActivityAt: Date.now() - DAY },
@@ -159,6 +164,17 @@ describe("the dashboard", () => {
     expect(tile("Active, last 7 days")).toHaveTextContent("23 in the last 30 days");
     expect(tile("Users")).toHaveTextContent("54 active");
     expect(tile("Paying")).toHaveTextContent("–Shows once Stripe billing is live");
+  });
+
+  test("how long tasks take, across every business", async () => {
+    await shown();
+    const table = within(screen.getByRole("heading", { name: "How long tasks take, last 30 days" }).closest("section")!);
+    const rows = table.getAllByRole("row").slice(1).map((r) => [...r.querySelectorAll("td")].map((td) => td.textContent));
+    expect(rows).toEqual([
+      ["Receiving goods", "4 min 32 s", "40", "3"],
+      ["Temperature check", "–", "0", "0"],
+      ["somethingNew", "5 s", "1", "1"], // a task the dashboard doesn't know yet shows its key
+    ]);
   });
 
   test("no archived note when nothing is archived", async () => {

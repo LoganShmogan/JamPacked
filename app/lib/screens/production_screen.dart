@@ -218,6 +218,7 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
   String _storage = 'chilled';
   String? _locationId;
   bool _saving = false;
+  final _started = DateTime.now(); // timed for Insights
 
   @override
   void initState() {
@@ -348,7 +349,9 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
     );
     if (!mounted) return;
     setState(() => _saving = false);
-    if (id != null) Navigator.pop(context, id);
+    if (id == null) return;
+    context.recordTask('production', _started);
+    Navigator.pop(context, id);
   }
 
   String? _positive(String? v) =>
@@ -455,7 +458,11 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
                         for (final e in storageLabels.entries)
                           ButtonSegment(
                             value: e.key,
-                            label: Text(e.value.split(' ').first),
+                            // Shrinks rather than breaking a word on narrow phones.
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(e.value.split(' ').first),
+                            ),
                             icon: Icon(storageIcons[e.key]),
                           ),
                       ],
