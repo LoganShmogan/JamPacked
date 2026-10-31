@@ -39,11 +39,14 @@ Live: https://app.jampacked.co.nz
             add more businesses later; each day pick the one you're working in
        │
        ▼
- GOODS INWARDS  ──► products catalogue (auto-created / barcode lookup)
+ GOODS INWARDS  ──► products catalogue (auto-created / barcode lookup; entered once, picked or scanned after)
  (per item: temp, batch,        │
   dates, condition, allergens,  ├──► STOCK LOTS (put away to a location)
   accept / reject; plus the     │      use · sell · dispatch · waste · adjust · move · hold
   programme's receiving checks) │      FIFO / expiry alerts · par levels · stocktakes · recall
+                                │      │
+                                │      ▼
+                                ├──► PRODUCTION: recipe or one-off batch uses lots ─► new lot (batch P0001...)
        │                        ├──► CORRECTIVE ACTIONS (auto-raised on problems)
        │                        └──► TRACE & RECALL (one step back and one step forward)
        ▼
@@ -65,6 +68,9 @@ Live: https://app.jampacked.co.nz
 | **Delivery** | One drop-off from one supplier (header: supplier, invoice, vehicle check, programme checks). |
 | **Delivery item** | One product line on a delivery, checked individually and accepted or rejected. |
 | **Stock lot** | What an accepted delivery item becomes: quantity on hand, batch, dates, location, status (available / hold / depleted). |
+| **Supply / made product** | A product is a supply (bought in; `kind` unset or `supply`) or made here (`kind: made`). Either can be an ingredient. |
+| **Recipe** | What one batch of a made product takes: `yieldQty`, ingredients (product, qty, unit) and an optional shelf life. |
+| **Production run** | One batch made here: the lots it used (as `use` movements) and the new lot it became. |
 | **Movement** | Any change to a lot (receive, use, sell, dispatch, waste, adjust, stocktake, transfer, hold, release, void). Append-only. |
 | **Record** | A programme record such as a pest check or mock recall. Fields come from the programme; answers outside limits raise CAs. |
 | **Corrective action (CA)** | A recorded non-conformance and how it was resolved. Open → closed with a resolution. |
@@ -116,9 +122,10 @@ JamPacked/
 │       ├── businesses.ts        Programme catalogue, my businesses, add, archive, members, invites
 │       ├── settings.ts          The current business's settings and programme
 │       ├── suppliers.ts         Approved supplier list
-│       ├── products.ts          Product catalogue, par levels, barcode lookup (Open Food Facts)
+│       ├── products.ts          Catalogue (supplies and made products), recipes, par levels, barcode lookup (Open Food Facts)
 │       ├── deliveries.ts        Goods inwards (creates stock lots), void, trace
-│       ├── stock.ts             On hand, lot history, movements, hold/release, recall, low stock, expiring
+│       ├── production.ts        Recipes → plan, production runs (inputs out, batch in), batch codes, trace
+│       ├── stock.ts             On hand, lot history, movements, hold/release, recall, low stock, expiring, past customers
 │       ├── locations.ts         Chillers, freezers, dry store...
 │       ├── stocktakes.ts        Count, correct, flag variances
 │       ├── programmes.ts        The business's programme module and its "Due" list
@@ -137,7 +144,7 @@ JamPacked/
 │       │   ├── business.ts      createBusiness, sector checks
 │       │   ├── programmes.ts    NP1/NP2/NP3 catalogue and modules (from the MPI guides)
 │       │   ├── module.ts        Load a business's module (built-in or custom)
-│       │   ├── stock.ts         recordMovement, createLot, FIFO, below-par
+│       │   ├── stock.ts         recordMovement, createLot, FIFO, usable, below-par
 │       │   ├── retention.ts     RETENTION_YEARS = 7
 │       │   ├── password.ts      PBKDF2 hashing, random tokens
 │       │   ├── audit.ts         logAudit() + diff()
@@ -159,14 +166,20 @@ JamPacked/
 │       ├── widgets/
 │       │   ├── common.dart      QueryBuilder, Pill, helpers, constants
 │       │   ├── business_form.dart  Name, programme cards, sectors
+│       │   ├── product_picker.dart Search or scan the catalogue (enter once, pick after)
 │       │   └── audit_history.dart
 │       └── screens/             One file per screen (see §11)
 ├── web/                         Website: jampacked.co.nz (Next.js, static export to web/out/)
 │   ├── next.config.ts           output: "export", so nginx (or Vercel) serves plain files
 │   └── src/
-│       ├── app/page.tsx         Landing page: features, programmes, FAQ
+│       ├── app/page.tsx         Landing page: how it works, enter-it-once, programmes, pricing teaser
+│       ├── app/features|faq|programmes|contact/  The other public pages
+│       ├── app/legal/           Legal index (in the header menu) + terms, privacy, cookies
+│       ├── lib/legal.ts         Legal documents' titles, links and "Last updated" dates
+│       ├── app/store/           Pricing: a plan per programme, monthly / yearly (PlanPicker.tsx)
 │       ├── app/admin/page.tsx   Owner dashboard (platform admins only)
-│       ├── lib/site.ts          Company details, contact email, URLs
+│       ├── lib/site.ts          Company details, contact email, URLs, pricing (plans, money-back days)
+│       ├── lib/content.ts       Shared copy: steps, features, FAQs, price sentences
 │       ├── lib/convex.ts        Convex client + the backend functions the site calls
 │       └── components/Analytics.tsx  PostHog page views (off unless a key is set)
 └── deploy/
@@ -198,8 +211,11 @@ multi-business change still validates until `migrations:toMultiBusiness` has run
 - `suppliers`: `name`, `contactName?`, `phone?`, `email?`, `address?`, `registrationNumber?`, `approved`,
   `approvalNotes?`, `active`, `createdAt`.
 - `products`: `name`, `brand?`, `barcode?`, `storageType` (chilled/frozen/hot/ambient), `allergens[]`,
-  `ingredients?`, `novaGroup?`, `imageUrl?`, `defaultSupplierId?`, **`parLevel?`, `reorderQty?`**, `active`,
-  `createdAt`. Created manually or **automatically on first delivery**.
+  `ingredients?`, `novaGroup?`, `imageUrl?`, `defaultSupplierId?`, **`parLevel?`, `reorderQty?`**,
+  **`kind?`** (supply/made), **`unit?`** (remembered from the first delivery or batch), **`recipe?`**
+  (`yieldQty`, `shelfLifeDays?`, `ingredients[]`: `productId, productName, qty, unit`), `active`, `createdAt`.
+  Created manually, **automatically on first delivery**, or by naming something new in production.
+  A barcode belongs to one product per business.
 - `deliveries`: `receivedAt`, `supplierId`, `supplierName`, `supplierApproved` (snapshot), `invoiceNumber?`,
   `vehicleClean`, `vehicleTempC?`, `notes?`, **`programmeAnswers?`** (`{key, text, value: true/false/null}`),
   `status` (accepted/partial/rejected), `receivedById/Name`, `voided`, `voidReason?`.
@@ -212,8 +228,9 @@ multi-business change still validates until `migrations:toMultiBusiness` has run
 | Table | Fields | Notes |
 |---|---|---|
 | `locations` | `name`, `kind` (chiller/freezer/dry/display/other), `active` | Retired, not deleted. |
-| `stockLots` | `productId?`, `productName`, `barcode?`, `deliveryId?`, `deliveryItemId?`, `supplierName?`, `batchCode?`, `useBy?`, `bestBefore?`, `locationId?`, `storageType`, `unit`, `qtyReceived`, `qtyOnHand`, `status` (available/hold/depleted), `holdReason?`, `receivedAt` | One per accepted delivery line, or opening stock. |
-| `stockMovements` | `lotId`, `productName`, `type`, `qty` (signed change), `qtyAfter`, `reason?`, `customer?` (dispatch), `toLocationId?`, `at`, `byId/Name` | Append-only: a lot's movements always add up to what is on hand. |
+| `stockLots` | `productId?`, `productName`, `barcode?`, `deliveryId?`, `deliveryItemId?`, `productionRunId?`, `supplierName?`, `batchCode?`, `useBy?`, `bestBefore?`, `locationId?`, `storageType`, `unit`, `qtyReceived`, `qtyOnHand`, `status` (available/hold/depleted), `holdReason?`, `receivedAt` | One per accepted delivery line, production run, or opening stock. |
+| `stockMovements` | `lotId`, `productName`, `type`, `qty` (signed change), `qtyAfter`, `reason?`, `customer?` (dispatch), `toLocationId?`, `productionRunId?` (use: the batch it went into), `at`, `byId/Name` | Append-only: a lot's movements always add up to what is on hand. |
+| `productionRuns` | `productId`, `productName`, `batchCode` (`by_business_batch`, unique per business), `qty`, `unit`, `fromRecipe`, `inputs[]` (`lotId, productName, batchCode?, supplierName?, qty, unit`), `allergens[]` (everything the inputs carry), `useBy?`, `bestBefore?`, `lotId` (the batch's stock), `notes?`, `madeAt`, `madeById/Name` | Never edited. Inputs are snapshots, so the batch traces back even after lots are used up. |
 | `stocktakes` | `locationId?`, `title`, `status`, `startedAt/ByName`, `completedAt?/ByName?`, `lines[]` (`lotId, productName, batchCode?, unit, expected, counted`) | |
 
 ### Checks and records
@@ -268,17 +285,17 @@ of the country's, and changing country needs a new region if one was set.
 | Function | Role | Description |
 |---|---|---|
 | `suppliers:list/get/create/update` | any / mgr to change | As before, scoped to the business. |
-| `products:list/byBarcode/create` | any | |
-| `products:update(id, ..., parLevel?, reorderQty?)` | mgr | |
+| `products:list/byBarcode/create` | any | `create` takes `kind?`, `unit?`, `recipe?`. A barcode already on another product is refused. |
+| `products:update(id, ..., parLevel?, reorderQty?, kind?, unit?, recipe?)` | mgr | A recipe's ingredients must be products in the business (not itself); their names are filled in from the catalogue. |
 | `products:lookupBarcode(barcode)` | any | Open Food Facts lookup. |
 | `deliveries:create(supplierId, ..., programmeAnswers?, items[] (each with optional locationId))` | any | See below. |
 | `deliveries:voidDelivery(id, reason)` | mgr | Voids the delivery and its items, and takes any remaining stock out (`void` movement). |
 | `deliveries:updateNotes`, `list`, `get`, `suggestionsForSupplier` | any | |
-| `deliveries:trace(search)` | any | Receipts matching batch/product/barcode, each with its lot: what's left and who it was dispatched to. |
+| `deliveries:trace(search)` | any | Receipts matching batch/product/barcode, each with its lot: what's left, who it was dispatched to, and `usedIn` (production runs it went into). |
 
 **`deliveries:create`, in order:** validate (items, rejection reasons, supplier and locations belong to
 the business, receiving-check keys belong to the programme) → status → insert delivery (with the
-programme answers and their text) → per item: find/create product, compute temperature compliance, insert,
+programme answers and their text) → per item: find/create product (and remember its unit), compute temperature compliance, insert,
 **create a stock lot for accepted items**, raise CAs (accepted out of temp: high; accepted past use-by: high;
 rejected: medium) → CA per receiving check answered "No" (medium), unapproved supplier (medium), dirty
 vehicle (low) → one audit-log entry.
@@ -295,12 +312,22 @@ vehicle (low) → one audit-log entry.
 | `stock:addLot(...)` | mgr | Opening stock / stock without a goods-inwards record. |
 | `stock:lowStock()` | any | Active products whose available stock is below `parLevel`. |
 | `stock:expiring()` | any | On-hand lots within the warning window or past date. |
+| `stock:customers()` | any | Everyone stock has been dispatched to, most recent first, for picking instead of retyping. |
 | `stock:recall(lotIds, reason)` | mgr | Holds every available lot listed and raises one high CA ("Recall: ..."). |
 | `locations:list/create/update` | any / mgr to change | |
 | `stocktakes:list/get` | any | |
 | `stocktakes:start(locationId?)` | mgr | Snapshots on-hand lots (everywhere or one location). |
 | `stocktakes:count(id, lotId, counted)` | any | |
 | `stocktakes:complete(id)` | mgr | All lines counted → each lot corrected to its count (against what is on hand *now*, so stock used mid-count isn't double counted). Lines off by ≥1 and ≥10% raise one low CA. Locks. |
+
+### `production`
+| Function | Role | Description |
+|---|---|---|
+| `production:batchCode()` | any | The next batch code (`P0001`, `P0002`...), skipping any typed by hand. |
+| `production:plan(productId, qty)` | any | Scales the product's recipe to `qty` and picks lots for each ingredient, first expiring first (matching unit, not held, not past use-by, not promised to another line). Returns `need`, `picks[]` and `short` per ingredient, and a use-by from the shelf life. |
+| `production:create(productId? \| productName?, qty, unit?, storageType?, batchCode?, useBy?, bestBefore?, locationId?, fromRecipe?, notes?, inputs[] (lotId, qty))` | any | Records the run: each input is a `use` movement on its lot (held / out-of-date / not-enough stock refused), the batch becomes a new lot with the batch code, the inputs' allergens are added to the product, and one audit-log entry is written. Naming something new adds it to the catalogue as a made product. Batch codes are unique per business. |
+| `production:list(limit?)`, `production:get(id)` | any | Runs newest first; one run with its lot (what's left, who it was dispatched to). |
+| `production:trace(search)` | any | Runs whose batch, product, or any input product or batch matches. |
 
 ### Programmes and records
 | Function | Role | Description |
@@ -515,7 +542,9 @@ create an account and a business of their own); no rate limiting on login; no pa
 - **Export** (More → Export records, admin): pages through every table with a `businessId` (a test checks
   none is missed) and saves one JSON file with the business, retention period and all rows, via the share
   sheet on mobile or a download on web.
-- Supplier approval is snapshotted on each delivery so later changes don't rewrite history.
+- Supplier approval is snapshotted on each delivery so later changes don't rewrite history; likewise a
+  production run snapshots each input (product, batch, supplier, quantity), and its stock changes are
+  ordinary append-only movements.
 - Where to see it: **More → Audit trail**, plus "Record history" on delivery, supplier and audit screens and
   the movement history on every stock lot.
 
@@ -553,6 +582,10 @@ Note: a Convex admin (dashboard / admin key) can still edit data directly. Prote
 
 `widgets/audit_history.dart`: `AuditHistory(entries)` timeline and `auditActionIcon(action)`.
 
+`widgets/product_picker.dart`: `pickProduct(context, title:, allowNew:)` opens the catalogue to search (name,
+brand, barcode) or scan; with `allowNew` it also offers "New: <typed name>". Used wherever a product would
+otherwise be typed again: goods-in items, recipe ingredients and what a batch makes.
+
 ### Theme (`theme.dart`)
 `AppColors`: `orange #F26B21`, `orangeDark #C94E0E`, `orangeLight #FFF1E8`, `ink`, `muted`, `border`,
 `surface`, and ok/warn/bad pairs. `buildTheme()` sets Material 3 with orange app bars, white rounded
@@ -589,9 +622,10 @@ business is chosen, else `HomeShell` (keyed by business, so switching rebuilds e
 | `corrective_actions_screen.dart` | Open / Closed tabs, raise, close out |
 | `temperature_screen.dart` | Readings list + record sheet |
 | `suppliers_screen.dart` | Supplier list + `SupplierFormScreen` |
-| `products_screen.dart` | Catalogue with allergens & NOVA |
+| `products_screen.dart` | Catalogue: All / Supplies / Made here, allergens & NOVA; managers set reorder levels, add recipes and products they make |
+| `production_screen.dart` | `ProductionScreen` (batches), `ProductionRunScreen` (one batch: inputs, stock, dispatches), `ProductionFormScreen` (make a batch), `LotPickerScreen` (usable stock), `RecipeScreen` |
 | `expiring_screen.dart` | Expiring / expired stock on hand |
-| `trace_screen.dart` | Trace & recall: receipts, what's left, dispatched to; Recall button |
+| `trace_screen.dart` | Trace & recall: receipts (and what was made from them) and batches made here, what's left, dispatched to; Recall button |
 | `more_screen.dart` | Profile, business (switch / programme / add), records, compliance, sign out |
 | `admin_screens.dart` | `AuditTrailScreen`, `MembersScreen` (invites), `SettingsScreen` (archive / restore) |
 
@@ -617,12 +651,12 @@ http dev), iOS `NSCameraUsageDescription`, web title/theme colour.
 - Header: greeting, business name and programme, NZ/MPI or AU/FSANZ badge.
 - **Today**: Deliveries, Temp checks, Open actions, Expiring soon. **Stock**: on hand, on hold, low stock.
 - **Due**: what your programme still needs this period (tap to do it). **Programme** opens the full list.
-- **Quick actions**: Receive goods, Temperature check, Stock, Start audit, Trace / recall, Suppliers,
-  Expiring stock.
+- **Quick actions**: Receive goods, Temperature check, Make a batch, Stock, Start audit, Trace / recall,
+  Suppliers, Expiring stock.
 
 ### Receive goods (the main workflow)
 1. **Supplier**, invoice/docket, vehicle clean, vehicle temperature.
-2. **Add items** (scan, manual, or "usually from this supplier" chips). The item check covers temperature,
+2. **Add items** (scan, pick from your catalogue, type a new one, or "usually from this supplier" chips). The item check covers temperature,
    batch, dates, condition, allergens, accept/reject and, for accepted goods, **Put away to** a location.
 3. **Programme checks**: answer each of your programme's receiving checks Yes / No / N/A.
 4. **Save**: accepted goods go into stock; problems (and any "No") become corrective actions.
@@ -635,6 +669,19 @@ http dev), iOS `NSCameraUsageDescription`, web title/theme colour.
 - **Stocktakes** (managers start): count everything or one location, enter counts, complete. Stock is
   corrected and big differences become a corrective action.
 - Managers: **Locations** (chillers, freezers, dry store) and **Add stock** (opening stock).
+
+### Production
+**More → Production** or **Home → Make a batch**.
+1. **What are you making?** Search or scan your catalogue, or type a new name.
+2. If it has a **recipe**, say how much you made and the ingredients are filled in from stock, first expiring
+   first; anything short is flagged. Without one it's a **one-off**: **Add from stock** for each thing you used
+   (held and out-of-date stock isn't offered). Change any amount, or remove a line.
+3. The **batch code** is filled in (P0001, P0002...), as is the use-by when the recipe has a shelf life. Pick
+   where it's put away, then **Save batch**. The ingredients come out of stock, the batch goes in, and it
+   carries every allergen in what went into it.
+
+**Recipes** (managers): **More → Products**, tap a product → **Add a recipe**, or **Product you make** to start
+a new one. Set what one batch makes, its shelf life, and pick the ingredients (supplies or other things you make).
 
 ### Checks (programme, records and audits)
 - **Your programme**: the Due list, record types (tap for history, **Add record**), what's asked at goods
@@ -651,8 +698,8 @@ is a problem) with how often they're due, and checklists (questions by section).
 the programme is used.
 
 ### Trace & recall
-Search a batch code, product or barcode: where it came from, how much is left, and who it was dispatched
-to. Managers can **Recall**: every matching lot still in stock goes on hold and a high-severity corrective
+Search a batch code, product or barcode: where it came from, what was made from it, how much is left, and
+who it was dispatched to. Batches made here show what went into them (back to the supplier batches). Managers can **Recall**: every matching lot still in stock goes on hold and a high-severity corrective
 action is raised listing it.
 
 ### Corrective actions, temperature checks, suppliers, products, expiring stock
@@ -660,7 +707,7 @@ As before; corrective actions are now under **More** and the Home "Open actions"
 
 ### More
 - **Business**: switch business, your programme, add another business.
-- **Records**: corrective actions, temperature checks, suppliers, products, expiring stock, trace & recall.
+- **Records**: corrective actions, temperature checks, suppliers, production, products, expiring stock, trace & recall.
 - **Compliance** (managers): audit trail, **Members** (admins invite and change roles);
   admins also get **Business settings** (archive / restore at the bottom) and **Export records**.
 
@@ -787,9 +834,14 @@ The app is structured so only auth plumbing changes:
   Option: `convex_flutter` WebSocket client (needs Rust toolchain for mobile).
 - **No photo evidence**: Convex file storage could hold delivery/damage photos.
 - **No offline mode**: receiving in a walk-in with no signal fails; a local queue would fix it.
-- **Stock doesn't follow production**: using ingredients doesn't create finished-product lots, so tracing
-  "what went into what" is by date rather than linked batches.
+- **Production can't be voided or edited**: a batch recorded by mistake is corrected with stock movements
+  (waste the batch lot, adjust the ingredient lots) rather than undone. Recipes have no versions: a past
+  run keeps what actually went in, but not the recipe as it was.
+- **Units aren't converted**: a recipe line in `kg` only draws on lots counted in `kg`.
+- **Plans aren't enforced in the app yet**: pricing is by programme (NP1 free for one user, NP1 with staff
+  at the NP2 price), but nothing checks it until billing exists ([billing-stripe.md](issues/billing-stripe.md)).
 - **Exports are JSON**: PDF/CSV reports of audits and records for verifiers are a natural next step.
-- **Large businesses**: some queries read whole indexes (e.g. stock on hand); pagination would be needed
+- **Large businesses**: some queries read whole indexes (e.g. stock on hand, production trace over the last
+  2000 runs); pagination would be needed
   at very large scale.
 - **Dev auth** (§9): no password reset, no rate limiting; Clerk resolves these.

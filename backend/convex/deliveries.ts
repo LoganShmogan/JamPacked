@@ -119,10 +119,14 @@ export const create = mutation({
             storageType: item.storageType,
             allergens: item.allergens,
             defaultSupplierId: supplier._id,
+            unit: item.unit,
             active: true,
             createdAt: Date.now(),
           }));
       }
+      // Remember the unit so recipes and stock entries can fill it in next time.
+      const product = inBusiness(await ctx.db.get(productId), businessId, "Product");
+      if (!product.unit) await ctx.db.patch(productId, { unit: item.unit });
       const temperatureCompliant = isTempCompliant(settings, item.storageType, item.temperatureC);
       const deliveryItemId = await ctx.db.insert("deliveryItems", {
         ...item,
@@ -369,6 +373,10 @@ export const trace = query({
           status: lot.status,
           qtyOnHand: lot.qtyOnHand,
           dispatched: movements.filter((m) => m.type === "dispatch").map((m) => ({ customer: m.customer!, qty: -m.qty, at: m.at })),
+          // ...and what was made from it (production.trace follows those batches on).
+          usedIn: movements
+            .filter((m) => m.productionRunId)
+            .map((m) => ({ productionRunId: m.productionRunId!, reason: m.reason!, qty: -m.qty, at: m.at })),
         },
       });
     }

@@ -28,16 +28,21 @@ export const organization = {
 
 /** The app, with an offer per priced plan (none until prices are set). */
 export function softwareApplication() {
-  const offers = pricing.plans
-    .filter((p) => p.price !== null)
-    .map((p) => ({
-      "@type": "Offer",
-      name: `${p.name} licence`,
-      price: (p.price as number).toFixed(2),
-      priceCurrency: pricing.currency,
-      url: `${site.url}/store/`,
-      description: `${formatPrice(p.price as number)} per business per ${p.per}, incl. GST`,
-    }));
+  const offers = pricing.plans.flatMap((p) =>
+    pricing.periods
+      .filter((period) => p.prices.yearly > 0 || period.key === "yearly") // a free plan is one offer
+      .map((period) => {
+        const price = p.prices[period.key];
+        return {
+          "@type": "Offer",
+          name: price ? `${p.name} ${period.name.toLowerCase()} licence` : `${p.name} licence`,
+          price: price.toFixed(2),
+          priceCurrency: pricing.currency,
+          url: `${site.url}/store/`,
+          description: price ? `${formatPrice(price)} per business per ${period.per}, incl. GST` : p.summary,
+        };
+      }),
+  );
   return {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -47,7 +52,7 @@ export function softwareApplication() {
     applicationCategory: "BusinessApplication",
     operatingSystem: "Android, iOS, Web",
     publisher: { "@type": "Organization", name: site.company },
-    ...(offers.length ? { offers } : {}),
+    offers,
   };
 }
 

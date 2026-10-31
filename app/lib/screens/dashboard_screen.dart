@@ -9,6 +9,7 @@ import 'corrective_actions_screen.dart';
 import 'expiring_screen.dart';
 import 'goods_in_form_screen.dart';
 import 'home_shell.dart';
+import 'production_screen.dart';
 import 'programme_screen.dart';
 import 'suppliers_screen.dart';
 import 'temperature_screen.dart';
@@ -168,6 +169,11 @@ class DashboardScreen extends StatelessWidget {
                               Icons.thermostat,
                               () =>
                                   push(const TemperatureScreen(autoOpen: true)),
+                            ),
+                            _Tile(
+                              'Make a batch',
+                              Icons.soup_kitchen,
+                              () => push(const ProductionFormScreen()),
                             ),
                             _Tile(
                               'Stock',

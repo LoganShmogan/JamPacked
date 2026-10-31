@@ -23,7 +23,14 @@ export async function recordMovement(
   ctx: MutationCtx,
   user: Doc<"users">,
   lot: Lot,
-  m: { type: MovementType; qty: number; reason?: string; customer?: string; toLocationId?: Id<"locations"> },
+  m: {
+    type: MovementType;
+    qty: number;
+    reason?: string;
+    customer?: string;
+    toLocationId?: Id<"locations">;
+    productionRunId?: Id<"productionRuns">;
+  },
   patch: Partial<Pick<Lot, "status" | "holdReason" | "locationId">> = {},
 ) {
   const qtyAfter = round(lot.qtyOnHand + m.qty);
@@ -54,6 +61,10 @@ export async function createLot(
   await recordMovement(ctx, user, (await ctx.db.get(id))!, { type: "receive", qty: lot.qtyReceived, reason });
   return id;
 }
+
+/** Can this lot go into food right now? Not held, not used up and not past its use-by. */
+export const usable = (lot: Lot, now = Date.now()) =>
+  lot.status === "available" && lot.qtyOnHand > 0 && !(lot.useBy !== undefined && lot.useBy < now);
 
 /** Lots still on hand (available or held) for a business. */
 export async function lotsOnHand(ctx: QueryCtx, businessId: Id<"businesses">) {

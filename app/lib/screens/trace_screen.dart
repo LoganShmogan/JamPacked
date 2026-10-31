@@ -5,9 +5,11 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../widgets/common.dart';
 import 'delivery_detail_screen.dart';
+import 'production_screen.dart';
 
 /// Traceability one step back (where a product or batch came from) and one step forward
-/// (what is left and who it was dispatched to), with a one-tap recall that holds the stock.
+/// (what was made from it, what is left and who it was dispatched to), with a one-tap recall
+/// that holds the stock. Batches made here trace back through what went into them.
 class TraceScreen extends StatefulWidget {
   const TraceScreen({super.key});
   @override
@@ -32,6 +34,102 @@ class _TraceScreenState extends State<TraceScreen> {
     if (res != null && mounted) {
       context.toast('${res['held']} lot(s) on hold. Corrective action raised');
     }
+  }
+
+  void _push(Widget w) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => w));
+
+  static String _dispatched(List d) => d.isEmpty
+      ? ''
+      : '\nDispatched to ${d.map((d) => '${d['customer']} (${fmtNum(d['qty'])})').join(', ')}';
+
+  Widget _results(List received, List made) {
+    if (received.isEmpty && made.isEmpty) {
+      return const EmptyState(icon: Icons.search_off, title: 'No matches');
+    }
+    final holdable = [
+      for (final it in [...received, ...made])
+        if (it['lot']?['status'] == 'available') it['lot']['_id'],
+    ];
+    final canRecall =
+        context.watch<AuthService>().user!.isManager && holdable.isNotEmpty;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      children: [
+        if (canRecall)
+          Responsive(
+            child: FilledButton.icon(
+              onPressed: () => _recall(holdable),
+              icon: const Icon(Icons.block),
+              label: Text(
+                'Recall: hold ${holdable.length} lot(s) still in stock',
+              ),
+            ),
+          ),
+        if (received.isNotEmpty && made.isNotEmpty)
+          const Responsive(child: SectionTitle('Received')),
+        for (final it in received) _receivedCard(it),
+        if (made.isNotEmpty) const Responsive(child: SectionTitle('Made here')),
+        for (final r in made) _madeCard(r),
+      ],
+    );
+  }
+
+  Widget _receivedCard(Map it) {
+    final lot = it['lot'];
+    final usedIn = (lot?['usedIn'] ?? []) as List;
+    return Responsive(
+      child: Card(
+        child: ListTile(
+          onTap: () => _push(DeliveryDetailScreen(id: it['deliveryId'])),
+          title: Text(
+            it['productName'],
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          subtitle: Text(
+            '${it['supplierName']} · ${fmtDateTime(it['receivedAt'])}\n'
+            'Batch ${it['batchCode'] ?? '-'} · ${fmtNum(it['quantity'])} ${it['unit']} · by ${it['receivedByName']}'
+            '${lot == null ? '' : '\n${fmtNum(lot['qtyOnHand'])} ${it['unit']} still in stock'}'
+            '${usedIn.isEmpty ? '' : '\n${usedIn.map((u) => u['reason']).join('; ')}'}'
+            '${_dispatched((lot?['dispatched'] ?? []) as List)}',
+          ),
+          isThreeLine: true,
+          trailing: it['voided'] == true
+              ? const Pill('VOID')
+              : lot?['status'] == 'hold'
+              ? const Pill('ON HOLD', tone: Tone.bad)
+              : it['accepted']
+              ? const Pill('Accepted', tone: Tone.ok)
+              : const Pill('Rejected', tone: Tone.bad),
+        ),
+      ),
+    );
+  }
+
+  Widget _madeCard(Map r) {
+    final lot = r['lot'];
+    return Responsive(
+      child: Card(
+        child: ListTile(
+          onTap: () => _push(ProductionRunScreen(id: r['_id'])),
+          title: Text(
+            r['productName'],
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          subtitle: Text(
+            'Made ${fmtDateTime(r['madeAt'])} by ${r['madeByName']}\n'
+            'Batch ${r['batchCode']} · ${fmtNum(r['qty'])} ${r['unit']}\n'
+            'From ${(r['inputs'] as List).map((i) => '${i['productName']} (${i['batchCode'] ?? '-'})').join(', ')}\n'
+            '${fmtNum(lot['qtyOnHand'])} ${r['unit']} still in stock'
+            '${_dispatched(lot['dispatched'] as List)}',
+          ),
+          isThreeLine: true,
+          trailing: lot['status'] == 'hold'
+              ? const Pill('ON HOLD', tone: Tone.bad)
+              : const Pill('Made', tone: Tone.brand),
+        ),
+      ),
+    );
   }
 
   @override
@@ -69,77 +167,12 @@ class _TraceScreenState extends State<TraceScreen> {
                 : QueryBuilder(
                     path: 'deliveries:trace',
                     args: {'search': _term},
-                    builder: (context, data) {
-                      final list = data as List;
-                      if (list.isEmpty) {
-                        return const EmptyState(
-                          icon: Icons.search_off,
-                          title: 'No matches',
-                        );
-                      }
-                      final holdable = [
-                        for (final it in list)
-                          if (it['lot']?['status'] == 'available')
-                            it['lot']['_id'],
-                      ];
-                      final canRecall =
-                          context.watch<AuthService>().user!.isManager &&
-                          holdable.isNotEmpty;
-                      return ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        itemCount: list.length + (canRecall ? 1 : 0),
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (context, i) {
-                          if (canRecall && i == 0) {
-                            return Responsive(
-                              child: FilledButton.icon(
-                                onPressed: () => _recall(holdable),
-                                icon: const Icon(Icons.block),
-                                label: Text(
-                                  'Recall: hold ${holdable.length} lot(s) still in stock',
-                                ),
-                              ),
-                            );
-                          }
-                          final it = list[i - (canRecall ? 1 : 0)];
-                          final lot = it['lot'];
-                          final dispatched = (lot?['dispatched'] ?? []) as List;
-                          return Responsive(
-                            child: Card(
-                              child: ListTile(
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => DeliveryDetailScreen(
-                                      id: it['deliveryId'],
-                                    ),
-                                  ),
-                                ),
-                                title: Text(
-                                  it['productName'],
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  '${it['supplierName']} · ${fmtDateTime(it['receivedAt'])}\n'
-                                  'Batch ${it['batchCode'] ?? '-'} · ${fmtNum(it['quantity'])} ${it['unit']} · by ${it['receivedByName']}'
-                                  '${lot == null ? '' : '\n${fmtNum(lot['qtyOnHand'])} ${it['unit']} still in stock'}'
-                                  '${dispatched.isEmpty ? '' : '\nDispatched to ${dispatched.map((d) => '${d['customer']} (${fmtNum(d['qty'])})').join(', ')}'}',
-                                ),
-                                isThreeLine: true,
-                                trailing: it['voided'] == true
-                                    ? const Pill('VOID')
-                                    : lot?['status'] == 'hold'
-                                    ? const Pill('ON HOLD', tone: Tone.bad)
-                                    : it['accepted']
-                                    ? const Pill('Accepted', tone: Tone.ok)
-                                    : const Pill('Rejected', tone: Tone.bad),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
+                    builder: (context, received) => QueryBuilder(
+                      path: 'production:trace',
+                      args: {'search': _term},
+                      builder: (context, made) =>
+                          _results(received as List, made as List),
+                    ),
                   ),
           ),
         ],

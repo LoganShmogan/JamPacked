@@ -8,6 +8,7 @@ import 'package:jampacked/screens/goods_in_form_screen.dart';
 import 'package:jampacked/screens/goods_in_screen.dart';
 import 'package:jampacked/screens/home_shell.dart';
 import 'package:jampacked/screens/more_screen.dart';
+import 'package:jampacked/screens/production_screen.dart';
 import 'package:jampacked/screens/programme_screen.dart';
 import 'package:jampacked/screens/stock_screen.dart';
 import 'package:jampacked/screens/suppliers_screen.dart';
@@ -210,6 +211,7 @@ void main() {
       ('Temp checks', TemperatureScreen),
       ('Expiring soon', ExpiringScreen),
       ('Receive goods', GoodsInFormScreen),
+      ('Make a batch', ProductionFormScreen),
       ('Trace / recall', TraceScreen),
       ('Suppliers', SuppliersScreen),
       ('Expiring stock', ExpiringScreen),

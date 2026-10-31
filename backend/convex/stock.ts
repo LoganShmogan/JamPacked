@@ -242,3 +242,17 @@ export const recall = mutation({
     return { held: toHold.length, correctiveActionId: caId };
   },
 });
+
+/** Everyone stock has been dispatched to, most recent first, so a customer is only typed once. */
+export const customers = query({
+  args: scoped,
+  handler: async (ctx, { sessionToken, businessId }) => {
+    await requireMember(ctx, sessionToken, businessId);
+    const recent = await ctx.db
+      .query("stockMovements")
+      .withIndex("by_business_at", (q) => q.eq("businessId", businessId))
+      .order("desc")
+      .take(2000);
+    return [...new Set(recent.filter((m) => m.type === "dispatch").map((m) => m.customer!))];
+  },
+});

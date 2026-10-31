@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Analytics } from "@/components/Analytics";
 import { JsonLd } from "@/components/JsonLd";
+import { legalDocs } from "@/lib/legal";
 import { organization } from "@/lib/seo";
 import { site } from "@/lib/site";
 import "./globals.css";
@@ -40,12 +41,13 @@ const nav = [
   ["Store", "/store/"],
   ["FAQ", "/faq/"],
   ["Contact", "/contact/"],
+  ["Legal", "/legal/"],
 ];
 
 const legal = [
-  ["Terms", "/legal/terms/"],
-  ["Privacy", "/legal/privacy/"],
-  ["Cookies & data", "/legal/cookies/"],
+  ["Terms", legalDocs.terms.href],
+  ["Privacy", legalDocs.privacy.href],
+  ["Cookies & data", legalDocs.cookies.href],
 ];
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

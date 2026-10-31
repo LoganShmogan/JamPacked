@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...programmes.map((p) => page(`/programmes/${p.slug}/`, 0.8)),
     page("/faq/", 0.6),
     page("/contact/", 0.5),
+    page("/legal/", 0.3, "yearly"),
     page("/legal/terms/", 0.3, "yearly"),
     page("/legal/privacy/", 0.3, "yearly"),
     page("/legal/cookies/", 0.3, "yearly"),

@@ -1,9 +1,34 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError, Infer, v } from "convex/values";
 import { api } from "./_generated/api";
-import { action, mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { MutationCtx, action, mutation, query } from "./_generated/server";
 import { diff, logAudit } from "./lib/audit";
 import { inBusiness, requireMember, scoped } from "./lib/session";
-import { storageType } from "./schema";
+import { productKind, recipe, storageType } from "./schema";
+
+/**
+ * A recipe makes something out of other products in this business. Checks it and fills in each
+ * ingredient's name from the catalogue, so the app only has to send ids and amounts.
+ */
+async function checkRecipe(
+  ctx: MutationCtx,
+  businessId: Id<"businesses">,
+  r: Infer<typeof recipe>,
+  self?: Id<"products">,
+): Promise<Infer<typeof recipe>> {
+  if (!(r.yieldQty > 0)) throw new ConvexError("Say how much one batch makes");
+  if (r.shelfLifeDays !== undefined && !(r.shelfLifeDays >= 0)) throw new ConvexError("Shelf life can't be negative");
+  if (r.ingredients.length === 0) throw new ConvexError("Add at least one ingredient");
+  const ingredients = [];
+  for (const i of r.ingredients) {
+    if (i.productId === self) throw new ConvexError("A product can't be an ingredient of itself");
+    const p = inBusiness(await ctx.db.get(i.productId), businessId, "Ingredient");
+    if (!(i.qty > 0)) throw new ConvexError(`How much ${p.name} does it take?`);
+    if (!i.unit.trim()) throw new ConvexError(`What unit is ${p.name} measured in?`);
+    ingredients.push({ ...i, productName: p.name, unit: i.unit.trim() });
+  }
+  return { ...r, ingredients };
+}
 
 export const list = query({
   args: scoped,
@@ -40,10 +65,15 @@ export const create = mutation({
     defaultSupplierId: v.optional(v.id("suppliers")),
     parLevel: v.optional(v.number()),
     reorderQty: v.optional(v.number()),
+    kind: v.optional(productKind),
+    unit: v.optional(v.string()),
+    recipe: v.optional(recipe),
   },
   handler: async (ctx, { sessionToken, businessId, ...data }) => {
     const { user } = await requireMember(ctx, sessionToken, businessId);
     if (!data.name.trim()) throw new ConvexError("Product name is required");
+    if (data.barcode) await barcodeFree(ctx, businessId, data.barcode);
+    if (data.recipe) data.recipe = await checkRecipe(ctx, businessId, data.recipe);
     const id = await ctx.db.insert("products", { ...data, businessId, active: true, createdAt: Date.now() });
     await logAudit(ctx, user, {
       businessId,
@@ -70,11 +100,16 @@ export const update = mutation({
     defaultSupplierId: v.optional(v.id("suppliers")),
     parLevel: v.optional(v.number()),
     reorderQty: v.optional(v.number()),
+    kind: v.optional(productKind),
+    unit: v.optional(v.string()),
+    recipe: v.optional(recipe),
     active: v.optional(v.boolean()),
   },
   handler: async (ctx, { sessionToken, businessId, id, ...patch }) => {
     const { user } = await requireMember(ctx, sessionToken, businessId, ["admin", "manager"]);
     const before = inBusiness(await ctx.db.get(id), businessId, "Product");
+    if (patch.barcode && patch.barcode !== before.barcode) await barcodeFree(ctx, businessId, patch.barcode);
+    if (patch.recipe) patch.recipe = await checkRecipe(ctx, businessId, patch.recipe, id);
     const changes = diff(before, patch);
     await ctx.db.patch(id, patch);
     await logAudit(ctx, user, {
@@ -87,6 +122,15 @@ export const update = mutation({
     });
   },
 });
+
+/** One barcode, one product: scanning it must always bring back the same thing. */
+async function barcodeFree(ctx: MutationCtx, businessId: Id<"businesses">, barcode: string) {
+  const taken = await ctx.db
+    .query("products")
+    .withIndex("by_business_barcode", (q) => q.eq("businessId", businessId).eq("barcode", barcode))
+    .first();
+  if (taken) throw new ConvexError(`Barcode ${barcode} is already ${taken.name}`);
+}
 
 // Allergens that must be declared under FSANZ Food Standards Code Std 1.2.3 (PEAL), applies in NZ & AU.
 export const ALLERGENS = [

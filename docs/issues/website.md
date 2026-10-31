@@ -20,20 +20,24 @@ Pages:
 - **Public:** home / landing, features, NP1 / NP2 / NP3 explainers, pricing, FAQ, contact / support,
   download (links to App Store, Google Play and `app.<domain>`)
 - **Legal:** see [legal-documents.md](legal-documents.md)
-- **Signed in:** pick a business, start a trial / checkout, billing (Stripe Customer Portal), team summary
+- **Signed in:** pick a business, checkout, billing (Stripe Customer Portal), team summary
 - **Reports:** see [customer-reports.md](customer-reports.md)
 - **Owner only:** see [owner-dashboard.md](owner-dashboard.md)
 
 ## To do
 - [x] Scaffold `web/` (Next.js, Convex client, Tailwind), add to the README and DOCUMENTATION.md
 - [x] Landing page with features, programmes and FAQ; contact by email
-- [x] Store page (`/store/`): one licence per business, monthly / yearly. Prices, trial length and Stripe
-  Payment Links are set in `web/src/lib/site.ts` (`pricing`); until then it says "price on request" and Buy
-  opens an email
+- [x] Store page (`/store/`): a plan per programme (NP1 free, NP2, NP3, Custom), monthly / yearly, with the
+  yearly saving and the 30-day money-back guarantee. Prices and Stripe Payment Links are set in
+  `web/src/lib/site.ts` (`pricing`); a paid plan without a Payment Link opens an email instead, NP1 opens the app
 - [x] After-payment page (`/welcome/`): sends Android to Google Play, iPhone/iPad to the App Store, and
   everything else to the web app (phones also go to the web app until the store URLs are set in `site.ts`).
   Set each Payment Link's confirmation page to `https://jampacked.co.nz/welcome/` in Stripe
-- [ ] Decide prices and trial length, create the Payment Links, and fill in `pricing` in `site.ts`
+- [x] Decide prices (see [billing-stripe.md](billing-stripe.md)); shown on the store, FAQ, programme pages and home page
+- [ ] Create the Payment Links (NP2, NP3, Custom × monthly / yearly) and fill in `checkoutUrls` in `site.ts`
+- [x] Production and "enter it once" on the home, features and FAQ pages
+- [x] Legal index page (`/legal/`) in the header menu (desktop and phone), linked from each legal document;
+  legal documents updated for plans, money-back, production and customer details
 - [x] Programme pages (`/programmes/`, `/programmes/np1|np2|np3|custom/`), contact page, legal pages
   (`/legal/terms|privacy|cookies/`, drafts), mobile menu
 - [x] SEO: per-page titles, descriptions and canonical URLs; JSON-LD (Organization, SoftwareApplication with

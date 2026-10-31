@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/JsonLd";
+import { planPrice } from "@/lib/content";
 import { programmeBySlug, programmes } from "@/lib/programmes";
 import { breadcrumbs, pageMetadata } from "@/lib/seo";
 
@@ -50,8 +51,8 @@ export default async function Programme({ params }: PageProps<"/programmes/[slug
       </ul>
 
       <div className="mt-12 rounded-xl bg-cream p-6">
-        <h2 className="text-xl font-bold">Every programme is in every licence</h2>
-        <p className="mt-2 text-muted">Switch programmes or build a custom one at any time, at no extra cost.</p>
+        <h2 className="text-xl font-bold">What {p.short} costs</h2>
+        <p className="mt-2 text-muted">{planPrice(p.slug)} Every feature is included, and you can switch programme at any time.</p>
         <Link href="/store/" className="mt-4 inline-block rounded-lg bg-jam px-5 py-3 font-semibold text-on-jam hover:bg-jam-dark">
           Get JamPacked
         </Link>

@@ -3,15 +3,15 @@
 By Save Point Limited (trading as JamPacked). Live at https://app.jampacked.co.nz
 
 Mobile-first Flutter app (Android, iOS, web) with a Convex backend, in the spirit of Safe Food Pro.
-**Goods inwards and stock management are the core**: every delivery becomes stock you can rotate, use,
-dispatch, hold and recall. Each business follows a **programme module** (MPI National Programme 1, 2 or 3,
+**Goods inwards, stock and production are the core**: every delivery becomes stock you can rotate, use,
+make into your own products, dispatch, hold and recall, and anything entered once is picked or scanned after that. Each business follows a **programme module** (MPI National Programme 1, 2 or 3,
 or a custom programme you build) and the app prompts for the checks and records that programme needs.
 One account can run several businesses; you pick the one you're working in each day.
 
 ```
 backend/   Convex functions + schema (TypeScript)
 app/       Flutter app
-web/       Website at jampacked.co.nz: landing page and the owner dashboard (/admin), Next.js
+web/       Website at jampacked.co.nz: landing, features, programmes, pricing, FAQ, legal, owner dashboard (/admin), Next.js
 ```
 
 ## Run it locally
@@ -38,7 +38,8 @@ follows (NP1 / NP2 / NP3 / custom). You're its admin. Add more businesses from t
 "I've been invited").
 
 **Upgrading an existing install?** Run `migrations:toMultiBusiness` once after deploying; see
-[`docs/DOCUMENTATION.md` §14](docs/DOCUMENTATION.md#14-deployment-loganserver).
+[`docs/DOCUMENTATION.md` §14](docs/DOCUMENTATION.md#14-deployment-loganserver). Production (recipes, made
+products, production runs) needs no migration: its fields are optional and existing products count as supplies.
 
 ## Tests
 
@@ -64,11 +65,12 @@ Open issues and to-dos before launch (hosting, Clerk, store release, scaling) ar
 | **Goods inwards** | Supplier, invoice, vehicle check, then per item: barcode scan, batch/lot, use-by/best-before, probe temp, packaging/label checks, allergens, accept/reject, put-away location. Plus your programme's receiving checks. Live pass/fail against your temperature limits. |
 | **Stock** | Accepted goods become stock lots: on hand by location (first-expiring first), use / sell / dispatch (to whom) / waste / adjust / move, HOLD and release, par levels and low-stock alerts, stocktakes with automatic correction and variance flags. Every change is an append-only movement. |
 | **Programmes** | NP1, NP2 and NP3 modules built from MPI's Dec 2025 guidance, narrowed by what your business does (e.g. NP2 ECE, NP1 honey): receiving checks, the records you must keep (pest checks, thermometer checks, training, mock recall, sickness, transport, cooking, cooling, pH, water activity...) with limits that raise corrective actions, a monthly self-check and a **Due** list. Or build a **custom programme** (blank or copied from an NP) and reuse it across your businesses. |
-| **Auto-fill** | Barcode → your product catalogue, then Open Food Facts (name, allergens, NOVA/ultra-processed group). Picking a supplier suggests what they usually deliver. New products are added to the catalogue automatically. |
+| **Enter it once** | Anything typed once is picked or scanned after that: products and supplies (search or barcode, with unit, storage and allergens) at goods inwards, in recipes and in production; suppliers; customers you've dispatched to. Unknown barcodes fill in from Open Food Facts (name, allergens, NOVA/ultra-processed group). Picking a supplier suggests what they usually deliver. |
+| **Production** | Products you make, alongside the supplies you buy. Save a recipe once (ingredients, how much a batch makes, shelf life); making a batch picks the ingredient stock first-expiring first, takes it out, and puts the batch into stock with its own batch code, use-by and allergens. Or make a one-off from whatever stock you pick. Batches trace back to supplier batches and forward to customers. |
 | **Audits** | 4 built-in templates (goods receipt, daily FCP check, monthly review, hygiene) plus your programme's checklists. Starting one pre-answers questions from goods inwards, stock, temperatures, programme records and corrective actions, and shows the evidence. Sign-off locks the audit; "No" answers raise corrective actions. |
 | **Corrective actions** | Raised automatically for rejected goods, out-of-range temps accepted, expired goods, unapproved suppliers, dirty vehicles, failed receiving checks, failed temp checks, records outside limits, recalls, stocktake variances and audit findings. Close out with a resolution. |
 | **Temperature checks** | Chillers, freezers, hot holding, cooking (≥75°C), cooling. Out-of-range readings require a corrective action. |
-| **Trace & recall** | Search batch code / product / barcode → which deliveries, when, from whom, how much is left and who it was dispatched to. One tap puts all of it on hold and raises a recall corrective action. |
+| **Trace & recall** | Search batch code / product / barcode → which deliveries, when, from whom, what was made from it, how much is left and who it was dispatched to; batches made here show what went into them. One tap puts all of it on hold and raises a recall corrective action. |
 | **Expiring stock** | Stock on hand approaching or past use-by / best-before. |
 | **Records kept 7 years** | Every write (and sign-in, sign-out, failed sign-in) is logged with who, when, what and a field-level diff. Nothing is deleted: records are **voided with a reason**, businesses archived, stock changes append-only; a test enforces it. Admins can export everything as JSON. |
 
@@ -79,6 +81,19 @@ NZ Food Act 2014 / MPI Food Control Plan and FSANZ Food Standards Code
 chilled ≤5°C, hot ≥60°C, frozen received frozen hard (≤-15°C, configurable). Switch NZ/AU and adjust limits in
 More → Business settings. The modules and templates are a starting point; check them against your
 registration and your verifier/EHO's expectations.
+
+## Pricing
+One licence per business, priced by the programme it follows (NZD incl. GST), with a 30-day money-back guarantee:
+
+| Plan | Monthly | Yearly |
+|---|---|---|
+| NP1 (one user, no staff; with staff it's the NP2 price) | free | free |
+| NP2 | $50 | $500 |
+| NP3 | $100 | $1000 |
+| Custom programme | $120 | $1200 |
+
+Prices and Stripe links live in `web/src/lib/site.ts`. Billing isn't built yet, so the app doesn't enforce
+plans: see [`docs/issues/billing-stripe.md`](docs/issues/billing-stripe.md).
 
 ## Auth: development now, Clerk later
 See `docs/DOCUMENTATION.md` for full documentation.

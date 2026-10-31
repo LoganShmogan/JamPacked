@@ -424,6 +424,36 @@ void main() {
       });
     }
 
+    testWidgets('dispatch offers customers stock went to before', (
+      tester,
+    ) async {
+      final convex = await pumpLot(
+        tester,
+        lot(),
+        extra: {
+          'stock:customers': (_) => ['Cafe Two', 'Corner Store'],
+        },
+      );
+      await tapOn(tester, find.widgetWithText(OutlinedButton, 'Dispatch'));
+      final fields = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(fields.first, '1');
+      await tapOn(tester, find.widgetWithText(ActionChip, 'Corner Store'));
+      await tapOn(tester, find.text('Save'));
+      expect(
+        convex.callsTo('stock:move').single.args['customer'],
+        'Corner Store',
+      );
+
+      // No suggestions if they can't be loaded; the field still works.
+      convex.handlers['stock:customers'] = fails('offline');
+      await tapOn(tester, find.widgetWithText(OutlinedButton, 'Dispatch'));
+      expect(find.byType(ActionChip), findsNothing);
+      await tapOn(tester, find.text('Cancel'));
+    });
+
     testWidgets('cancelling a movement sends nothing; bad numbers send 0', (
       tester,
     ) async {

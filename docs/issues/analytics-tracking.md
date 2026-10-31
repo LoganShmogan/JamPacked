@@ -8,7 +8,7 @@ they use.
 
 ## Design
 - **PostHog** for both: `posthog-js` on the website and `posthog_flutter` in the app, so a visitor can be
-  followed from landing page to trial to daily use in one tool. Product analytics, funnels, retention and
+  followed from landing page to sign-up to daily use in one tool. Product analytics, funnels, retention and
   error tracking.
 - Identify users by Clerk user ID and group them by `businessId` (PostHog groups), so usage is per business.
 - **Privacy:** never send record contents (product names, temperatures, notes, batch codes) to analytics,
@@ -25,5 +25,5 @@ they use.
   `export_screen.dart`); events for delivery recorded, temp logged, audit completed, export, etc.
 - [x] Consent on the website: cookieless (memory persistence), so no banner
 - [ ] Opt-out in the app settings
-- [ ] Funnel: landing → sign-up → trial → paid
+- [ ] Funnel: landing → store (plan viewed) → sign-up → paid (or free NP1 → paid when staff are added)
 - [ ] Update the privacy policy ([legal-documents.md](legal-documents.md)) and the stores' privacy forms

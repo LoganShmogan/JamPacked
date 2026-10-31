@@ -71,6 +71,15 @@ export const customChecklist = v.object({
   ),
 });
 
+/** A made product's recipe: what one batch of `yieldQty` takes. Ingredient quantities are in the ingredient's stock unit. */
+export const recipe = v.object({
+  yieldQty: v.number(),
+  shelfLifeDays: v.optional(v.number()), // sets the use-by of each batch
+  ingredients: v.array(v.object({ productId: v.id("products"), productName: v.string(), qty: v.number(), unit: v.string() })),
+});
+
+export const productKind = v.union(v.literal("supply"), v.literal("made"));
+
 export const answerValue = v.union(v.string(), v.number(), v.boolean(), v.null());
 
 export const programmeKey = v.union(v.literal("NP1"), v.literal("NP2"), v.literal("NP3"), v.literal("custom"));
@@ -192,6 +201,9 @@ export default defineSchema({
     defaultSupplierId: v.optional(v.id("suppliers")),
     parLevel: v.optional(v.number()), // reorder when on hand falls below this
     reorderQty: v.optional(v.number()),
+    kind: v.optional(productKind), // unset = supply: bought in. "made" = produced here (production.ts)
+    unit: v.optional(v.string()), // the unit it's counted in, remembered from the first delivery or batch
+    recipe: v.optional(recipe),
     active: v.boolean(),
     createdAt: v.number(),
   })
@@ -267,6 +279,7 @@ export default defineSchema({
     barcode: v.optional(v.string()),
     deliveryId: v.optional(v.id("deliveries")),
     deliveryItemId: v.optional(v.id("deliveryItems")),
+    productionRunId: v.optional(v.id("productionRuns")), // made here rather than delivered
     supplierName: v.optional(v.string()),
     batchCode: v.optional(v.string()),
     useBy: v.optional(v.number()),
@@ -283,7 +296,8 @@ export default defineSchema({
     .index("by_business_status", ["businessId", "status"])
     .index("by_business_product", ["businessId", "productId"])
     .index("by_business_batch", ["businessId", "batchCode"])
-    .index("by_deliveryItem", ["deliveryItemId"]),
+    .index("by_deliveryItem", ["deliveryItemId"])
+    .index("by_productionRun", ["productionRunId"]),
 
   // Append-only: qty is the signed change to the lot's on-hand quantity.
   stockMovements: defineTable({
@@ -296,12 +310,46 @@ export default defineSchema({
     reason: v.optional(v.string()),
     customer: v.optional(v.string()), // dispatch: who the food went to (NP tracing "one step forward")
     toLocationId: v.optional(v.id("locations")),
+    productionRunId: v.optional(v.id("productionRuns")), // use: the batch this went into
     at: v.number(),
     byId: v.id("users"),
     byName: v.string(),
   })
     .index("by_lot", ["lotId", "at"])
     .index("by_business_at", ["businessId", "at"]),
+
+  // ---- Production: products made here from stock on hand (supplies or other made products) ----
+  // Inputs are taken out of their lots as "use" movements and the output becomes a new lot, so a
+  // finished batch traces back to the supplier batches that went into it, and forward to customers.
+  productionRuns: defineTable({
+    businessId: v.id("businesses"),
+    productId: v.id("products"),
+    productName: v.string(),
+    batchCode: v.string(),
+    qty: v.number(),
+    unit: v.string(),
+    fromRecipe: v.boolean(),
+    inputs: v.array(
+      v.object({
+        lotId: v.id("stockLots"),
+        productName: v.string(),
+        batchCode: v.optional(v.string()),
+        supplierName: v.optional(v.string()),
+        qty: v.number(),
+        unit: v.string(),
+      }),
+    ),
+    allergens: v.array(v.string()), // everything the inputs carry
+    useBy: v.optional(v.number()),
+    bestBefore: v.optional(v.number()),
+    lotId: v.optional(v.id("stockLots")), // the batch's stock; set straight after the run is recorded
+    notes: v.optional(v.string()),
+    madeAt: v.number(),
+    madeById: v.id("users"),
+    madeByName: v.string(),
+  })
+    .index("by_business_madeAt", ["businessId", "madeAt"])
+    .index("by_business_batch", ["businessId", "batchCode"]),
 
   stocktakes: defineTable({
     businessId: v.id("businesses"),

@@ -102,6 +102,7 @@ Tests live in `backend/tests/`, outside `convex/`, so `npx convex deploy` never 
 | `catalogue.test.ts` | Business settings (diffs, programme and sector changes, admin-only), suppliers, products and the Open Food Facts `lookupBarcode` action with `fetch` stubbed. |
 | `deliveries.test.ts` | Goods inwards: validation, status, product auto-cataloguing, every auto-raised corrective action, voiding, notes, list, get, supplier suggestions, expiring stock and trace. |
 | `stock.test.ts` | Lots from goods inwards (put-away, void takes stock out, trace forward), on hand (FIFO, flags, location filter), every movement type and its validation, hold/release, opening stock, par levels, recall, locations and stocktakes (mid-count movements, variance CAs). |
+| `production.test.ts` | Recipes (validation, names from the catalogue), one barcode per product, remembered units, `plan` (scaling, first-expiring-first, skipping held / out-of-date / other-unit stock, no lot promised twice, shortfalls), making a batch (stock out and in, allergens carried through, new made products, batch codes), validation, trace both ways, and past customers. |
 | `programmes.test.ts` | Module consistency and sector filtering for NP1/NP2/NP3, `failures`, the `current` module, the **Due** list for each kind of schedule item, programme records (validation, limits → CAs, void), receiving checks on deliveries, programme checklists and record-based facts. |
 | `customProgrammes.test.ts` | Validation of custom parts, building the schedule, create blank / copy, assign, edit, reuse across businesses, ownership. |
 | `retention.test.ts` | Nothing in the backend source deletes records (only sign-out removes a session), every business table is exported, and admin-only paginated export. |
@@ -207,7 +208,9 @@ app/test/
 | `corrective_actions_screen_test` | Open / closed tabs, severity and source labels, close out, raise a manual action. |
 | `temperature_screen_test` | Readings list, recording via known units or the type dropdown, local validation, server errors, auto-open. |
 | `suppliers_screen_test` | List, role permissions, create / edit form, history, pop results. |
-| `record_lists_test` | Expiring stock labels, trace & recall (stock left, dispatched to, recall), products and par levels. |
+| `record_lists_test` | Expiring stock labels, trace & recall (stock left, dispatched to, made from it, batches made here, recall), products (supplies / made filter, recipes, par levels, new made product). |
+| `production_screen_test` | Batch list and detail, making a batch from a recipe (plan, shortfalls, save) or one-off (new product, picking stock, scanning, removing lines, use-by), validation and errors, the recipe editor and staff read-only. |
+| `widgets/product_picker_test` | Catalogue search by name / brand / barcode, "New:" for unlisted names, scanning a known and unknown barcode. |
 | `admin_screens_test` | Audit trail filters and change-detail dialog, members and invites, business settings, archive / restore. |
 | `scanner_screen_test` | Scan pops once, "Type it" entry, camera error message. |
 

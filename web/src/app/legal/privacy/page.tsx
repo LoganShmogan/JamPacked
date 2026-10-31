@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { LegalPage } from "@/components/LegalPage";
+import { legalDocs } from "@/lib/legal";
 import { pageMetadata } from "@/lib/seo";
 import { site } from "@/lib/site";
 
 export const metadata = pageMetadata(
-  "/legal/privacy/",
-  "Privacy Policy",
+  legalDocs.privacy.href,
+  legalDocs.privacy.title,
   "How JamPacked collects, uses, stores and protects personal information under the New Zealand Privacy Act 2020.",
 );
 
@@ -15,7 +16,7 @@ export default function Privacy() {
   return (
     <LegalPage
       title="Privacy Policy"
-      updated="28 October 2026"
+      updated={legalDocs.privacy.updated}
       intro={
         <p>
           {site.company} runs JamPacked and is responsible for the personal information it holds. We follow the New Zealand
@@ -29,11 +30,23 @@ export default function Privacy() {
             <ul key="a" className="list-disc space-y-1 pl-5">
               <li><strong>Account details:</strong> name, email address and the businesses and roles you belong to.</li>
               <li><strong>Business details:</strong> business name, address, country and region, and registration number.</li>
-              <li><strong>Records you enter:</strong> deliveries, stock, temperatures, programme records and audits, including the name of the person who entered or changed each one.</li>
-              <li><strong>Purchases:</strong> who bought a licence and when. Card details go straight to Stripe; we don&apos;t see them.</li>
+              <li><strong>Records you enter:</strong> deliveries, stock, your product catalogue, recipes and production batches, temperatures, programme records and audits, including the name of the person who entered or changed each one.</li>
+              <li><strong>People your business deals with:</strong> supplier contact details and the names of customers stock is dispatched to, as your business enters them. JamPacked remembers them so they can be picked again instead of retyped.</li>
+              <li><strong>Purchases:</strong> who bought a paid licence, which plan and when. The free NP1 plan involves no payment. Card details go straight to Stripe; we don&apos;t see them.</li>
               <li><strong>Messages:</strong> what you send us by email.</li>
               <li><strong>Website use:</strong> if analytics are on, which pages are visited, without cookies (see the <Link href="/legal/cookies/" className="underline">Cookies &amp; data policy</Link>).</li>
             </ul>,
+          ],
+        },
+        {
+          heading: "Information about other people",
+          body: [
+            <p key="a">
+              Supplier and customer details are held on behalf of the business that entered them, and used only to provide
+              JamPacked to that business: to trace food back to where it came from and on to where it went, as food safety rules
+              require. The business is responsible for being allowed to record them. If one of those people asks us about their
+              information, we&apos;ll pass the request to the business and help it respond.
+            </p>,
           ],
         },
         {
@@ -46,6 +59,7 @@ export default function Privacy() {
           heading: "Who we share it with",
           body: [
             <p key="a">The people in your business can see the records for that business, according to their role. Otherwise we only share information with providers that help us run JamPacked, such as Stripe for payments, and only for that purpose, or when the law requires it.</p>,
+            <p key="b">When you scan a barcode that isn&apos;t in your catalogue, the barcode number, and nothing else, is sent to Open Food Facts to look the product up.</p>,
           ],
         },
         {
