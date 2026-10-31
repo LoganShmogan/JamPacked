@@ -16,18 +16,56 @@ export const site = {
   appStoreUrl: null as string | null, // https://apps.apple.com/nz/app/jampacked/id...
 };
 
-// One licence per business, whichever programme it runs (docs/issues/billing-stripe.md). Prices are
-// in NZD including GST; leave a price null until it's decided and the store says "price on request".
-// Each plan's checkoutUrl is a Stripe Payment Link whose "after payment" page is set to
-// https://jampacked.co.nz/welcome/ in the Stripe dashboard. Without one, Buy opens an email instead.
-export type Plan = { key: "monthly" | "yearly"; name: string; price: number | null; per: string; checkoutUrl: string | null };
+// One licence per business, priced by the programme it follows (docs/issues/billing-stripe.md).
+// Prices are in NZD including GST; 0 is free. NP1 is free for one person with no staff: an NP1
+// business that adds staff pays the NP2 price. Each paid plan's checkoutUrls are Stripe Payment
+// Links whose "after payment" page is set to https://jampacked.co.nz/welcome/ in the Stripe
+// dashboard. Without one, Buy opens an email instead.
+export type Period = "monthly" | "yearly";
+export type Plan = {
+  key: "np1" | "np2" | "np3" | "custom";
+  name: string;
+  summary: string;
+  prices: Record<Period, number>;
+  checkoutUrls: Record<Period, string | null>;
+};
 
 export const pricing = {
   currency: "NZD",
-  trialDays: null as number | null,
+  moneyBackDays: 30,
+  periods: [
+    { key: "monthly", name: "Monthly", per: "month" },
+    { key: "yearly", name: "Yearly", per: "year" },
+  ] as { key: Period; name: string; per: string }[],
   plans: [
-    { key: "monthly", name: "Monthly", price: null, per: "month", checkoutUrl: null },
-    { key: "yearly", name: "Yearly", price: null, per: "year", checkoutUrl: null },
+    {
+      key: "np1",
+      name: "NP1",
+      summary: "National Programme 1, for one person running the business with no staff. Add staff and it's the NP2 price.",
+      prices: { monthly: 0, yearly: 0 },
+      checkoutUrls: { monthly: null, yearly: null },
+    },
+    {
+      key: "np2",
+      name: "NP2",
+      summary: "National Programme 2, or NP1 with staff.",
+      prices: { monthly: 50, yearly: 500 },
+      checkoutUrls: { monthly: null, yearly: null },
+    },
+    {
+      key: "np3",
+      name: "NP3",
+      summary: "National Programme 3.",
+      prices: { monthly: 100, yearly: 1000 },
+      checkoutUrls: { monthly: null, yearly: null },
+    },
+    {
+      key: "custom",
+      name: "Custom",
+      summary: "A programme you build yourself, from parts of the NPs or from scratch.",
+      prices: { monthly: 120, yearly: 1200 },
+      checkoutUrls: { monthly: null, yearly: null },
+    },
   ] as Plan[],
 };
 

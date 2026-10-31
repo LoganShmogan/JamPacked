@@ -72,7 +72,7 @@ describe("goods inwards → stock", () => {
     const res = await t.query(api.deliveries.trace, { ...as, search: "LOT-9" });
     const accepted = res.find((r) => r.accepted)!;
     expect(accepted.lot).toEqual({
-      _id: lots[0]._id, status: "available", qtyOnHand: 4, dispatched: [{ customer: "Cafe Two", qty: 2, at: expect.any(Number) }],
+      _id: lots[0]._id, status: "available", qtyOnHand: 4, dispatched: [{ customer: "Cafe Two", qty: 2, at: expect.any(Number) }], usedIn: [],
     });
     expect(res.find((r) => !r.accepted)!.lot).toBeNull();
   });

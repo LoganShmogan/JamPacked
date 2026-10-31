@@ -1,5 +1,5 @@
 // The store (licence plans and Buy), the after-payment welcome page, and picking the app for a device.
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import Store, { metadata as storeMetadata } from "@/app/store/page";
@@ -16,60 +16,86 @@ const UA = {
 };
 
 const reset = () => {
-  for (const p of pricing.plans) Object.assign(p, { price: null, checkoutUrl: null });
-  pricing.trialDays = null;
+  for (const p of pricing.plans) p.checkoutUrls = { monthly: null, yearly: null };
   site.playStoreUrl = null;
   site.appStoreUrl = null;
 };
 afterEach(reset);
 
 describe("store", () => {
-  test("before prices and Stripe links are set: price on request, Buy opens an email", async () => {
+  const card = (name: string) => within(screen.getByRole("region", { name: `${name} plan` }));
+
+  test("a plan per programme, yearly first; free NP1 opens the app, paid plans email until Stripe is set up", async () => {
     const { container } = render(<Store />);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("One licence per business");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Priced by your programme");
     expect(screen.getByRole("radio", { name: "Yearly" })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByText("Price on request")).toBeInTheDocument();
-    expect(screen.queryByText(/free trial/)).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Get started by email" })).toHaveAttribute(
-      "href", `mailto:${site.email}?subject=JamPacked%20yearly%20licence`,
+    expect(card("NP1").getByText("Free")).toBeInTheDocument();
+    expect(card("NP1").getByText(/Add staff and it's the NP2 price/)).toBeInTheDocument();
+    expect(card("NP1").getByRole("link", { name: "Start free" })).toHaveAttribute("href", site.appUrl);
+    expect(card("NP1").queryByText(/Save/)).not.toBeInTheDocument();
+    for (const [name, price, saving] of [["NP2", "$500", "$100"], ["NP3", "$1000", "$200"], ["Custom", "$1200", "$240"]]) {
+      expect(card(name).getByText(price)).toBeInTheDocument();
+      expect(card(name).getByText("/ year")).toBeInTheDocument();
+      expect(card(name).getByText(`Save ${saving} a year`)).toBeInTheDocument();
+    }
+    expect(card("NP2").getByRole("link", { name: "Get started by email" })).toHaveAttribute(
+      "href", `mailto:${site.email}?subject=JamPacked%20NP2%20yearly%20licence`,
     );
+    expect(screen.getByText("30-day money-back guarantee")).toBeInTheDocument();
+
     await userEvent.click(screen.getByRole("radio", { name: "Monthly" }));
     expect(screen.getByRole("radio", { name: "Monthly" })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByRole("link", { name: "Get started by email" })).toHaveAttribute(
-      "href", `mailto:${site.email}?subject=JamPacked%20monthly%20licence`,
+    expect(card("NP3").getByText("$100")).toBeInTheDocument();
+    expect(card("NP3").getByText("/ month")).toBeInTheDocument();
+    expect(screen.queryByText(/Save \$/)).not.toBeInTheDocument();
+    expect(card("NP3").getByRole("link", { name: "Get started by email" })).toHaveAttribute(
+      "href", `mailto:${site.email}?subject=JamPacked%20NP3%20monthly%20licence`,
     );
-    expect(screen.getByText("Every programme: NP1, NP2, NP3 and custom")).toBeInTheDocument();
+
+    expect(screen.getByText("Enter a product or supply once, then pick it or scan it")).toBeInTheDocument();
     const ld = [...container.querySelectorAll('script[type="application/ld+json"]')].map((s) => JSON.parse(s.innerHTML));
     expect(ld.map((d) => d["@type"])).toEqual(["SoftwareApplication", "BreadcrumbList"]); // FAQPage lives on /faq/
-    expect(screen.getByText("Can I cancel?")).toBeInTheDocument();
+    expect(screen.getByText("Which plan do I need?")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "All questions →" })).toHaveAttribute("href", "/faq/");
-    expect(ld[0].offers).toBeUndefined();
     expect(storeMetadata.alternates).toEqual({ canonical: "/store/" });
   });
 
-  test("with prices, a trial and Stripe links: shows them and Buy goes to Stripe", async () => {
-    Object.assign(pricing.plans[0], { price: 49, checkoutUrl: "https://buy.stripe.com/monthly" });
-    Object.assign(pricing.plans[1], { price: 490.5, checkoutUrl: "https://buy.stripe.com/yearly" });
-    pricing.trialDays = 14;
-    const { container } = render(<Store />);
-    expect(screen.getByText("$490.50")).toBeInTheDocument();
-    expect(screen.getByText(/NZD per business \/ year, incl\. GST/)).toBeInTheDocument();
-    expect(screen.getByText("14-day free trial")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Buy yearly licence" })).toHaveAttribute("href", "https://buy.stripe.com/yearly");
-    expect(screen.getByText(/Secure payment by Stripe/)).toBeInTheDocument();
+  test("with Stripe links, Buy goes to Stripe for the chosen period", async () => {
+    pricing.plans[1].checkoutUrls = { monthly: "https://buy.stripe.com/np2-monthly", yearly: "https://buy.stripe.com/np2-yearly" };
+    render(<Store />);
+    expect(card("NP2").getByRole("link", { name: "Buy NP2" })).toHaveAttribute("href", "https://buy.stripe.com/np2-yearly");
     await userEvent.click(screen.getByRole("radio", { name: "Monthly" }));
-    expect(screen.getByText("$49")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Buy monthly licence" })).toHaveAttribute("href", "https://buy.stripe.com/monthly");
+    expect(card("NP2").getByRole("link", { name: "Buy NP2" })).toHaveAttribute("href", "https://buy.stripe.com/np2-monthly");
+  });
+
+  test("search engines get every paid plan and period, and NP1 once as free", () => {
+    const { container } = render(<Store />);
     const app = JSON.parse(container.querySelector('script[type="application/ld+json"]')!.innerHTML);
-    expect(app.offers).toEqual([
-      expect.objectContaining({ name: "Monthly licence", price: "49.00", priceCurrency: "NZD", description: "$49 per business per month, incl. GST" }),
-      expect.objectContaining({ name: "Yearly licence", price: "490.50" }),
+    expect(app.offers.map((o: { name: string; price: string }) => [o.name, o.price])).toEqual([
+      ["NP1 licence", "0.00"],
+      ["NP2 monthly licence", "50.00"],
+      ["NP2 yearly licence", "500.00"],
+      ["NP3 monthly licence", "100.00"],
+      ["NP3 yearly licence", "1000.00"],
+      ["Custom monthly licence", "120.00"],
+      ["Custom yearly licence", "1200.00"],
     ]);
+    expect(app.offers[1]).toMatchObject({ priceCurrency: "NZD", description: "$50 per business per month, incl. GST" });
+    expect(app.offers[0].description).toMatch(/no staff/);
   });
 
   test("formatPrice drops cents only for whole dollars", () => {
     expect(formatPrice(49)).toBe("$49");
     expect(formatPrice(49.5)).toBe("$49.50");
+  });
+
+  test("a plan with no yearly saving doesn't claim one", () => {
+    const np2 = pricing.plans[1];
+    const before = np2.prices;
+    np2.prices = { monthly: 50, yearly: 600 };
+    render(<Store />);
+    expect(card("NP2").queryByText(/Save/)).not.toBeInTheDocument();
+    np2.prices = before;
   });
 });
 

@@ -11,6 +11,7 @@ Future<List<Map<String, dynamic>?>> openEditor(
   WidgetTester tester, [
   Map<String, dynamic>? initial,
   List<Map<String, dynamic>> locs = const [],
+  Map<String, Handler> handlers = const {},
 ]) async {
   final popped = <Map<String, dynamic>?>[];
   await pumpScreen(
@@ -30,7 +31,7 @@ Future<List<Map<String, dynamic>?>> openEditor(
         ),
       ),
     ),
-    convex: fakeWith({'locations:list': (_) => locs}),
+    convex: fakeWith({'locations:list': (_) => locs, ...handlers}),
     size: const Size(800, 2400),
   );
   await tester.tap(find.text('open'));
@@ -259,5 +260,68 @@ void main() {
     await tester.enterText(field('Reason for rejection'), 'Damaged');
     await done(tester);
     expect(popped.single!.containsKey('locationId'), isFalse);
+  });
+
+  testWidgets('picking from the catalogue fills the item in', (tester) async {
+    final popped = await openEditor(tester, null, const [], {
+      'products:list': (_) => [
+        {
+          '_id': 'p1',
+          'name': 'Flour',
+          'barcode': '9400',
+          'unit': 'kg',
+          'storageType': 'ambient',
+          'allergens': ['gluten'],
+        },
+        {
+          '_id': 'p2',
+          'name': 'Spice mix',
+          'storageType': 'ambient',
+          'allergens': <String>[],
+        },
+      ],
+    });
+    await tapOn(tester, find.byTooltip('Pick from catalogue'));
+    await tapOn(tester, find.byType(CloseButton));
+    await tapOn(tester, find.byTooltip('Pick from catalogue'));
+    await tapOn(tester, find.text('Flour'));
+    expect(find.text('Barcode 9400'), findsOneWidget);
+    await done(tester);
+    expect(popped.single, {
+      'productName': 'Flour',
+      'productId': 'p1',
+      'barcode': '9400',
+      'quantity': 1.0,
+      'unit': 'kg',
+      'storageType': 'ambient',
+      'packagingOk': true,
+      'labelOk': true,
+      'allergens': ['gluten'],
+      'accepted': true,
+    });
+  });
+
+  testWidgets('a catalogue product with no unit keeps the one chosen', (
+    tester,
+  ) async {
+    final popped = await openEditor(
+      tester,
+      {'unit': 'bag'},
+      const [],
+      {
+        'products:list': (_) => [
+          {
+            '_id': 'p2',
+            'name': 'Spice mix',
+            'storageType': 'ambient',
+            'allergens': <String>[],
+          },
+        ],
+      },
+    );
+    await tapOn(tester, find.byTooltip('Pick from catalogue'));
+    await tapOn(tester, find.text('Spice mix'));
+    await done(tester);
+    expect(popped.single!['unit'], 'bag');
   });
 }

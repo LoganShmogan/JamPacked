@@ -5,15 +5,75 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'production_screen.dart';
 
+/// The catalogue: supplies you receive and products you make, each entered once.
 class ProductsScreen extends StatefulWidget {
-  const ProductsScreen({super.key});
+  const ProductsScreen({super.key, this.kind});
+
+  /// Start filtered to 'supply' or 'made'; null shows everything.
+  final String? kind;
   @override
   State<ProductsScreen> createState() => _ProductsScreenState();
 }
 
 class _ProductsScreenState extends State<ProductsScreen> {
   String _filter = '';
+  late String? _kind = widget.kind;
+
+  void _openRecipe(Map p) =>
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => RecipeScreen(product: p)));
+
+  /// What a manager can change about a product.
+  Future<void> _actions(Map p) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.menu_book),
+              title: Text(p['recipe'] == null ? 'Add a recipe' : 'Recipe'),
+              subtitle: const Text('What goes into it, for production'),
+              onTap: () => Navigator.pop(c, 'recipe'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.low_priority),
+              title: const Text('Reorder level'),
+              onTap: () => Navigator.pop(c, 'par'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (choice == 'recipe') _openRecipe(p);
+    if (choice == 'par') await _editPar(p);
+  }
+
+  /// A product you make: named once, then its recipe.
+  Future<void> _newMade() async {
+    final name = await promptText(
+      context,
+      title: 'New product you make',
+      label: 'Name',
+      confirm: 'Next',
+    );
+    if (name == null || name.isEmpty || !mounted) return;
+    final id = await context.run(
+      () => context.m('products:create', {
+        'name': name,
+        'kind': 'made',
+        'storageType': 'chilled',
+        'allergens': <String>[],
+      }),
+    );
+    if (id != null && mounted) {
+      _openRecipe({'_id': id, 'name': name});
+    }
+  }
 
   /// Par level: reorder when available stock falls below it.
   Future<void> _editPar(Map p) async {
@@ -74,19 +134,48 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isManager = context.watch<AuthService>().user!.isManager;
     return Scaffold(
       appBar: AppBar(title: const Text('Products')),
+      floatingActionButton: isManager
+          ? FloatingActionButton.extended(
+              onPressed: _newMade,
+              icon: const Icon(Icons.add),
+              label: const Text('Product you make'),
+            )
+          : null,
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Responsive(
-              child: TextField(
-                onChanged: (v) => setState(() => _filter = v.toLowerCase()),
-                decoration: const InputDecoration(
-                  hintText: 'Search products',
-                  prefixIcon: Icon(Icons.search),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    onChanged: (v) => setState(() => _filter = v.toLowerCase()),
+                    decoration: const InputDecoration(
+                      hintText: 'Search products',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    children: [
+                      for (final (k, label) in [
+                        (null, 'All'),
+                        ('supply', 'Supplies'),
+                        ('made', 'Made here'),
+                      ])
+                        ChoiceChip(
+                          label: Text(label),
+                          selected: _kind == k,
+                          onSelected: (_) => setState(() => _kind = k),
+                        ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -97,18 +186,25 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 final list = (data as List)
                     .where(
                       (p) =>
-                          (p['name'] as String).toLowerCase().contains(_filter),
+                          (p['name'] as String).toLowerCase().contains(
+                            _filter,
+                          ) &&
+                          (_kind == null || (p['kind'] ?? 'supply') == _kind),
                     )
                     .toList();
                 if (list.isEmpty) {
-                  return const EmptyState(
+                  return EmptyState(
                     icon: Icons.inventory_2,
                     title: 'No products yet',
-                    message: 'Products are added automatically when you receive goods.',
+                    message: _kind == 'made'
+                        ? 'Add a product you make and give it a recipe, or make a one-off batch in Production.'
+                        : _kind == 'supply'
+                        ? 'Supplies are added automatically when you receive goods.'
+                        : 'Products are added when you receive goods or make a batch.',
                   );
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
                   itemCount: list.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, i) {
@@ -119,8 +215,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       child: Card(
                         clipBehavior: Clip.antiAlias,
                         child: InkWell(
-                          onTap: context.watch<AuthService>().user!.isManager
-                              ? () => _editPar(p)
+                          onTap: isManager
+                              ? () => _actions(p)
+                              : p['recipe'] != null
+                              ? () => _openRecipe(p)
                               : null,
                           child: Padding(
                             padding: const EdgeInsets.all(14),
@@ -143,6 +241,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                         ),
                                       ),
                                     ),
+                                    if (p['kind'] == 'made')
+                                      const Padding(
+                                        padding: EdgeInsets.only(right: 6),
+                                        child: Pill(
+                                          'Made here',
+                                          tone: Tone.brand,
+                                        ),
+                                      ),
                                     if (nova != null)
                                       Pill(
                                         'NOVA ${fmtNum(nova)}',
@@ -183,6 +289,16 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                     ],
                                   ),
                                 ],
+                                if (p['recipe'] != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      'Recipe: ${(p['recipe']['ingredients'] as List).map((i) => i['productName']).join(', ')}',
+                                      style: const TextStyle(
+                                        color: AppColors.muted,
+                                      ),
+                                    ),
+                                  ),
                                 if (p['parLevel'] != null)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 8),

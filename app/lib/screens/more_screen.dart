@@ -11,6 +11,7 @@ import 'export_screen.dart';
 import 'programme_screen.dart';
 import 'business_picker_screen.dart';
 import 'expiring_screen.dart';
+import 'production_screen.dart';
 import 'products_screen.dart';
 import 'suppliers_screen.dart';
 import 'temperature_screen.dart';
@@ -141,9 +142,16 @@ class MoreScreen extends StatelessWidget {
                       ),
                       const Divider(),
                       tile(
+                        Icons.soup_kitchen,
+                        'Production',
+                        'Batches you make, from recipes or one-off',
+                        const ProductionScreen(),
+                      ),
+                      const Divider(),
+                      tile(
                         Icons.inventory_2,
                         'Products',
-                        'Catalogue, allergens & barcodes',
+                        'Supplies, things you make, recipes & barcodes',
                         const ProductsScreen(),
                       ),
                       const Divider(),

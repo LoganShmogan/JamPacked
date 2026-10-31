@@ -31,7 +31,7 @@ export default function Programmes() {
       </div>
       <p className="mt-6 text-sm text-muted">
         Modules are based on MPI&apos;s National Programme guidance (Dec 2025). They&apos;re a starting point, not endorsed
-        by MPI or FSANZ: check them against your registration. Every programme is included in every licence.
+        by MPI or FSANZ: check them against your registration. Each is priced on its own: <Link href="/store/" className="font-semibold text-jam hover:underline">see pricing</Link>.
       </p>
     </div>
   );

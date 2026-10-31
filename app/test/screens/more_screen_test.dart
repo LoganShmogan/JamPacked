@@ -11,6 +11,7 @@ import 'package:jampacked/screens/products_screen.dart';
 import 'package:jampacked/screens/suppliers_screen.dart';
 import 'package:jampacked/screens/temperature_screen.dart';
 import 'package:jampacked/screens/trace_screen.dart';
+import 'package:jampacked/screens/production_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../fixtures.dart';
@@ -91,6 +92,7 @@ void main() {
   for (final (label, screen) in [
     ('Temperature checks', TemperatureScreen),
     ('Suppliers', SuppliersScreen),
+    ('Production', ProductionScreen),
     ('Products', ProductsScreen),
     ('Expiring stock', ExpiringScreen),
     ('Trace & recall', TraceScreen),

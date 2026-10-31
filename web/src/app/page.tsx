@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { JsonLd } from "@/components/JsonLd";
-import { steps } from "@/lib/content";
+import { priceSummary, steps } from "@/lib/content";
 import { programmes } from "@/lib/programmes";
 import { pageMetadata, softwareApplication } from "@/lib/seo";
-import { site } from "@/lib/site";
+import { pricing, site } from "@/lib/site";
 
 const title = "JamPacked: food safety records that fill themselves in";
 
@@ -26,8 +26,9 @@ export default function Home() {
             <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-jam-dark">Food safety app for NZ &amp; AU food businesses</p>
             <h1 className="text-4xl font-bold leading-tight sm:text-5xl">Food safety records that fill themselves in.</h1>
             <p className="mt-5 max-w-xl text-lg text-muted">
-              Record every delivery once. JamPacked turns it into stock you can rotate and trace, keeps the records
-              your MPI National Programme needs, and answers your audits for you. On your phone, at the back door.
+              Enter everything once. Every delivery becomes stock you can rotate, make into your own products and
+              trace, JamPacked keeps the records your MPI National Programme needs, and it answers your audits for you.
+              On your phone, at the back door.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/store/" className="rounded-lg bg-jam px-5 py-3 text-center font-semibold text-on-jam hover:bg-jam-dark">
@@ -44,7 +45,7 @@ export default function Home() {
 
       <section className="mx-auto max-w-5xl px-4 py-14">
         <h2 className="text-2xl font-bold">From the back door to the audit</h2>
-        <ol className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {steps.map((s, i) => (
             <li key={s.title} className="rounded-xl border border-border bg-surface p-5">
               <span className="text-sm font-bold text-jam">{i + 1}</span>
@@ -54,6 +55,17 @@ export default function Home() {
           ))}
         </ol>
         <Link href="/features/" className="mt-6 inline-block font-semibold text-jam hover:underline">See all features →</Link>
+      </section>
+
+      <section className="border-t border-border bg-surface">
+        <div className="mx-auto max-w-5xl px-4 py-14">
+          <h2 className="text-2xl font-bold">Type it once. Scan it forever.</h2>
+          <p className="mt-3 max-w-2xl text-muted">
+            Enter a product, supply, supplier or customer once. Next time it comes up, at goods inwards, in a recipe,
+            in production or on a dispatch, search for it or scan the barcode and everything is already there: name,
+            unit, storage and allergens.
+          </p>
+        </div>
       </section>
 
       <section className="border-y border-border bg-surface">
@@ -81,10 +93,9 @@ export default function Home() {
       <section className="bg-cream">
         <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-12 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl font-bold">One licence per business. Every programme included.</h2>
+            <h2 className="text-2xl font-bold">Priced by your programme. NP1 is free.</h2>
             <p className="mt-2 max-w-xl text-muted">
-              Buy online, then get the app on Google Play, the App Store or in your browser. Your whole team signs in
-              with their own account.
+              {priceSummary()} Every paid plan has a {pricing.moneyBackDays}-day money-back guarantee.
             </p>
           </div>
           <Link href="/store/" className="shrink-0 rounded-lg bg-jam px-5 py-3 text-center font-semibold text-on-jam hover:bg-jam-dark">

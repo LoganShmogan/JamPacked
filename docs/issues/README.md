@@ -22,7 +22,8 @@ folder while developing and add to it as new problems turn up.
 
 ## Launch plan
 
-Decisions so far: subscription per business (monthly / yearly, free trial) sold on the website with Stripe;
+Decisions so far: subscription per business, priced by programme (NP1 free for one user; NP2 $50/mo or $500/yr;
+NP3 $100/$1000; Custom $120/$1200; 30-day money-back, no trial) sold on the website with Stripe;
 Next.js website on Vercel; Convex Cloud; Clerk for sign-in everywhere; PostHog for analytics.
 
 ```

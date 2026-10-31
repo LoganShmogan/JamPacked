@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/product_picker.dart';
 import 'stock_screen.dart';
 import 'scanner_screen.dart';
 import 'suppliers_screen.dart';
@@ -107,6 +108,7 @@ class _GoodsInFormScreenState extends State<GoodsInFormScreen> {
           'productName': p['name'],
           'storageType': p['storageType'],
           'allergens': p['allergens'],
+          'unit': ?p['unit'],
         };
       }
       if (!mounted) return base;
@@ -498,6 +500,21 @@ class _ItemEditorScreenState extends State<ItemEditorScreen> {
     }
   }
 
+  /// Fills the item in from a product already in the catalogue.
+  Future<void> _fromCatalogue() async {
+    final p = await pickProduct(context);
+    if (p == null) return;
+    setState(() {
+      i
+        ..['productId'] = p['_id']
+        ..['barcode'] = p['barcode']
+        ..['storageType'] = p['storageType']
+        ..['unit'] = p['unit'] ?? i['unit'];
+      _name.text = p['name'];
+      _allergens = List<String>.from(p['allergens']);
+    });
+  }
+
   void _save() {
     if (!_form.currentState!.validate()) return;
     final out = {
@@ -548,7 +565,14 @@ class _ItemEditorScreenState extends State<ItemEditorScreen> {
                   TextFormField(
                     controller: _name,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(labelText: 'Product'),
+                    decoration: InputDecoration(
+                      labelText: 'Product',
+                      suffixIcon: IconButton(
+                        tooltip: 'Pick from catalogue',
+                        onPressed: _fromCatalogue,
+                        icon: const Icon(Icons.list_alt),
+                      ),
+                    ),
                     validator: (v) => v!.trim().isEmpty ? 'Required' : null,
                   ),
                   if (i['barcode'] != null)
@@ -579,6 +603,7 @@ class _ItemEditorScreenState extends State<ItemEditorScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: DropdownButtonFormField<String>(
+                          key: ValueKey(i['unit']),
                           initialValue: units.contains(i['unit'])
                               ? i['unit']
                               : 'ea',

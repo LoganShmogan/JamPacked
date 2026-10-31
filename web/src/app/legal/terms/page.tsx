@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { LegalPage } from "@/components/LegalPage";
+import { legalDocs } from "@/lib/legal";
 import { pageMetadata } from "@/lib/seo";
-import { site } from "@/lib/site";
+import { pricing, site } from "@/lib/site";
 
-export const metadata = pageMetadata("/legal/terms/", "Terms of Service", "The terms for buying and using a JamPacked licence.");
+export const metadata = pageMetadata(legalDocs.terms.href, legalDocs.terms.title, "The terms for buying and using a JamPacked licence.");
 
 // Draft based on Save Point's own terms (13 May 2026). Have a NZ lawyer review before launch
 // (docs/issues/legal-documents.md), and change the date whenever the wording changes.
@@ -10,7 +12,7 @@ export default function Terms() {
   return (
     <LegalPage
       title="Terms of Service"
-      updated="28 October 2026"
+      updated={legalDocs.terms.updated}
       intro={
         <p>
           These terms apply when you buy a JamPacked licence or use the JamPacked app or website. JamPacked is provided by{" "}
@@ -21,7 +23,11 @@ export default function Terms() {
         {
           heading: "The service",
           body: [
-            <p key="a">JamPacked is software for recording goods inwards, stock, temperatures, programme records and audits. It runs on Android, iPhone and the web.</p>,
+            <p key="a">
+              JamPacked is software for recording goods inwards, stock, production (recipes and the batches you make), temperatures,
+              programme records and audits. It remembers the products, supplies, suppliers and customers you enter so they can be
+              picked or scanned next time. It runs on Android, iPhone and the web.
+            </p>,
             <p key="b">
               JamPacked helps you keep records. It doesn&apos;t replace your registered food control plan or National Programme, and your
               verifier, EHO or regulator decides what&apos;s required. Programme modules are based on MPI guidance as a starting point; they
@@ -30,10 +36,23 @@ export default function Terms() {
           ],
         },
         {
-          heading: "Licences",
+          heading: "Licences and plans",
           body: [
-            <p key="a">A licence covers one business in the app, including every programme module and the staff you invite to that business.</p>,
-            <p key="b">Licences are sold on this website, monthly or yearly, and renew automatically until cancelled. Prices are in New Zealand dollars and include GST.</p>,
+            <p key="a">
+              A licence covers one business in the app, with every feature. Its plan follows the programme the business is set
+              to: NP1, NP2, NP3 or Custom. Current prices are on the <Link href="/store/" className="underline">Store</Link> page.
+            </p>,
+            <p key="b">
+              The NP1 plan is free for one person running the business with no staff. Once anyone else is invited to an NP1
+              business, it needs the NP2 plan: we&apos;ll ask the business&apos;s admin to buy it, and may limit the business to
+              read-only access until they do. Paid plans include the staff you invite to that business.
+            </p>,
+            <p key="c">
+              If you change the programme a business follows, its plan changes to match from the next billing period. Moving to a
+              lower-priced plan doesn&apos;t refund the period you&apos;ve already paid for.
+            </p>,
+            <p key="d">Licences are sold on this website, monthly or yearly, and renew automatically until cancelled. Prices are in New Zealand dollars and include GST.</p>,
+            <p key="e">We may change prices, or what the free plan includes, by telling licence holders by email at least 30 days beforehand. A price change applies from your next renewal.</p>,
           ],
         },
         {
@@ -46,8 +65,27 @@ export default function Terms() {
         {
           heading: "Cancelling and refunds",
           body: [
-            <p key="a">You can cancel at any time. Your licence runs to the end of the period you&apos;ve paid for and isn&apos;t refunded for the unused part, unless the law requires it.</p>,
+            <p key="m">
+              Money-back guarantee: if you ask within {pricing.moneyBackDays} days of the first payment for a business&apos;s licence,
+              we&apos;ll refund that payment in full and end the licence. It applies once per business, to the first payment only.
+            </p>,
+            <p key="a">After that you can still cancel at any time. Your licence runs to the end of the period you&apos;ve paid for and isn&apos;t refunded for the unused part, unless the law requires it.</p>,
             <p key="b">When a licence ends, the business becomes read-only. Your records are not deleted: you can still view and export them, so you can meet your record-keeping obligations.</p>,
+          ],
+        },
+        {
+          heading: "Production, allergens and product details",
+          body: [
+            <p key="a">
+              When you make a batch, JamPacked lists the allergens recorded on everything that went into it, and can fill in its
+              use-by date from the shelf life you set on its recipe. Product details found by barcode may come from Open Food
+              Facts, a public database that we don&apos;t control.
+            </p>,
+            <p key="b">
+              These are aids, not checks. They are only as accurate as what was entered. You remain responsible for your
+              recipes, ingredients, allergen declarations, date marks and labels on everything you make or sell, as the Food
+              Standards Code requires.
+            </p>,
           ],
         },
         {
@@ -61,6 +99,11 @@ export default function Terms() {
           heading: "Your responsibilities",
           body: [
             <p key="a">Keep your sign-in details safe, make sure the people you invite use JamPacked properly, and enter records accurately. Don&apos;t misuse the service, try to get into other businesses&apos; data, or interfere with how it runs.</p>,
+            <p key="b">
+              If you record information about other people, such as the customers you dispatch stock to or your suppliers&apos;
+              contacts, you&apos;re responsible for being allowed to under the privacy law that applies to you. See our{" "}
+              <Link href="/legal/privacy/" className="underline">Privacy Policy</Link>.
+            </p>,
           ],
         },
         {

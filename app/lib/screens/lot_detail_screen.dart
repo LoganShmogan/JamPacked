@@ -29,6 +29,11 @@ class LotDetailScreen extends StatelessWidget {
   Future<void> _move(BuildContext context, Map lot, String type) async {
     final qty = TextEditingController();
     final note = TextEditingController();
+    // Customers stock has gone to before, so they only get typed once.
+    final List customers = type == 'dispatch'
+        ? await context.q('stock:customers').catchError((_) => [])
+        : [];
+    if (!context.mounted) return;
     final noteLabel = switch (type) {
       'dispatch' => 'Customer (business it went to)',
       'waste' => 'Why was it wasted?',
@@ -61,6 +66,17 @@ class LotDetailScreen extends StatelessWidget {
                 controller: note,
                 decoration: InputDecoration(labelText: noteLabel),
               ),
+            if (customers.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final c in customers.take(8))
+                    ActionChip(label: Text(c), onPressed: () => note.text = c),
+                ],
+              ),
+            ],
           ],
         ),
         actions: [
