@@ -9,6 +9,8 @@ and records the app asks for. One account can run several businesses.
 
 Live: https://app.jampacked.co.nz
 
+© Save Point Limited (trading as JamPacked). Proprietary, not open source; see [LICENSE](../LICENSE).
+
 ---
 
 ## Contents

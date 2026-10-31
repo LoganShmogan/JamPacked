@@ -1,6 +1,28 @@
-# JamPacked: goods inwards, stock & food safety programmes for NZ & AU businesses
+<p align="center">
+  <a href="https://jampacked.co.nz"><img src="web/public/logo.jpg" alt="JamPacked" width="240"></a>
+</p>
 
-By Save Point Limited (trading as JamPacked). Live at https://app.jampacked.co.nz
+<h1 align="center">JamPacked</h1>
+
+<p align="center">
+  Goods inwards, stock and food safety programmes for New Zealand and Australian food businesses.<br>
+  Built and owned by <a href="https://savepoint.co.nz"><b>Save Point Limited</b></a> (trading as JamPacked), New Zealand.
+</p>
+
+<p align="center">
+  <a href="https://app.jampacked.co.nz">App</a> ·
+  <a href="https://jampacked.co.nz">Website</a> ·
+  <a href="docs/DOCUMENTATION.md">Docs</a> ·
+  <a href="docs/TESTING.md">Testing</a> ·
+  <a href="docs/issues/README.md">Issues</a> ·
+  <a href="SECURITY.md">Security</a> ·
+  <a href="LICENSE">Licence</a>
+</p>
+
+---
+
+> [!IMPORTANT]
+> JamPacked is a commercial product and Save Point's proprietary software. The code is public so customers and partners can see how it works. It is **not** open source, and you may not run, copy or resell it. See [LICENSE](LICENSE).
 
 Mobile-first Flutter app (Android, iOS, web) with a Convex backend, in the spirit of Safe Food Pro.
 **Goods inwards, stock and production are the core**: every delivery becomes stock you can rotate, use,
@@ -8,11 +30,33 @@ make into your own products, dispatch, hold and recall, and anything entered onc
 or a custom programme you build) and the app prompts for the checks and records that programme needs.
 One account can run several businesses; you pick the one you're working in each day.
 
+## Project layout
+
 ```
-backend/   Convex functions + schema (TypeScript)
-app/       Flutter app
-web/       Website at jampacked.co.nz: landing, features, programmes, pricing, help, FAQ, legal, owner dashboard (/admin), Next.js
+JamPacked/
+├── app/                    # Flutter app (Android, iOS, web)
+│   ├── lib/                # main.dart, screens/, services/ (Convex client, auth), theme
+│   ├── assets/help/        # guides.json: the in-app Help and the website's /help/ page
+│   ├── test/               # Unit and widget tests (100% coverage enforced)
+│   ├── tool/               # check_coverage.dart
+│   ├── screenshots/        # Renders the website's screenshots from demo data
+│   └── android/  ios/  web/
+├── backend/                # Convex backend (TypeScript)
+│   ├── convex/             # schema.ts, one file per feature, lib/ helpers, _generated/
+│   └── tests/              # Vitest + convex-test
+├── web/                    # jampacked.co.nz: landing, pricing, help, legal, owner dashboard (Next.js)
+│   ├── src/                # app/ routes, lib/site.ts (prices, contact details)
+│   ├── public/  scripts/  tests/
+├── deploy/                 # loganserver deploy: deploy.sh, docker-compose.yml, nginx.conf
+├── docs/
+│   ├── DOCUMENTATION.md    # Full technical and user documentation
+│   ├── TESTING.md          # How the tests are organised
+│   └── issues/             # Open issues and to-dos before launch
+├── LICENSE                 # Proprietary, all rights reserved
+└── SECURITY.md
 ```
+
+The full file-by-file layout is in [`docs/DOCUMENTATION.md` §3](docs/DOCUMENTATION.md#3-repository-layout).
 
 ## Run it locally
 
@@ -116,3 +160,21 @@ To move to Clerk:
 native build steps. Screens refetch after any mutation and support pull-to-refresh. For live push updates
 across devices you can swap in the `convex_flutter` package (WebSocket subscriptions), which needs a Rust
 toolchain for mobile builds.
+
+## Secrets
+
+No secrets are committed to this repo. Local Convex settings live in `backend/.env.local`, and the website's
+in `web/.env*`. All of them are git-ignored, along with keystores, signing keys and `google-services.json`.
+The production Convex instance runs on Save Point's own server and is configured there, never in git.
+See [SECURITY.md](SECURITY.md).
+
+## Ownership
+
+**JamPacked** is © 2026 Save Point Limited, a New Zealand company (company number 9392145), trading as JamPacked. All rights reserved.
+
+- App: [app.jampacked.co.nz](https://app.jampacked.co.nz)
+- Website: [jampacked.co.nz](https://jampacked.co.nz) · [savepoint.co.nz](https://savepoint.co.nz)
+- General enquiries: [contact@savepoint.co.nz](mailto:contact@savepoint.co.nz)
+- Support, privacy and security: [support@savepoint.co.nz](mailto:support@savepoint.co.nz)
+
+"JamPacked", "Save Point" and their logos are the property of Save Point Limited. MPI, FSANZ, Open Food Facts, Convex, Clerk and Stripe are the names of their respective owners. JamPacked is not affiliated with or endorsed by any of them.

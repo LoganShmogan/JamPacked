@@ -1,0 +1,34 @@
+JamPacked
+Copyright (c) 2026 Save Point Limited. All rights reserved.
+
+Save Point Limited is a company registered in New Zealand
+(company number 9392145), trading as JamPacked. https://savepoint.co.nz
+
+This software, including its source code, documentation, programme
+modules, audit templates, help guides, logos and other assets (the
+"Software"), is the proprietary property of Save Point Limited.
+
+The source code is made publicly visible for reference only. Viewing
+it does not grant any licence. Without the prior written permission of
+Save Point Limited, you may not use, copy, modify, merge, publish,
+distribute, sublicense, sell, host or create derivative works from the
+Software, in whole or in part.
+
+Using the JamPacked service at app.jampacked.co.nz is covered by its
+own terms, published on jampacked.co.nz, not by this licence.
+
+The "JamPacked" and "Save Point" names and logos are the property of
+Save Point Limited and may not be used without permission.
+
+Third-party libraries used by the Software remain under their own
+licences, as listed in app/pubspec.yaml, backend/package.json and
+web/package.json.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED. TO THE EXTENT ALLOWED BY NEW ZEALAND LAW, SAVE POINT LIMITED
+IS NOT LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE
+SOFTWARE OR ITS USE.
+
+This licence is governed by the laws of New Zealand.
+
+To ask for permission, email contact@savepoint.co.nz.
