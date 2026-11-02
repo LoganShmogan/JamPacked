@@ -7,6 +7,8 @@ There are no terms, privacy policy or other legal pages. Apple, Google and Strip
 privacy policy and terms before launch.
 
 ## To do
+Research notes and the gaps found in the drafts (3 Nov 2026): [../legal-research.md](../legal-research.md).
+
 **Drafts are on the website** under `/legal/` (an index page, linked from the header menu and every
 document), all dated 31 October 2026. Dates and titles live in `web/src/lib/legal.ts`; change a date whenever
 that document's wording changes. They now cover: plans by programme, the free NP1 plan and NP1 with staff
