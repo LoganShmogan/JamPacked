@@ -22,7 +22,7 @@ Documents (published on the website under `/legal/...`, linked from the app's si
   NP1 plan (one user, no staff), billing, renewals, cancellation, the 30-day money-back guarantee, refunds, what happens to data when a subscription ends (read-only, records kept 7 years,
   export available), acceptable use, liability limits, governing law (NZ)
 - [ ] **Privacy Policy** (NZ Privacy Act 2020; also AU Privacy Act if selling there): what's collected,
-  where it's stored (Convex region, Clerk, Stripe, PostHog, Vercel), how long, who it's shared with,
+  where it's stored (Convex region, Clerk, Stripe, PostHog, Cloudflare), how long, who it's shared with,
   access/correction requests, account deletion
 - [ ] **Cookie / analytics notice** (PostHog; see [analytics-tracking.md](analytics-tracking.md))
 - [ ] **Data retention & deletion statement** (7-year records, account deletion rules; see
@@ -30,7 +30,7 @@ Documents (published on the website under `/legal/...`, linked from the app's si
 - [ ] **Compliance disclaimer:** the app helps keep records but doesn't replace the business's registered
   programme, verifier or EHO; templates are a starting point; not endorsed by MPI / FSANZ
 - [ ] **Refund & cancellation policy** (can sit inside the terms)
-- [ ] **Sub-processors list** (Convex, Clerk, Stripe, Vercel, PostHog, Open Food Facts lookups, and Anthropic
+- [ ] **Sub-processors list** (Convex, Clerk, Stripe, Cloudflare, PostHog, Open Food Facts lookups, and Anthropic
   and an email provider once the support chatbot is on: [support-chatbot.md](support-chatbot.md))
 - [x] Privacy Policy covers task timings (how long forms are open, shown on Insights) (31 Oct 2026)
 - [ ] In-app: tick box to accept the terms at sign-up, record which version and when (audit log)

@@ -76,7 +76,7 @@ NZ SaaS products set up their terms.
   4 years*. Seven years matches the **tax record** rule (Tax Administration Act). Either justification
   works, but the policy should state the real one. Seven years is also a promise we must be able to keep
   (see §4, "if we stop trading").
-- **IPP 12 (sending overseas):** storing data with **agents** overseas (Convex, Clerk, Stripe, Vercel,
+- **IPP 12 (sending overseas):** storing data with **agents** overseas (Convex, Clerk, Stripe, Cloudflare,
   PostHog, Anthropic) is **not a disclosure under IPP 12**, as long as they only process it for us. We stay
   responsible for them. Still **name each provider and the country** in the policy: customers expect it,
   and the privacy issue already lists it as a gap.
@@ -218,10 +218,11 @@ Compared against Xero's NZ terms (the best local reference for B2B SaaS) and typ
     the business's catalogue), the ODbL's share-alike *may* apply to that combined database if it's
     "publicly used". It's probably fine because each catalogue is private to its business. **Ask the
     lawyer, or email reuse@openfoodfacts.org.**
-- **GST:** the website says prices "include GST", but Save Point isn't registered. **You can't charge or
-  show GST until registered.** Either register now (voluntary) or change the wording to "NZD, no GST
-  charged" until you do. Once registered, Stripe receipts must meet the **taxable supply information**
-  rules, which require the GST number.
+- **GST:** Save Point Limited is GST-registered, and JamPacked sales go on its number and returns, so
+  "incl. GST" prices are right. Stripe Tax works out the 15% (inclusive). Receipts must meet the **taxable
+  supply information** rules: the GST number over $200; the customer's name and address too over $1,000
+  (Custom yearly). Software sold to overseas businesses is generally **zero-rated** (*check with the
+  accountant*), so an AU business paying the same NZ$ price pays no NZ GST.
   - **AU customers:** selling only to AU **GST-registered businesses** generally means **no AU GST
     registration**: the customer reverse-charges.
   - **Collect their ABN at checkout.** If you start selling to AU businesses that aren't GST-registered,
@@ -264,7 +265,7 @@ re-accepting the terms.
 | Terms of Service | Draft | Add the clauses in §3, plus AU section; lawyer review |
 | Privacy Policy | Draft | Add privacy officer, providers + countries, IPP 3A, breach handling, 7-year reason, AI |
 | Data processing terms | No | New section in the terms (or separate page) |
-| Sub-processors list | No | Convex, Clerk, Stripe, Vercel, PostHog, Open Food Facts (barcode only), later Anthropic + email |
+| Sub-processors list | No | Convex, Clerk, Stripe, Cloudflare, PostHog, Open Food Facts (barcode only), later Anthropic + email |
 | Cookies & data | Draft | Update when Clerk lands |
 | Support policy | No | New, short |
 | Acceptable use | No | Fold into the terms |

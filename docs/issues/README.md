@@ -23,14 +23,16 @@ folder while developing and add to it as new problems turn up.
 
 ## Launch plan
 
+Running costs: [../costs.md](../costs.md). Email addresses and where they go: [../email-addresses.md](../email-addresses.md).
+
 Decisions so far: subscription per business, priced by programme (NP1 free for one user; NP2 $50/mo or $500/yr;
 NP3 $100/$1000; Custom $120/$1200; 30-day money-back, no trial) sold on the website with Stripe;
-Next.js website on Vercel; Convex Cloud; Clerk for sign-in everywhere; PostHog for website and funnel analytics,
+Next.js website and Flutter web app on Cloudflare Pages; Convex Cloud; Clerk for sign-in everywhere; PostHog for website and funnel analytics,
 with task timings and the in-app Insights kept in our own database; a Claude support chatbot that hands over
 to a person ([support-chatbot.md](support-chatbot.md)).
 
 ```
-www.<domain>   Next.js (Vercel): landing, pricing, legal, checkout, billing, reports, owner dashboard
+www.<domain>   Next.js (Cloudflare Pages): landing, pricing, legal, checkout, billing, reports, owner dashboard
 app.<domain>   Flutter web app (same code as the store apps)
 Convex Cloud   one backend for everything, incl. subscriptions kept in sync by Stripe webhooks
 Clerk          one sign-in for the website, web app and phone apps
