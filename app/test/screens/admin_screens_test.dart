@@ -252,6 +252,31 @@ void main() {
   });
 
   group('SettingsScreen', () {
+    testWidgets('changing the business type reloads the business', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      final convex = fakeWith({'settings:update': (_) => null});
+      final auth = signedIn(convex);
+      await pumpScreen(
+        tester,
+        const SettingsScreen(),
+        convex: convex,
+        auth: auth,
+      );
+      await tapOn(tester, find.text('Mixed / other'));
+      await tapOn(tester, find.text('Farm, orchard or grower').last);
+      await tapOn(tester, find.text('Save'));
+      expect(
+        convex.callsTo('settings:update').single.args['operation'],
+        'farm',
+      );
+      expect(convex.callsTo('businesses:mine'), hasLength(1));
+      // Saving again without a change doesn't reload.
+      await tapOn(tester, find.text('Save'));
+      expect(convex.callsTo('businesses:mine'), hasLength(1));
+    });
+
     testWidgets('edits and saves business settings', (tester) async {
       final convex = await pumpScreen(
         tester,
@@ -291,6 +316,7 @@ void main() {
         'expiryWarningDays': 3.0,
         'jurisdiction': 'AU',
         'region': 'Victoria',
+        'operation': 'mixed',
         'businessId': 'b1',
         'sessionToken': 'tok',
       });

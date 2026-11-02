@@ -27,6 +27,7 @@ class Business {
     this.archived = false,
     this.isOwner = false,
     this.openCorrectiveActions = 0,
+    this.operation = 'mixed',
   });
   factory Business.fromJson(Map<String, dynamic> j) => Business(
     j['_id'],
@@ -37,12 +38,38 @@ class Business {
     archived: j['archived'] ?? false,
     isOwner: j['isOwner'] ?? false,
     openCorrectiveActions: j['openCorrectiveActions'] ?? 0,
+    operation: j['operation'] ?? 'mixed',
   );
   final String id, name, programme, role;
   final List<String> sectors;
   final bool archived, isOwner;
   final int openCorrectiveActions;
+
+  /// What kind of operation it is ([operations]); sets the production wording and features.
+  final String operation;
+
+  /// Production is on the main nav for everyone but retail.
+  bool get producing => operation != 'retail';
+
+  /// Farms (and mixed businesses) harvest from growing areas.
+  bool get harvests => operation == 'farm' || operation == 'mixed';
+
+  /// What the production tab is called.
+  String get productionLabel => switch (operation) {
+    'kitchen' => 'Kitchen',
+    'farm' => 'Harvest',
+    _ => 'Production',
+  };
 }
+
+/// The kinds of operation a business can be. Mixed / other gets every production feature.
+const operations = {
+  'kitchen': 'Kitchen, café or caterer',
+  'manufacturer': 'Manufacturer',
+  'farm': 'Farm, orchard or grower',
+  'retail': 'Retail',
+  'mixed': 'Mixed / other',
+};
 
 String _today() => DateTime.now().toIso8601String().substring(0, 10);
 

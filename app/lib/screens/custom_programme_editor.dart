@@ -285,6 +285,7 @@ class _RecordTypeEditorState extends State<RecordTypeEditor> {
     text: widget.initial?['description'],
   );
   late String? _frequency = widget.initial?['frequency'];
+  late String? _production = widget.initial?['production'];
   late final List<Map<String, dynamic>> _fields = [
     for (final f in (widget.initial?['fields'] ?? []) as List)
       Map<String, dynamic>.from(f),
@@ -305,6 +306,7 @@ class _RecordTypeEditorState extends State<RecordTypeEditor> {
       'name': _name.text.trim(),
       'description': _description.text.trim(),
       'frequency': _frequency,
+      'production': ?_production,
       'fields': [
         for (final f in _fields)
           {
@@ -464,6 +466,23 @@ class _RecordTypeEditorState extends State<RecordTypeEditor> {
               _frequencyPicker(
                 _frequency,
                 (v) => setState(() => _frequency = v),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
+                initialValue: _production,
+                decoration: const InputDecoration(
+                  labelText: 'Use as a production check',
+                ),
+                items: const [
+                  DropdownMenuItem(value: null, child: Text('No')),
+                  DropdownMenuItem(value: 'make', child: Text('On batches')),
+                  DropdownMenuItem(
+                    value: 'harvest',
+                    child: Text('On harvests'),
+                  ),
+                  DropdownMenuItem(value: 'both', child: Text('On both')),
+                ],
+                onChanged: (v) => setState(() => _production = v),
               ),
               SectionTitle(
                 'Fields',

@@ -47,9 +47,10 @@ void main() {
       expect(find.byType(NavigationRail), findsNothing);
       for (final (label, i) in [
         ('Goods In', 1),
-        ('Stock', 2),
-        ('Checks', 3),
-        ('More', 4),
+        ('Production', 2),
+        ('Stock', 3),
+        ('Checks', 4),
+        ('More', 5),
         ('Home', 0),
       ]) {
         await tester.tap(
@@ -78,7 +79,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(tab(tester), 3);
+      expect(tab(tester), 4);
       for (final s in [GoodsInScreen, StockScreen, AuditsScreen, MoreScreen]) {
         expect(find.byType(s, skipOffstage: false), findsOneWidget);
       }
@@ -185,11 +186,11 @@ void main() {
       await tapOn(tester, find.text('Deliveries'));
       expect(tab(tester), 1);
       for (final (label, i) in [
-        ('1 audit(s) in progress', 3),
-        ('Start audit', 3),
-        ('On hand', 2),
-        ('On hold', 2),
-        ('Low stock', 2),
+        ('1 audit(s) in progress', 4),
+        ('Start audit', 4),
+        ('On hand', 3),
+        ('On hold', 3),
+        ('Low stock', 3),
       ]) {
         await home();
         await tapOn(tester, find.text(label));
@@ -205,7 +206,7 @@ void main() {
             )
             .first,
       );
-      expect(tab(tester), 2);
+      expect(tab(tester), 3);
     });
 
     for (final (label, screen) in [

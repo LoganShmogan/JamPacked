@@ -21,7 +21,9 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthService>().user!;
+    final auth = context.watch<AuthService>();
+    final user = auth.user!;
+    final biz = auth.business!;
     return Scaffold(
       body: QueryBuilder(
         path: 'dashboard:summary',
@@ -61,7 +63,7 @@ class DashboardScreen extends StatelessWidget {
                                   ? Tone.warn
                                   : Tone.ok,
                               icon: Icons.local_shipping,
-                              onTap: () => shell.go(1),
+                              onTap: () => shell.go('goodsIn'),
                             ),
                             _Kpi(
                               label: 'Temp checks',
@@ -119,7 +121,7 @@ class DashboardScreen extends StatelessWidget {
                               sub: 'lots in stock',
                               tone: Tone.neutral,
                               icon: Icons.inventory_2,
-                              onTap: () => shell.go(2),
+                              onTap: () => shell.go('stock'),
                             ),
                             _Kpi(
                               label: 'On hold',
@@ -129,7 +131,7 @@ class DashboardScreen extends StatelessWidget {
                                   : 'Nothing held',
                               tone: d['onHold'] > 0 ? Tone.bad : Tone.ok,
                               icon: Icons.block,
-                              onTap: () => shell.go(2),
+                              onTap: () => shell.go('stock'),
                             ),
                             _Kpi(
                               label: 'Low stock',
@@ -139,7 +141,7 @@ class DashboardScreen extends StatelessWidget {
                                   : 'All above par',
                               tone: d['lowStock'] > 0 ? Tone.warn : Tone.ok,
                               icon: Icons.trending_down,
-                              onTap: () => shell.go(2),
+                              onTap: () => shell.go('stock'),
                             ),
                           ],
                         ),
@@ -171,20 +173,31 @@ class DashboardScreen extends StatelessWidget {
                               () =>
                                   push(const TemperatureScreen(autoOpen: true)),
                             ),
-                            _Tile(
-                              'Make a batch',
-                              Icons.soup_kitchen,
-                              () => push(const ProductionFormScreen()),
-                            ),
+                            if (biz.operation != 'farm')
+                              _Tile(
+                                'Make a batch',
+                                Icons.soup_kitchen,
+                                () => push(const ProductionFormScreen()),
+                                primary: biz.producing,
+                              ),
+                            if (biz.harvests)
+                              _Tile(
+                                'Harvest',
+                                Icons.agriculture,
+                                () => push(
+                                  const ProductionFormScreen(kind: 'harvest'),
+                                ),
+                                primary: true,
+                              ),
                             _Tile(
                               'Stock',
                               Icons.inventory_2,
-                              () => shell.go(2),
+                              () => shell.go('stock'),
                             ),
                             _Tile(
                               'Start audit',
                               Icons.fact_check,
-                              () => shell.go(3),
+                              () => shell.go('checks'),
                             ),
                             _Tile(
                               'Trace / recall',
@@ -215,7 +228,7 @@ class DashboardScreen extends StatelessWidget {
                                 '${fmtNum(d['inProgressAudits'])} audit(s) in progress',
                               ),
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () => shell.go(3),
+                              onTap: () => shell.go('checks'),
                             ),
                           ),
                         ],

@@ -13,6 +13,7 @@ import 'business_picker_screen.dart';
 import 'expiring_screen.dart';
 import 'help_screen.dart';
 import 'insights_screen.dart';
+import 'areas_screen.dart';
 import 'production_screen.dart';
 import 'products_screen.dart';
 import 'suppliers_screen.dart';
@@ -26,6 +27,7 @@ class MoreScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthService>();
     final user = auth.user!;
+    final biz = auth.business!;
     final business = auth.business!;
     void push(Widget w) =>
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => w));
@@ -152,10 +154,21 @@ class MoreScreen extends StatelessWidget {
                       const Divider(),
                       tile(
                         Icons.soup_kitchen,
-                        'Production',
-                        'Batches you make, from recipes or one-off',
+                        biz.productionLabel,
+                        biz.harvests
+                            ? 'Batches and harvests, plans and checks'
+                            : 'Batches you make, plans and checks',
                         const ProductionScreen(),
                       ),
+                      if (biz.harvests) ...[
+                        const Divider(),
+                        tile(
+                          Icons.grass,
+                          'Growing areas',
+                          'Paddocks, blocks, glasshouses and hives',
+                          const AreasScreen(),
+                        ),
+                      ],
                       const Divider(),
                       tile(
                         Icons.inventory_2,

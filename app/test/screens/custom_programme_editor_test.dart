@@ -212,6 +212,14 @@ void main() {
       );
       await tapOn(tester, find.text('When needed'));
       await tapOn(tester, find.text('Every week').last);
+      await tapOn(
+        tester,
+        find.widgetWithText(
+          DropdownButtonFormField<String?>,
+          'Use as a production check',
+        ),
+      );
+      await tapOn(tester, find.text('On batches').last);
       await tapOn(tester, find.text('Done'));
       expect(find.text('Add at least one field'), findsOneWidget);
 
@@ -258,6 +266,7 @@ void main() {
       expect(added['frequency'], 'weekly');
       expect(added['key'], startsWith('r'));
       final fields = added['fields'] as List;
+      expect(added['production'], 'make');
       expect(fields[0], containsPair('required', true));
       expect(fields[0]['failIf'], {
         'equals': false,

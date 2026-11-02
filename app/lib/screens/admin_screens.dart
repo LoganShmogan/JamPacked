@@ -324,6 +324,7 @@ class _SettingsFormState extends State<_SettingsForm> {
   };
   late String _jurisdiction = s['jurisdiction'];
   late String? _region = s['region'];
+  late String _operation = s['operation'] ?? 'mixed';
 
   @override
   Widget build(BuildContext context) {
@@ -348,6 +349,11 @@ class _SettingsFormState extends State<_SettingsForm> {
               TextField(
                 controller: _text['businessName'],
                 decoration: const InputDecoration(labelText: 'Business name'),
+              ),
+              const SizedBox(height: 12),
+              OperationPicker(
+                value: _operation,
+                onChanged: (v) => setState(() => _operation = v),
               ),
               const SizedBox(height: 12),
               CountryPicker(
@@ -384,16 +390,29 @@ class _SettingsFormState extends State<_SettingsForm> {
               num('expiryWarningDays', 'Warn this many days before expiry'),
               const SizedBox(height: 8),
               FilledButton(
-                onPressed: () => context.run(
-                  () => context.m('settings:update', {
-                    for (final e in _text.entries) e.key: e.value.text.trim(),
-                    for (final e in _num.entries)
-                      e.key: double.tryParse(e.value.text),
-                    'jurisdiction': _jurisdiction,
-                    'region': ?_region,
-                  }),
-                  success: 'Settings saved',
-                ),
+                onPressed: () async {
+                  final auth = context.auth;
+                  final done = await context.run(
+                    () => context
+                        .m('settings:update', {
+                          for (final e in _text.entries)
+                            e.key: e.value.text.trim(),
+                          for (final e in _num.entries)
+                            e.key: double.tryParse(e.value.text),
+                          'jurisdiction': _jurisdiction,
+                          'region': ?_region,
+                          'operation': _operation,
+                        })
+                        .then((_) => true),
+                    success: 'Settings saved',
+                  );
+                  // The business type changes the nav and wording.
+                  if (done == true &&
+                      _operation != (s['operation'] ?? 'mixed')) {
+                    s['operation'] = _operation;
+                    await auth.refreshCurrent();
+                  }
+                },
                 child: const Text('Save'),
               ),
               const SectionTitle('Archive'),

@@ -5,74 +5,98 @@ import '../services/auth_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/product_picker.dart';
+import '../widgets/record_fields.dart';
+import 'areas_screen.dart';
 import 'lot_detail_screen.dart';
 import 'products_screen.dart';
 import 'scanner_screen.dart';
 import 'stock_screen.dart';
 
-/// Production: batches made here from stock on hand, newest first.
+/// The production hub (a main tab): what's planned, making a batch or harvesting, and recent batches.
 class ProductionScreen extends StatelessWidget {
   const ProductionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    final b = auth.business!;
+    final farm = b.operation == 'farm';
     void push(Widget w) =>
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => w));
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Production'),
+        title: Text(b.productionLabel),
         actions: [
+          if (b.harvests)
+            IconButton(
+              tooltip: 'Growing areas',
+              onPressed: () => push(const AreasScreen()),
+              icon: const Icon(Icons.grass),
+            ),
           TextButton.icon(
             onPressed: () => push(const ProductsScreen(kind: 'made')),
             icon: const Icon(Icons.menu_book),
-            label: const Text('Recipes'),
+            label: Text(farm ? 'Products' : 'Recipes'),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => push(const ProductionFormScreen()),
-        icon: const Icon(Icons.add),
-        label: const Text('Make a batch'),
+        onPressed: () =>
+            push(ProductionFormScreen(kind: farm ? 'harvest' : 'make')),
+        icon: Icon(farm ? Icons.agriculture : Icons.add),
+        label: Text(farm ? 'Harvest' : 'Make a batch'),
       ),
       body: QueryBuilder(
         path: 'production:list',
         builder: (context, data) {
           final list = data as List;
-          if (list.isEmpty) {
-            return const EmptyState(
-              icon: Icons.soup_kitchen,
-              title: 'Nothing made yet',
-              message:
-                  'Record a batch and the ingredients come out of stock, the batch goes in, '
-                  'and it traces back to every supplier batch that went into it.',
-            );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            itemCount: list.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 8),
-            itemBuilder: (context, i) {
-              final r = list[i];
-              return Responsive(
-                child: Card(
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.soup_kitchen,
-                      color: AppColors.jam,
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+            children: [
+              Responsive(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (b.harvests && !farm)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: OutlinedButton.icon(
+                          onPressed: () =>
+                              push(const ProductionFormScreen(kind: 'harvest')),
+                          icon: const Icon(Icons.agriculture),
+                          label: const Text('Record a harvest'),
+                        ),
+                      ),
+                    SectionTitle(
+                      'Planned',
+                      trailing: auth.user!.isManager
+                          ? TextButton.icon(
+                              onPressed: () => push(const PlanBatchScreen()),
+                              icon: const Icon(Icons.event_note),
+                              label: const Text('Plan'),
+                            )
+                          : null,
                     ),
-                    title: Text(
-                      '${r['productName']} · ${fmtNum(r['qty'])} ${r['unit']}',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    QueryBuilder(
+                      path: 'production:planned',
+                      refreshable: false,
+                      builder: (context, plans) => _Planned(plans as List),
                     ),
-                    subtitle: Text(
-                      'Batch ${r['batchCode']} · ${fmtDateTime(r['madeAt'])} · by ${r['madeByName']}',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => push(ProductionRunScreen(id: r['_id'])),
-                  ),
+                    SectionTitle(farm ? 'Recent harvests' : 'Recent batches'),
+                    if (list.isEmpty)
+                      Text(
+                        farm
+                            ? 'Nothing harvested yet. Record a harvest and it goes into stock with a '
+                                  'batch code, traced back to the area it came from.'
+                            : 'Nothing made yet. Record a batch and the ingredients come out of stock, '
+                                  'the batch goes in, and it traces back to every supplier batch in it.',
+                        style: const TextStyle(color: AppColors.muted),
+                      ),
+                    for (final r in list) _RunTile(r),
+                  ],
                 ),
-              );
-            },
+              ),
+            ],
           );
         },
       ),
@@ -80,13 +104,156 @@ class ProductionScreen extends StatelessWidget {
   }
 }
 
-/// One batch: what went in (back to the supplier batches), and where it is now.
+/// One batch in a list. Voided batches are struck through.
+class _RunTile extends StatelessWidget {
+  const _RunTile(this.r);
+  final Map r;
+  @override
+  Widget build(BuildContext context) {
+    final harvest = r['kind'] == 'harvest';
+    final voided = r['voided'] == true;
+    return Card(
+      child: ListTile(
+        leading: Icon(
+          harvest ? Icons.agriculture : Icons.soup_kitchen,
+          color: voided ? AppColors.muted : AppColors.jam,
+        ),
+        title: Text(
+          '${r['productName']} · ${fmtNum(r['qty'])} ${r['unit']}',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            decoration: voided ? TextDecoration.lineThrough : null,
+          ),
+        ),
+        subtitle: Text(
+          [
+            'Batch ${r['batchCode']}',
+            ?r['areaName'],
+            fmtDateTime(r['madeAt']),
+            'by ${r['madeByName']}',
+          ].join(' · '),
+        ),
+        trailing: voided
+            ? const Pill('VOIDED', tone: Tone.bad)
+            : const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ProductionRunScreen(id: r['_id'])),
+        ),
+      ),
+    );
+  }
+}
+
+/// Planned batches: start one (the form is filled in from the plan) or, for managers, cancel it.
+class _Planned extends StatelessWidget {
+  const _Planned(this.plans);
+  final List plans;
+  @override
+  Widget build(BuildContext context) {
+    if (plans.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 4),
+        child: Text(
+          'Nothing planned.',
+          style: TextStyle(color: AppColors.muted),
+        ),
+      );
+    }
+    final manager = context.watch<AuthService>().user!.isManager;
+    final today = localDayStartMs();
+    return Column(
+      children: [
+        for (final p in plans)
+          Card(
+            child: ListTile(
+              leading: Icon(
+                p['kind'] == 'harvest' ? Icons.agriculture : Icons.event_note,
+                color: AppColors.jam,
+              ),
+              title: Text(
+                '${p['productName']} · ${fmtNum(p['qty'])} ${p['unit'] ?? ''}'
+                    .trim(),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    [
+                      p['dueOn'] < today
+                          ? 'Overdue: ${fmtDate(p['dueOn'])}'
+                          : p['dueOn'] == today
+                          ? 'Today'
+                          : fmtDate(p['dueOn']),
+                      ?p['areaName'],
+                      ?p['notes'],
+                    ].join(' · '),
+                  ),
+                  for (final s in p['short'])
+                    Text(
+                      '⚠ ${s['productName']}: ${fmtNum(s['short'])} ${s['unit']} short',
+                      style: const TextStyle(
+                        color: AppColors.bad,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                ],
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (manager)
+                    IconButton(
+                      tooltip: 'Cancel plan',
+                      icon: const Icon(Icons.close),
+                      onPressed: () => context.run(
+                        () => context.m('production:cancelPlanned', {
+                          'id': p['_id'],
+                        }),
+                        success: 'Plan cancelled',
+                      ),
+                    ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ProductionFormScreen(kind: p['kind'], planned: p),
+                      ),
+                    ),
+                    child: const Text('Start'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// One batch: what went in (back to the supplier batches or growing area), its checks, and
+/// where it is now. Managers can void a batch recorded by mistake.
 class ProductionRunScreen extends StatelessWidget {
   const ProductionRunScreen({super.key, required this.id});
   final String id;
 
+  Future<void> _void(BuildContext context, Map r) async {
+    final reason = await promptText(
+      context,
+      title: 'Void batch ${r['batchCode']}?',
+      label: 'Reason',
+      confirm: 'Void',
+    );
+    if (reason == null || !context.mounted) return;
+    await context.run(
+      () => context.m('production:voidRun', {'id': id, 'reason': reason}),
+      success: 'Batch voided: its stock has been put back',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final manager = context.watch<AuthService>().user!.isManager;
     return Scaffold(
       appBar: AppBar(title: const Text('Batch')),
       body: QueryBuilder(
@@ -98,6 +265,9 @@ class ProductionRunScreen extends StatelessWidget {
           }
           final r = data['run'];
           final lot = data['lot'];
+          final checks = data['checks'] as List? ?? const [];
+          final harvest = r['kind'] == 'harvest';
+          final voided = r['voided'] == true;
           final allergens = (r['allergens'] as List).cast<String>();
           final dispatched = lot['dispatched'] as List;
           return ListView(
@@ -111,9 +281,25 @@ class ProductionRunScreen extends StatelessWidget {
                       r['productName'],
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
+                    if (voided)
+                      Card(
+                        color: AppColors.badLight,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(
+                            'Voided by ${r['voidedByName']}: ${r['voidReason']}. '
+                            'Its stock was put back.',
+                            style: const TextStyle(color: AppColors.bad),
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 8),
                     InfoRow('Batch', r['batchCode']),
-                    InfoRow('Made', '${fmtNum(r['qty'])} ${r['unit']}'),
+                    InfoRow(
+                      harvest ? 'Harvested' : 'Made',
+                      '${fmtNum(r['qty'])} ${r['unit']}',
+                    ),
+                    if (r['areaName'] != null) InfoRow('From', r['areaName']),
                     InfoRow(
                       'When',
                       '${fmtDateTime(r['madeAt'])} by ${r['madeByName']}',
@@ -122,7 +308,8 @@ class ProductionRunScreen extends StatelessWidget {
                       InfoRow('Use by', fmtDate(r['useBy'])),
                     if (r['bestBefore'] != null)
                       InfoRow('Best before', fmtDate(r['bestBefore'])),
-                    InfoRow('Recipe', r['fromRecipe'] ? 'Yes' : 'One-off'),
+                    if (!harvest)
+                      InfoRow('Recipe', r['fromRecipe'] ? 'Yes' : 'One-off'),
                     if (r['notes'] != null) InfoRow('Notes', r['notes']),
                     if (allergens.isNotEmpty) ...[
                       const SectionTitle('Contains'),
@@ -135,27 +322,51 @@ class ProductionRunScreen extends StatelessWidget {
                         ],
                       ),
                     ],
-                    const SectionTitle('What went in'),
-                    for (final i in r['inputs'])
-                      Card(
-                        child: ListTile(
-                          title: Text(
-                            '${i['productName']} · ${fmtNum(i['qty'])} ${i['unit']}',
-                          ),
-                          subtitle: Text(
-                            [
-                              'Batch ${i['batchCode'] ?? '-'}',
-                              ?i['supplierName'],
-                            ].join(' · '),
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => LotDetailScreen(id: i['lotId']),
+                    if (checks.isNotEmpty) ...[
+                      const SectionTitle('Checks'),
+                      for (final c in checks)
+                        Card(
+                          child: ListTile(
+                            leading: Icon(
+                              (c['issues'] as List).isEmpty
+                                  ? Icons.check_circle
+                                  : Icons.error,
+                              color: (c['issues'] as List).isEmpty
+                                  ? AppColors.ok
+                                  : AppColors.bad,
+                            ),
+                            title: Text(c['recordName']),
+                            subtitle: Text(
+                              (c['issues'] as List).isEmpty
+                                  ? 'Passed'
+                                  : (c['issues'] as List).join('; '),
                             ),
                           ),
                         ),
-                      ),
+                    ],
+                    if ((r['inputs'] as List).isNotEmpty) ...[
+                      const SectionTitle('What went in'),
+                      for (final i in r['inputs'])
+                        Card(
+                          child: ListTile(
+                            title: Text(
+                              '${i['productName']} · ${fmtNum(i['qty'])} ${i['unit']}',
+                            ),
+                            subtitle: Text(
+                              [
+                                'Batch ${i['batchCode'] ?? '-'}',
+                                ?i['supplierName'],
+                              ].join(' · '),
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => LotDetailScreen(id: i['lotId']),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                     const SectionTitle('Where it is now'),
                     Card(
                       child: ListTile(
@@ -177,6 +388,22 @@ class ProductionRunScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (manager && !voided) ...[
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: () => _void(context, r),
+                        icon: const Icon(Icons.undo),
+                        label: const Text('Void this batch'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.bad,
+                        ),
+                      ),
+                      const Text(
+                        'Only while none of it has been used, moved or dispatched. '
+                        'What went in goes back into stock.',
+                        style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -196,16 +423,34 @@ class _Input {
   final TextEditingController qty;
 }
 
+/// Production checks this kind of run can have, from the programme's record types.
+List<Map> productionChecks(Map programme, String kind) => [
+  for (final t in programme['recordTypes'] as List)
+    if (t['production'] == kind || t['production'] == 'both') t as Map,
+];
+
+/// Fields a check asks on a batch. "Food" and "batch" are filled in with the batch itself.
+List<Map> checkFields(Map type) => [
+  for (final f in type['fields'] as List)
+    if (f['key'] != 'food' && f['key'] != 'batch') f as Map,
+];
+
 /// Make a batch: pick what you're making (its recipe fills in the ingredients, first expiring
-/// first) or make something one-off from whatever stock you pick.
+/// first) or make something one-off from whatever stock you pick. A harvest (`kind: 'harvest'`)
+/// comes from a growing area instead, and needs no inputs. Either can fill in the programme's
+/// production checks; the ones a recipe needs are always asked. Started from a [planned] batch,
+/// the form is filled in from the plan.
 class ProductionFormScreen extends StatefulWidget {
-  const ProductionFormScreen({super.key});
+  const ProductionFormScreen({super.key, this.kind = 'make', this.planned});
+  final String kind;
+  final Map? planned;
   @override
   State<ProductionFormScreen> createState() => _ProductionFormScreenState();
 }
 
 class _ProductionFormScreenState extends State<ProductionFormScreen> {
   final _form = GlobalKey<FormState>();
+  late final _harvest = widget.kind == 'harvest';
   Map<String, dynamic>? _product;
   final _qty = TextEditingController();
   final _unit = TextEditingController();
@@ -217,6 +462,12 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
   int? _useBy;
   String _storage = 'chilled';
   String? _locationId;
+  String? _areaId;
+  List _areas = [];
+  List<Map> _checkTypes = []; // the programme's checks for this kind of run
+  final _checks =
+      <String, RecordAnswers>{}; // the ones being filled in, by record type
+  Set<String> _requiredChecks = {}; // the recipe's
   bool _saving = false;
   final _started = DateTime.now(); // timed for Insights
 
@@ -226,12 +477,44 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
     context.q('production:batchCode').then((c) {
       if (mounted && _batch.text.isEmpty) _batch.text = c;
     }, onError: (_) {});
+    context.q('programmes:current').then((m) {
+      if (!mounted) return;
+      // Opens the recipe's checks if the recipe loaded first.
+      setState(() {
+        _checkTypes = productionChecks(m, widget.kind);
+        _setRequired(_requiredChecks);
+      });
+    }, onError: (_) {});
+    if (_harvest) {
+      context.q('areas:list').then((a) {
+        if (mounted) setState(() => _areas = a);
+      }, onError: (_) {});
+    }
+    final p = widget.planned;
+    if (p != null) {
+      _product = {'_id': p['productId'], 'name': p['productName']};
+      _qty.text = fmtNum(p['qty']);
+      _unit.text = p['unit'] ?? '';
+      _areaId = p['areaId'];
+      _fromRecipe = !_harvest && p['hasRecipe'] == true;
+      if (_fromRecipe) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _plan());
+      }
+    }
+  }
+
+  void _setRequired(Iterable keys) {
+    _requiredChecks = {...keys.cast<String>()};
+    for (final k in _requiredChecks) {
+      final t = _checkTypes.where((t) => t['key'] == k).firstOrNull;
+      if (t != null) _checks[k] ??= RecordAnswers(checkFields(t));
+    }
   }
 
   Future<void> _pickProduct() async {
     final p = await pickProduct(
       context,
-      title: 'What are you making?',
+      title: _harvest ? 'What did you harvest?' : 'What are you making?',
       allowNew: true,
     );
     if (p == null || !mounted) return;
@@ -239,10 +522,11 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
       _product = p;
       _unit.text = p['unit'] ?? _unit.text;
       _storage = p['storageType'] ?? _storage;
-      _fromRecipe = p['recipe'] != null;
+      _fromRecipe = !_harvest && p['recipe'] != null;
       _inputs.clear();
       _short = [];
       _useBy = null;
+      _setRequired(p['recipe']?['checks'] ?? const []);
       if (_fromRecipe) _qty.text = fmtNum(p['recipe']['yieldQty']);
     });
     if (_fromRecipe) await _plan();
@@ -278,6 +562,7 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
             '${ing['productName']}: ${fmtNum(ing['short'])} ${ing['unit']} short',
       ];
       _useBy = plan['useBy'];
+      _setRequired(plan['checks'] ?? const []);
     });
   }
 
@@ -316,13 +601,30 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
 
   Future<void> _save() async {
     if (_product == null) {
-      context.toast('Pick what you made', error: true);
+      context.toast(
+        _harvest ? 'Pick what you harvested' : 'Pick what you made',
+        error: true,
+      );
       return;
     }
     if (!_form.currentState!.validate()) return;
-    if (_inputs.isEmpty) {
+    if (_harvest && _areaId == null) {
+      context.toast('Pick where it was harvested', error: true);
+      return;
+    }
+    if (!_harvest && _inputs.isEmpty) {
       context.toast('Add what went into it', error: true);
       return;
+    }
+    final checks = [];
+    for (final MapEntry(:key, value: answers) in _checks.entries) {
+      final (values, missing) = answers.values();
+      final name = _checkTypes.firstWhere((t) => t['key'] == key)['name'];
+      if (missing != null) {
+        context.toast('$name: $missing is required', error: true);
+        return;
+      }
+      checks.add({'recordType': key, 'values': values});
     }
     setState(() => _saving = true);
     final id = await context.run(
@@ -333,6 +635,9 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
           'productName': _product!['name'],
           'storageType': _storage,
         },
+        'kind': widget.kind,
+        'areaId': ?_areaId,
+        'plannedId': ?widget.planned?['_id'],
         'qty': double.parse(_qty.text),
         'unit': _unit.text.trim(),
         'batchCode': _batch.text.trim(),
@@ -344,8 +649,10 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
           for (final i in _inputs)
             {'lotId': i.lot['_id'], 'qty': double.parse(i.qty.text)},
         ],
+        'checks': checks,
       }),
-      success: 'Batch ${_batch.text.trim()} made',
+      success:
+          '${_harvest ? 'Harvest' : 'Batch'} ${_batch.text.trim()} recorded',
     );
     if (!mounted) return;
     setState(() => _saving = false);
@@ -361,13 +668,13 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
   Widget build(BuildContext context) {
     final p = _product;
     return Scaffold(
-      appBar: AppBar(title: const Text('Make a batch')),
+      appBar: AppBar(title: Text(_harvest ? 'Harvest' : 'Make a batch')),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: FilledButton(
             onPressed: _saving ? null : _save,
-            child: const Text('Save batch'),
+            child: Text(_harvest ? 'Save harvest' : 'Save batch'),
           ),
         ),
       ),
@@ -382,17 +689,25 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
                 children: [
                   Card(
                     child: ListTile(
-                      leading: const Icon(
-                        Icons.soup_kitchen,
+                      leading: Icon(
+                        _harvest ? Icons.agriculture : Icons.soup_kitchen,
                         color: AppColors.jam,
                       ),
                       title: Text(
-                        p == null ? 'What are you making?' : p['name'],
+                        p == null
+                            ? (_harvest
+                                  ? 'What did you harvest?'
+                                  : 'What are you making?')
+                            : p['name'],
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                       subtitle: Text(
                         p == null
                             ? 'Search or scan your catalogue, or name something new'
+                            : _harvest
+                            ? (p['_id'] == null
+                                  ? 'New product: grown here'
+                                  : 'Grown here')
                             : _fromRecipe
                             ? 'From its recipe'
                             : p['_id'] == null
@@ -403,6 +718,26 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
                       onTap: _pickProduct,
                     ),
                   ),
+                  if (_harvest) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: _areaId,
+                      decoration: InputDecoration(
+                        labelText: 'Harvested from',
+                        helperText: _areas.isEmpty
+                            ? 'Add your paddocks, blocks or hives under Growing areas'
+                            : null,
+                      ),
+                      items: [
+                        for (final a in _areas)
+                          DropdownMenuItem(
+                            value: a['_id'] as String,
+                            child: Text(a['name']),
+                          ),
+                      ],
+                      onChanged: (v) => setState(() => _areaId = v),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Row(
                     children: [
@@ -412,8 +747,10 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
-                          decoration: const InputDecoration(
-                            labelText: 'How much you made',
+                          decoration: InputDecoration(
+                            labelText: _harvest
+                                ? 'How much you harvested'
+                                : 'How much you made',
                           ),
                           validator: _positive,
                           onFieldSubmitted: (_) => _fromRecipe ? _plan() : null,
@@ -486,7 +823,7 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
                     onChanged: (v) => _locationId = v,
                   ),
                   SectionTitle(
-                    'What went in',
+                    _harvest ? 'Anything used (optional)' : 'What went in',
                     trailing: TextButton.icon(
                       onPressed: _addInput,
                       icon: const Icon(Icons.add),
@@ -508,11 +845,13 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
                       ),
                     ),
                   if (_inputs.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Text(
-                        'Nothing yet. Add the stock you used.',
-                        style: TextStyle(color: AppColors.muted),
+                        _harvest
+                            ? 'Seed, feed or packaging from stock, if any.'
+                            : 'Nothing yet. Add the stock you used.',
+                        style: const TextStyle(color: AppColors.muted),
                       ),
                     ),
                   for (final (n, i) in _inputs.indexed)
@@ -566,12 +905,221 @@ class _ProductionFormScreenState extends State<ProductionFormScreen> {
                         ),
                       ),
                     ),
+                  if (_checkTypes.isNotEmpty) ...[
+                    const SectionTitle('Checks'),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final t in _checkTypes)
+                          FilterChip(
+                            label: Text(t['name']),
+                            selected: _checks.containsKey(t['key']),
+                            onSelected: _requiredChecks.contains(t['key'])
+                                ? null
+                                : (on) => setState(
+                                    () => on
+                                        ? _checks[t['key']] = RecordAnswers(
+                                            checkFields(t),
+                                          )
+                                        : _checks.remove(t['key']),
+                                  ),
+                          ),
+                      ],
+                    ),
+                    for (final t in _checkTypes)
+                      if (_checks[t['key']] case final answers?)
+                        Card(
+                          margin: const EdgeInsets.only(top: 10),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  '${t['name']}${_requiredChecks.contains(t['key']) ? ' (the recipe needs this)' : ''}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  t['description'],
+                                  style: const TextStyle(
+                                    color: AppColors.muted,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                for (final f in checkFields(t))
+                                  answers.field(
+                                    context,
+                                    f,
+                                    () => setState(() {}),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                  ],
                   const SizedBox(height: 12),
                   TextField(
                     controller: _notes,
                     decoration: const InputDecoration(labelText: 'Notes'),
                   ),
                   const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Plan a batch or harvest for a day; it shows on the Production tab until it's started.
+class PlanBatchScreen extends StatefulWidget {
+  const PlanBatchScreen({super.key});
+  @override
+  State<PlanBatchScreen> createState() => _PlanBatchScreenState();
+}
+
+class _PlanBatchScreenState extends State<PlanBatchScreen> {
+  final _form = GlobalKey<FormState>();
+  Map? _product;
+  final _qty = TextEditingController();
+  final _notes = TextEditingController();
+  late String _kind = context.read<AuthService>().business!.operation == 'farm'
+      ? 'harvest'
+      : 'make';
+  String? _areaId;
+  DateTime _day = DateUtils.dateOnly(DateTime.now());
+
+  Future<void> _save() async {
+    if (_product == null) {
+      context.toast('Pick what to make', error: true);
+      return;
+    }
+    if (!_form.currentState!.validate()) return;
+    final nav = Navigator.of(context);
+    final ok = await context.run(
+      () => context.m('production:planBatch', {
+        'productId': _product!['_id'],
+        'qty': double.parse(_qty.text),
+        'kind': _kind,
+        if (_kind == 'harvest') 'areaId': ?_areaId,
+        'dueOn': _day.millisecondsSinceEpoch,
+        if (_notes.text.trim().isNotEmpty) 'notes': _notes.text.trim(),
+      }),
+      success: 'Planned',
+    );
+    if (ok != null) nav.pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final harvests = context.watch<AuthService>().business!.harvests;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Plan a batch')),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: FilledButton(onPressed: _save, child: const Text('Save plan')),
+        ),
+      ),
+      body: Form(
+        key: _form,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Responsive(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (harvests) ...[
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'make', label: Text('Make')),
+                        ButtonSegment(value: 'harvest', label: Text('Harvest')),
+                      ],
+                      selected: {_kind},
+                      onSelectionChanged: (s) =>
+                          setState(() => _kind = s.first),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Card(
+                    child: ListTile(
+                      title: Text(
+                        _product?['name'] ?? 'What are you making?',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      subtitle: const Text('From your catalogue'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () async {
+                        final p = await pickProduct(
+                          context,
+                          title: 'Plan what?',
+                        );
+                        if (p != null) setState(() => _product = p);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _qty,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'How much',
+                      suffixText: _product?['unit'],
+                    ),
+                    validator: (v) => (double.tryParse(v!) ?? 0) > 0
+                        ? null
+                        : 'Enter a number',
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.event),
+                    label: Text('On ${fmtDate(_day.millisecondsSinceEpoch)}'),
+                    onPressed: () async {
+                      final d = await showDatePicker(
+                        context: context,
+                        firstDate: DateUtils.dateOnly(DateTime.now()),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                        initialDate: _day,
+                      );
+                      if (d != null) setState(() => _day = d);
+                    },
+                  ),
+                  if (_kind == 'harvest') ...[
+                    const SizedBox(height: 12),
+                    QueryBuilder(
+                      path: 'areas:list',
+                      refreshable: false,
+                      builder: (context, areas) =>
+                          DropdownButtonFormField<String>(
+                            initialValue: _areaId,
+                            decoration: const InputDecoration(
+                              labelText: 'From (optional)',
+                            ),
+                            items: [
+                              for (final a in areas as List)
+                                DropdownMenuItem(
+                                  value: a['_id'] as String,
+                                  child: Text(a['name']),
+                                ),
+                            ],
+                            onChanged: (v) => _areaId = v,
+                          ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _notes,
+                    decoration: const InputDecoration(labelText: 'Notes'),
+                  ),
                 ],
               ),
             ),
@@ -717,6 +1265,9 @@ class _RecipeScreenState extends State<RecipeScreen> {
     for (final i in _r?['ingredients'] ?? [])
       _Ingredient(i['productId'], i['productName'], i['qty'], i['unit']),
   ];
+  late final Set<String> _checks = {
+    ...?(_r?['checks'] as List?)?.cast<String>(),
+  };
 
   Future<void> _add() async {
     final p = await pickProduct(context, title: 'Add an ingredient');
@@ -742,6 +1293,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
               'yieldQty': double.parse(_yield.text),
               if (_shelf.text.trim().isNotEmpty)
                 'shelfLifeDays': double.parse(_shelf.text),
+              if (_checks.isNotEmpty) 'checks': _checks.toList(),
               'ingredients': [
                 for (final i in _ingredients)
                   {
@@ -889,6 +1441,38 @@ class _RecipeScreenState extends State<RecipeScreen> {
                         ),
                       ),
                     ),
+                  QueryBuilder(
+                    path: 'programmes:current',
+                    refreshable: false,
+                    builder: (context, m) {
+                      final types = productionChecks(m, 'make');
+                      if (types.isEmpty) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SectionTitle('Checks every batch needs'),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              for (final t in types)
+                                FilterChip(
+                                  label: Text(t['name']),
+                                  selected: _checks.contains(t['key']),
+                                  onSelected: canEdit
+                                      ? (on) => setState(
+                                          () => on
+                                              ? _checks.add(t['key'])
+                                              : _checks.remove(t['key']),
+                                        )
+                                      : null,
+                                ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                   const SizedBox(height: 24),
                 ],
               ),

@@ -145,7 +145,7 @@ void main() {
       tester,
     ) async {
       await pumpScreen(tester, const ProductionScreen(), convex: fakeWith());
-      expect(find.text('Nothing made yet'), findsOneWidget);
+      expect(find.textContaining('Nothing made yet'), findsOneWidget);
       await tapOn(tester, find.text('Recipes'));
       expect(
         tester.widget<ProductsScreen>(find.byType(ProductsScreen)).kind,
@@ -303,6 +303,7 @@ void main() {
         await tapOn(tester, find.text('Save batch'));
         expect(convex.callsTo('production:create').single.args, {
           'productId': 'p1',
+          'kind': 'make',
           'qty': 12.0,
           'unit': 'ea',
           'batchCode': 'P0001',
@@ -313,10 +314,11 @@ void main() {
           'inputs': [
             {'lotId': 'l1', 'qty': 2.0},
           ],
+          'checks': [],
           'businessId': 'b1',
           'sessionToken': 'tok',
         });
-        expect(find.text('Batch P0001 made'), findsOneWidget);
+        expect(find.text('Batch P0001 recorded'), findsOneWidget);
         expect(find.byType(ProductionFormScreen), findsNothing);
         expect(
           convex.callsTo('analytics:recordTask').single.args['task'],

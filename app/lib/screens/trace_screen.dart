@@ -108,6 +108,7 @@ class _TraceScreenState extends State<TraceScreen> {
 
   Widget _madeCard(Map r) {
     final lot = r['lot'];
+    final harvest = r['kind'] == 'harvest';
     return Responsive(
       child: Card(
         child: ListTile(
@@ -117,16 +118,18 @@ class _TraceScreenState extends State<TraceScreen> {
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           subtitle: Text(
-            'Made ${fmtDateTime(r['madeAt'])} by ${r['madeByName']}\n'
+            '${harvest ? 'Harvested' : 'Made'} ${fmtDateTime(r['madeAt'])} by ${r['madeByName']}\n'
             'Batch ${r['batchCode']} · ${fmtNum(r['qty'])} ${r['unit']}\n'
-            'From ${(r['inputs'] as List).map((i) => '${i['productName']} (${i['batchCode'] ?? '-'})').join(', ')}\n'
+            'From ${[?r['areaName'], for (final i in r['inputs'] as List) '${i['productName']} (${i['batchCode'] ?? '-'})'].join(', ')}\n'
             '${fmtNum(lot['qtyOnHand'])} ${r['unit']} still in stock'
             '${_dispatched(lot['dispatched'] as List)}',
           ),
           isThreeLine: true,
           trailing: lot['status'] == 'hold'
               ? const Pill('ON HOLD', tone: Tone.bad)
-              : const Pill('Made', tone: Tone.brand),
+              : r['voided'] == true
+              ? const Pill('VOID')
+              : Pill(harvest ? 'Harvested' : 'Made', tone: Tone.brand),
         ),
       ),
     );

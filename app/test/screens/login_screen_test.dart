@@ -170,6 +170,7 @@ void main() {
           'name': 'Kai Cafe',
           'jurisdiction': 'NZ',
           'region': 'Otago',
+          'operation': 'mixed',
           'programme': 'NP2',
           'sectors': ['ece'],
         },
@@ -206,6 +207,7 @@ void main() {
       'name': 'Bar',
       'jurisdiction': 'AU',
       'region': 'Victoria',
+      'operation': 'mixed',
       'programme': 'custom',
       'sectors': <String>[],
     });
