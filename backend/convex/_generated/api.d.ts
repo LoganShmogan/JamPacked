@@ -9,6 +9,7 @@
  */
 
 import type * as analytics from "../analytics.js";
+import type * as areas from "../areas.js";
 import type * as auditLog from "../auditLog.js";
 import type * as audits from "../audits.js";
 import type * as auth from "../auth.js";
@@ -37,6 +38,7 @@ import type * as production from "../production.js";
 import type * as products from "../products.js";
 import type * as programmes from "../programmes.js";
 import type * as records from "../records.js";
+import type * as seed from "../seed.js";
 import type * as settings from "../settings.js";
 import type * as stock from "../stock.js";
 import type * as stocktakes from "../stocktakes.js";
@@ -51,6 +53,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
+  areas: typeof areas;
   auditLog: typeof auditLog;
   audits: typeof audits;
   auth: typeof auth;
@@ -79,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   products: typeof products;
   programmes: typeof programmes;
   records: typeof records;
+  seed: typeof seed;
   settings: typeof settings;
   stock: typeof stock;
   stocktakes: typeof stocktakes;

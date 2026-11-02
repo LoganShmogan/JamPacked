@@ -37,7 +37,8 @@ Live: https://app.jampacked.co.nz
 ## 1. Concepts & workflow
 
 ```
- Sign up ─► your account + main business (programme: NP1 / NP2 / NP3 / custom, plus sectors)
+ Sign up ─► your account + main business (what you do: kitchen / manufacturer / farm / retail / mixed;
+            programme: NP1 / NP2 / NP3 / custom, plus sectors)
             add more businesses later; each day pick the one you're working in
        │
        ▼
@@ -48,7 +49,9 @@ Live: https://app.jampacked.co.nz
   programme's receiving checks) │      FIFO / expiry alerts · par levels · stocktakes · recall
                                 │      │
                                 │      ▼
-                                ├──► PRODUCTION: recipe or one-off batch uses lots ─► new lot (batch P0001...)
+                                ├──► PRODUCTION (its own tab): recipe or one-off batch uses lots, or a harvest
+                                │      from a growing area ─► new lot (batch P0001...), with production checks;
+                                │      planned ahead (shortfalls shown), voided if recorded by mistake
        │                        ├──► CORRECTIVE ACTIONS (auto-raised on problems)
        │                        └──► TRACE & RECALL (one step back and one step forward)
        ▼
@@ -72,7 +75,11 @@ Live: https://app.jampacked.co.nz
 | **Stock lot** | What an accepted delivery item becomes: quantity on hand, batch, dates, location, status (available / hold / depleted). |
 | **Supply / made product** | A product is a supply (bought in; `kind` unset or `supply`) or made here (`kind: made`). Either can be an ingredient. |
 | **Recipe** | What one batch of a made product takes: `yieldQty`, ingredients (product, qty, unit) and an optional shelf life. |
-| **Production run** | One batch made here: the lots it used (as `use` movements) and the new lot it became. |
+| **Operation** | What kind of business it is (`kitchen`, `manufacturer`, `farm`, `retail`, `mixed`; unset = mixed). Sets the Production tab's name and whether harvests show. Mixed / other gets everything. |
+| **Production run** | One batch made here (`kind: make`) or harvested (`kind: harvest`): the lots it used (as `use` movements) and the new lot it became. |
+| **Growing area** | Where a farm grows or raises what it harvests: paddock, block, glasshouse, orchard, hive, herd. |
+| **Production check** | A programme record type marked `production` (`make` / `harvest` / `both`), filled in on a batch and saved as a record linked to it. |
+| **Planned batch** | A batch or harvest planned for a day; starting it fills the form in and marks it done. |
 | **Movement** | Any change to a lot (receive, use, sell, dispatch, waste, adjust, stocktake, transfer, hold, release, void). Append-only. |
 | **Record** | A programme record such as a pest check or mock recall. Fields come from the programme; answers outside limits raise CAs. |
 | **Corrective action (CA)** | A recorded non-conformance and how it was resolved. Open → closed with a resolution. |
@@ -126,7 +133,8 @@ JamPacked/
 │       ├── suppliers.ts         Approved supplier list
 │       ├── products.ts          Catalogue (supplies and made products), recipes, par levels, barcode lookup (Open Food Facts)
 │       ├── deliveries.ts        Goods inwards (creates stock lots), void, trace
-│       ├── production.ts        Recipes → plan, production runs (inputs out, batch in), batch codes, trace
+│       ├── production.ts        Recipes → plan, production runs and harvests (inputs out, batch in), checks, planned batches, void, batch codes, trace
+│       ├── areas.ts             Growing areas (paddocks, blocks, hives...) harvests come from
 │       ├── stock.ts             On hand, lot history, movements, hold/release, recall, low stock, expiring, past customers
 │       ├── locations.ts         Chillers, freezers, dry store...
 │       ├── stocktakes.ts        Count, correct, flag variances
@@ -175,7 +183,7 @@ JamPacked/
 │       │   └── audit_history.dart
 │       └── screens/             One file per screen (see §11)
 ├── web/                         Website: jampacked.co.nz (Next.js, static export to web/out/)
-│   ├── next.config.ts           output: "export", so nginx (or Vercel) serves plain files
+│   ├── next.config.ts           output: "export", so nginx (or Cloudflare Pages) serves plain files
 │   └── src/
 │       ├── app/page.tsx         Landing page: how it works, enter-it-once, programmes, pricing teaser
 │       ├── app/features|faq|programmes|contact/  The other public pages
@@ -211,7 +219,7 @@ multi-business change still validates until `migrations:toMultiBusiness` has run
 |---|---|---|
 | `users` | `email` (unique, `by_email`), `name`, `passwordHash`, `passwordSalt`, `active`, `createdAt`, legacy `role?` | Roles now live on memberships. |
 | `sessions` | `userId`, `token` (`by_token`), `expiresAt` (7 days) | Deleted on logout (the only delete in the backend). |
-| `businesses` | `name`, `jurisdiction` (NZ/AU), `region?` (NZ region or AU state, `lib/regions.ts`; asked for at sign-up, unset on older businesses), `registrationNumber?`, `address?`, `chilledMaxC` (5), `frozenMaxC` (-15), `hotMinC` (60), `expiryWarningDays` (3), `programme` (NP1/NP2/NP3/custom), `customProgrammeId?`, `sectors[]`, `ownerId`, `archived`, `createdAt` | Replaces the old single-row `settings` table (kept only for the migration). Archived, never deleted. |
+| `businesses` | `name`, `jurisdiction` (NZ/AU), `region?` (NZ region or AU state, `lib/regions.ts`; asked for at sign-up, unset on older businesses), `registrationNumber?`, `address?`, `chilledMaxC` (5), `frozenMaxC` (-15), `hotMinC` (60), `expiryWarningDays` (3), `programme` (NP1/NP2/NP3/custom), `customProgrammeId?`, `sectors[]`, `operation?` (kitchen/manufacturer/farm/retail/mixed; unset = mixed), `ownerId`, `archived`, `createdAt` | Replaces the old single-row `settings` table (kept only for the migration). Archived, never deleted. |
 | `memberships` | `userId`, `businessId`, `role` (admin/manager/staff), `active`, `createdAt` | `by_user`, `by_business`, `by_user_business`. |
 | `invites` | `businessId`, `email`, `role`, `invitedByName`, `createdAt`, `acceptedAt?` | Claimed when that email signs up. |
 | `customProgrammes` | `ownerId`, `name`, `description?`, `dailyChilledCheck`, `receivingPrompts[]`, `recordTypes[]`, `templates[]`, timestamps | Owned by a user, usable by any business they administer. |
@@ -222,7 +230,7 @@ multi-business change still validates until `migrations:toMultiBusiness` has run
 - `products`: `name`, `brand?`, `barcode?`, `storageType` (chilled/frozen/hot/ambient), `allergens[]`,
   `ingredients?`, `novaGroup?`, `imageUrl?`, `defaultSupplierId?`, **`parLevel?`, `reorderQty?`**,
   **`kind?`** (supply/made), **`unit?`** (remembered from the first delivery or batch), **`recipe?`**
-  (`yieldQty`, `shelfLifeDays?`, `ingredients[]`: `productId, productName, qty, unit`), `active`, `createdAt`.
+  (`yieldQty`, `shelfLifeDays?`, `checks?[]` (record types every batch must fill in), `ingredients[]`: `productId, productName, qty, unit`), `active`, `createdAt`.
   Created manually, **automatically on first delivery**, or by naming something new in production.
   A barcode belongs to one product per business.
 - `deliveries`: `receivedAt`, `supplierId`, `supplierName`, `supplierApproved` (snapshot), `invoiceNumber?`,
@@ -239,14 +247,17 @@ multi-business change still validates until `migrations:toMultiBusiness` has run
 | `locations` | `name`, `kind` (chiller/freezer/dry/display/other), `active` | Retired, not deleted. |
 | `stockLots` | `productId?`, `productName`, `barcode?`, `deliveryId?`, `deliveryItemId?`, `productionRunId?`, `supplierName?`, `batchCode?`, `useBy?`, `bestBefore?`, `locationId?`, `storageType`, `unit`, `qtyReceived`, `qtyOnHand`, `status` (available/hold/depleted), `holdReason?`, `receivedAt` | One per accepted delivery line, production run, or opening stock. |
 | `stockMovements` | `lotId`, `productName`, `type`, `qty` (signed change), `qtyAfter`, `reason?`, `customer?` (dispatch), `toLocationId?`, `productionRunId?` (use: the batch it went into), `at`, `byId/Name` | Append-only: a lot's movements always add up to what is on hand. |
-| `productionRuns` | `productId`, `productName`, `batchCode` (`by_business_batch`, unique per business), `qty`, `unit`, `fromRecipe`, `inputs[]` (`lotId, productName, batchCode?, supplierName?, qty, unit`), `allergens[]` (everything the inputs carry), `useBy?`, `bestBefore?`, `lotId` (the batch's stock), `notes?`, `madeAt`, `madeById/Name` | Never edited. Inputs are snapshots, so the batch traces back even after lots are used up. |
+| `productionRuns` | `productId`, `productName`, `batchCode` (`by_business_batch`, unique per business), `qty`, `unit`, `fromRecipe`, `kind?` (make/harvest; unset = make), `areaId?`, `areaName?`, `plannedId?`, `inputs[]` (`lotId, productName, batchCode?, supplierName?, qty, unit`; may be empty for a harvest), `allergens[]` (everything the inputs carry), `useBy?`, `bestBefore?`, `lotId` (the batch's stock), `notes?`, `madeAt`, `madeById/Name`, `voided?`, `voidReason?`, `voidedAt?`, `voidedByName?` | Never edited, only voided. Inputs are snapshots, so the batch traces back even after lots are used up. |
+| `plannedBatches` | `productId`, `productName`, `qty`, `unit?`, `kind`, `areaId?`, `dueOn` (start of the day), `notes?`, `status` (planned/done/cancelled), `runId?`, `createdAt`, `createdByName` | `by_business_status`. |
+| `areas` | `name`, `kind` (paddock/block/glasshouse/orchard/hive/herd/other), `notes?`, `active`, `createdAt` | Growing areas. Retired, not deleted. |
 | `stocktakes` | `locationId?`, `title`, `status`, `startedAt/ByName`, `completedAt?/ByName?`, `lines[]` (`lotId, productName, batchCode?, unit, expected, counted`) | |
 
 ### Checks and records
 - `temperatureLogs`: `checkedAt`, `unitName`, `unitType` (chiller/freezer/hot_hold/cooking/cooling),
   `temperatureC`, `compliant`, `correctiveAction?`, `checkedById/Name`.
 - `records`: `programme`, `recordType`, `recordName`, `values` (field key → answer), `issues[]` (limits
-  it failed), `at`, `byId/Name`, `voided`, `voidReason?`. One table for every programme record type.
+  it failed), `at`, `byId/Name`, `voided`, `voidReason?`, `productionRunId?` (a check filled in on that
+  batch, `by_productionRun`). One table for every programme record type.
 - `audits`: `templateKey`, `templateName`, `standardRef`, `title`, `periodStart/End`, `tzOffsetMinutes?`,
   `status`, `started*/completed*`, `score`, `answers[]`. Questions are **copied into the audit**, so later
   template or programme changes never alter past audits.
@@ -336,10 +347,14 @@ vehicle (low) → one audit-log entry.
 | Function | Role | Description |
 |---|---|---|
 | `production:batchCode()` | any | The next batch code (`P0001`, `P0002`...), skipping any typed by hand. |
-| `production:plan(productId, qty)` | any | Scales the product's recipe to `qty` and picks lots for each ingredient, first expiring first (matching unit, not held, not past use-by, not promised to another line). Returns `need`, `picks[]` and `short` per ingredient, and a use-by from the shelf life. |
-| `production:create(productId? \| productName?, qty, unit?, storageType?, batchCode?, useBy?, bestBefore?, locationId?, fromRecipe?, notes?, inputs[] (lotId, qty))` | any | Records the run: each input is a `use` movement on its lot (held / out-of-date / not-enough stock refused), the batch becomes a new lot with the batch code, the inputs' allergens are added to the product, and one audit-log entry is written. Naming something new adds it to the catalogue as a made product. Batch codes are unique per business. |
-| `production:list(limit?)`, `production:get(id)` | any | Runs newest first; one run with its lot (what's left, who it was dispatched to). |
-| `production:trace(search)` | any | Runs whose batch, product, or any input product or batch matches. |
+| `production:plan(productId, qty)` | any | Scales the product's recipe to `qty` and picks lots for each ingredient, first expiring first (matching unit, not held, not past use-by, not promised to another line). Returns `need`, `picks[]` and `short` per ingredient, a use-by from the shelf life, and the recipe's `checks`. |
+| `production:create(productId? \| productName?, qty, unit?, storageType?, batchCode?, useBy?, bestBefore?, locationId?, fromRecipe?, notes?, inputs[] (lotId, qty), kind?, areaId?, plannedId?, checks?[] (recordType, values))` | any | Records the run: each input is a `use` movement on its lot (held / out-of-date / not-enough stock refused), the batch becomes a new lot with the batch code, the inputs' allergens are added to the product, and one audit-log entry is written. Naming something new adds it to the catalogue as a made product. Batch codes are unique per business. A harvest needs `areaId` and no inputs. Each check must be a production check for this kind of run; the recipe's checks are required. Checks are saved as records linked to the run (`food` / `batch` fields filled in with the batch), and their failures raise CAs. A `plannedId` is marked done. |
+| `production:list(limit?)`, `production:get(id)` | any | Runs newest first (voided ones included); one run with its lot (what's left, who it was dispatched to) and its `checks`. |
+| `production:trace(search)` | any | Runs whose batch, product, growing area, or any input product or batch matches. |
+| `production:voidRun(id, reason)` | mgr | Only while the batch lot has no movement but its first: empties it and puts each input back on its lot (`void` movements), and marks the run voided. The batch code stays taken; Insights stop counting it. |
+| `production:planned()` | any | Planned batches (status `planned`), with `areaName`, `hasRecipe` and today's ingredient `short`fall for recipes. Each plan is checked against all stock on its own. |
+| `production:planBatch(productId, qty, unit?, kind?, areaId?, dueOn, notes?)`, `production:cancelPlanned(id)` | mgr | Plan or cancel a batch. |
+| `areas:list(includeInactive?)`, `areas:create(name, kind, notes?)`, `areas:update(id, ...)` | any / mgr / mgr | Growing areas, archived with `active: false`. |
 
 ### Programmes and records
 | Function | Role | Description |
@@ -465,7 +480,10 @@ At sign-up (and later under **Your programme → Change programme**, admins only
   ice slurry within ±1°C), maintenance, staff training, mock recall (yearly), self-supply water test,
   customer complaint. Then by programme: sickness, transport temperature, cooking (69-75°C time/temperature
   combinations), cooling (21°C in 2 h, 5°C in 6 h), reheating (75°C), water activity (< 0.85), pH (≤ 4.6),
-  tutin. Each `failIf` limit raises a CA.
+  tutin, and in every programme an allergen & label check and a harvest check. Each `failIf` limit raises a CA.
+  Record types with `production` (`make`, `harvest` or `both`) are **production checks** too: they're offered on
+  the batch or harvest form (cooking, cooling, reheating, water activity, pH, allergen & label on batches; harvest
+  check and tutin on harvests). Custom programmes can mark any of their record types the same way.
 - **Checklists**: the NP self-check (monthly), built from "Checking the programme is working well" and each
   card's "Show" section, auto-filled from facts (§6).
 - **Schedule**: drives the **Due** list: daily chilled check (any chiller/freezer temperature log),
@@ -617,9 +635,11 @@ cards, 50px-tall buttons, filled inputs, and an orange-accented navigation bar.
 ### Navigation
 `main.dart` shows a spinner while restoring, `LoginScreen` if signed out, `BusinessPickerScreen` until a
 business is chosen, else `HomeShell` (keyed by business, so switching rebuilds everything).
-`HomeShell` has 5 tabs (Home, Goods In, Stock, Checks, More) in an `IndexedStack`: **bottom bar under
-900px width, side rail above** (desktop web). Other screens are pushed with `MaterialPageRoute`.
-`HomeShell.of(context).go(i)` switches tab from inside a page.
+`HomeShell` has 6 tabs (Home, Goods In, Production, Stock, Checks, More) in an `IndexedStack`; retail
+businesses have no Production tab, and the tab is called Kitchen for kitchens and Harvest for farms
+(`Business.productionLabel`). **Bottom bar under 900px width (labels only on the selected tab when there are 6),
+side rail above** (desktop web). Other screens are pushed with `MaterialPageRoute`.
+`HomeShell.of(context).go('stock')` switches tab by key from inside a page.
 
 ### Screen files
 | File | Screen(s) |
@@ -634,6 +654,7 @@ business is chosen, else `HomeShell` (keyed by business, so switching rebuilds e
 | `lot_detail_screen.dart` | One lot: details, actions (use, sell, dispatch, waste, move, hold/release, adjust), history |
 | `stocktake_screen.dart` | Count lines, complete |
 | `locations_screen.dart` | Add / rename / retire locations |
+| `areas_screen.dart` | Add / rename / retire growing areas (managers) |
 | `programme_screen.dart` | Your programme: Due list, records, receiving checks, checklists; `ChangeProgrammeScreen`, `DueList` |
 | `records_screen.dart` | `RecordsScreen` (history, void) and `RecordFormScreen` (generic form from fields) |
 | `custom_programme_editor.dart` | Custom programme builder + `RecordTypeEditor`, `ChecklistEditor` |
@@ -648,7 +669,7 @@ business is chosen, else `HomeShell` (keyed by business, so switching rebuilds e
 | `temperature_screen.dart` | Readings list + record sheet |
 | `suppliers_screen.dart` | Supplier list + `SupplierFormScreen` |
 | `products_screen.dart` | Catalogue: All / Supplies / Made here, allergens & NOVA; managers set reorder levels, add recipes and products they make |
-| `production_screen.dart` | `ProductionScreen` (batches), `ProductionRunScreen` (one batch: inputs, stock, dispatches), `ProductionFormScreen` (make a batch), `LotPickerScreen` (usable stock), `RecipeScreen` |
+| `production_screen.dart` | `ProductionScreen` (the tab: planned, recent batches), `ProductionRunScreen` (one batch: inputs or area, checks, stock, dispatches, void), `ProductionFormScreen` (make a batch or harvest, with checks; from a plan), `PlanBatchScreen`, `LotPickerScreen` (usable stock), `RecipeScreen` (with its checks) |
 | `expiring_screen.dart` | Expiring / expired stock on hand |
 | `trace_screen.dart` | Trace & recall: receipts (and what was made from them) and batches made here, what's left, dispatched to; Recall button |
 | `more_screen.dart` | Profile, business (switch / programme / add / Insights), records, compliance, Help & support, sign out |
@@ -696,7 +717,9 @@ http dev), iOS `NSCameraUsageDescription`, web title/theme colour.
 - Managers: **Locations** (chillers, freezers, dry store) and **Add stock** (opening stock).
 
 ### Production
-**More → Production** or **Home → Make a batch**.
+The **Production** tab (Kitchen / Harvest, by business type; **More → Production** for retail), or
+**Home → Make a batch / Harvest**. It shows what's **planned** (with shortfalls), **Record a harvest** for mixed
+businesses, and recent batches (voided ones struck through).
 1. **What are you making?** Search or scan your catalogue, or type a new name.
 2. If it has a **recipe**, say how much you made and the ingredients are filled in from stock, first expiring
    first; anything short is flagged. Without one it's a **one-off**: **Add from stock** for each thing you used
@@ -704,9 +727,20 @@ http dev), iOS `NSCameraUsageDescription`, web title/theme colour.
 3. The **batch code** is filled in (P0001, P0002...), as is the use-by when the recipe has a shelf life. Pick
    where it's put away, then **Save batch**. The ingredients come out of stock, the batch goes in, and it
    carries every allergen in what went into it.
+4. **Checks**: tap any production check the programme offers and fill it in. A recipe's own checks are open
+   already and can't be turned off. Each is saved as a programme record on the batch.
 
-**Recipes** (managers): **More → Products**, tap a product → **Add a recipe**, or **Product you make** to start
-a new one. Set what one batch makes, its shelf life, and pick the ingredients (supplies or other things you make).
+**Harvest** (farms and mixed): pick what you harvested and **Harvested from** (a growing area), how much, and
+optionally anything used from stock; then the harvest check. Growing areas are managed from the grass icon on
+the tab, or **More → Growing areas**.
+
+**Plan** (managers): product, how much, the day, and Make or Harvest. **Start** opens the form filled in;
+saving marks the plan done. **Void this batch** (managers) on a batch none of which has been used, moved or
+dispatched puts its ingredients back and keeps the record, struck through.
+
+**Recipes** (managers): **Production → Recipes** or **More → Products**, tap a product → **Add a recipe**, or
+**Product you make** to start a new one. Set what one batch makes, its shelf life, the checks every batch needs,
+and pick the ingredients (supplies or other things you make).
 
 ### Checks (programme, records and audits)
 - **Your programme**: the Due list, record types (tap for history, **Add record**), what's asked at goods
@@ -838,6 +872,29 @@ re-running does nothing once that data is migrated. Try it on a
 copy first (restore a backup into a local deployment). Once it has run, `businessId` can be made required
 in `schema.ts` and the legacy `settings` table and `users.role` field removed.
 
+**Test accounts (before launch only).** `backend/convex/seed.ts` wipes every table and builds the test
+accounts through the app's own mutations, a simulated day at a time, so they have history. It refuses to run
+unless the deployment has `SEED_ALLOWED=true`; **remove that variable before launch**.
+```bash
+ssh -fN -L 3299:127.0.0.1:3210 loganserver
+cd backend && export CONVEX_DEPLOYMENT= CONVEX_SELF_HOSTED_URL=http://127.0.0.1:3299 \
+  CONVEX_SELF_HOSTED_ADMIN_KEY="$(ssh loganserver cat foodsafe/.admin_key)"
+npx convex env set SEED_ALLOWED true
+npx convex run seed:run '{"confirm":"wipe everything"}'
+```
+Every account's password is `jampacked-test`.
+
+| Account | What it is |
+|---|---|
+| `full@jampacked.test` | Everything: Harbour Kitchen & Farm (mixed, NP3, 45 days): deliveries (partial, rejected, voided), recipes with checks, batches and harvests, a voided batch, plans with a shortfall, holds, a transfer, stocktakes, audits, records, open and closed CAs, Insights. Also owns Fiona's Farm Shop (custom programme with a Brix harvest check) and an archived café. Platform admin (owner dashboard). |
+| `manager@` / `staff@jampacked.test` | Manager and staff at Harbour Kitchen & Farm; `staff@` is also staff at Southern Preserves. `pending@` is invited but hasn't signed up. |
+| `factory@jampacked.test` | Big: Southern Preserves Ltd (manufacturer, NP2 spreads, 60 days), jam and chutney with pH checks, dispatches to four customers. `qa@` (manager) and `line@` (staff). |
+| `farm@jampacked.test` | Riverbend Orchard & Apiary (farm, NP1 horticulture + honey, 30 days): four growing areas, harvests with harvest and tutin checks. `picker@` (staff). |
+| `shop@jampacked.test` | Corner Dairy (retail, NP2 retail chilled/frozen, 21 days): goods in and sales only, no Production tab. |
+| `cafe@jampacked.test` | Small: Kai Corner Café (kitchen, NP2, 14 days). |
+| `ece@jampacked.test` | Smaller: Little Kiwis ECE (kitchen, NP2 ECE, 10 days). |
+| `new@jampacked.test` | A new business with nothing in it. |
+
 **Operations:**
 ```bash
 ssh loganserver
@@ -877,9 +934,10 @@ The app is structured so only auth plumbing changes:
   Option: `convex_flutter` WebSocket client (needs Rust toolchain for mobile).
 - **No photo evidence**: Convex file storage could hold delivery/damage photos.
 - **No offline mode**: receiving in a walk-in with no signal fails; a local queue would fix it.
-- **Production can't be voided or edited**: a batch recorded by mistake is corrected with stock movements
-  (waste the batch lot, adjust the ingredient lots) rather than undone. Recipes have no versions: a past
-  run keeps what actually went in, but not the recipe as it was.
+- **Production can't be edited, and is voided only while untouched**: once any of a batch has been used,
+  moved or dispatched it's corrected with stock movements instead. Recipes have no versions: a past run keeps
+  what actually went in, but not the recipe as it was.
+- **Planned batches don't reserve stock**: each plan's shortfall is worked out against all stock on its own.
 - **Units aren't converted**: a recipe line in `kg` only draws on lots counted in `kg`.
 - **Plans aren't enforced in the app yet**: pricing is by programme (NP1 free for one user, NP1 with staff
   at the NP2 price), but nothing checks it until billing exists ([billing-stripe.md](issues/billing-stripe.md)).

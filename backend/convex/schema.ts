@@ -18,6 +18,32 @@ export const locationKind = v.union(
   v.literal("other"),
 );
 
+/** What kind of operation a business is; sets the app's wording and which production features show. Unset = mixed. */
+export const operation = v.union(
+  v.literal("kitchen"),
+  v.literal("manufacturer"),
+  v.literal("farm"),
+  v.literal("retail"),
+  v.literal("mixed"),
+);
+
+/** Where a farm grows or raises what it harvests. */
+export const areaKind = v.union(
+  v.literal("paddock"),
+  v.literal("block"),
+  v.literal("glasshouse"),
+  v.literal("orchard"),
+  v.literal("hive"),
+  v.literal("herd"),
+  v.literal("other"),
+);
+
+/** A batch is made (from stock) or harvested (from a growing area). */
+export const runKind = v.union(v.literal("make"), v.literal("harvest"));
+
+/** Which production forms a record type shows on as a check. */
+export const productionUse = v.union(v.literal("make"), v.literal("harvest"), v.literal("both"));
+
 export const movementType = v.union(
   v.literal("receive"),
   v.literal("use"),
@@ -51,6 +77,7 @@ export const customRecordType = v.object({
   description: v.string(),
   fields: v.array(customField),
   frequency: v.optional(frequency),
+  production: v.optional(productionUse), // shows on batch / harvest forms as a check
 });
 export const customPrompt = v.object({ key: v.string(), text: v.string(), guidance: v.optional(v.string()) });
 export const customChecklist = v.object({
@@ -75,6 +102,7 @@ export const customChecklist = v.object({
 export const recipe = v.object({
   yieldQty: v.number(),
   shelfLifeDays: v.optional(v.number()), // sets the use-by of each batch
+  checks: v.optional(v.array(v.string())), // record types every batch must fill in (production checks)
   ingredients: v.array(v.object({ productId: v.id("products"), productName: v.string(), qty: v.number(), unit: v.string() })),
 });
 
@@ -124,6 +152,7 @@ export default defineSchema({
     programme: programmeKey, // the standard this business follows (convex/lib/programmes.ts)
     customProgrammeId: v.optional(v.id("customProgrammes")), // when programme is "custom"
     sectors: v.array(v.string()), // programme sectors that apply, e.g. "ece", "transport"
+    operation: v.optional(operation), // kitchen / manufacturer / farm / retail / mixed; unset = mixed
     ownerId: v.id("users"),
     archived: v.boolean(), // businesses are archived, never deleted (records kept 7 years)
     createdAt: v.number(),
@@ -332,6 +361,10 @@ export default defineSchema({
     qty: v.number(),
     unit: v.string(),
     fromRecipe: v.boolean(),
+    kind: v.optional(runKind), // unset = make
+    areaId: v.optional(v.id("areas")), // harvest: where it was grown
+    areaName: v.optional(v.string()),
+    plannedId: v.optional(v.id("plannedBatches")),
     inputs: v.array(
       v.object({
         lotId: v.id("stockLots"),
@@ -350,9 +383,41 @@ export default defineSchema({
     madeAt: v.number(),
     madeById: v.id("users"),
     madeByName: v.string(),
+    // Voided: recorded by mistake. Its stock was put back; the record and batch code are kept.
+    voided: v.optional(v.boolean()),
+    voidReason: v.optional(v.string()),
+    voidedAt: v.optional(v.number()),
+    voidedByName: v.optional(v.string()),
   })
     .index("by_business_madeAt", ["businessId", "madeAt"])
     .index("by_business_batch", ["businessId", "batchCode"]),
+
+  // Batches planned ahead; "Start" records the run and marks the plan done.
+  plannedBatches: defineTable({
+    businessId: v.id("businesses"),
+    productId: v.id("products"),
+    productName: v.string(),
+    qty: v.number(),
+    unit: v.optional(v.string()),
+    kind: runKind,
+    areaId: v.optional(v.id("areas")),
+    dueOn: v.number(), // start of the day it's due
+    notes: v.optional(v.string()),
+    status: v.union(v.literal("planned"), v.literal("done"), v.literal("cancelled")),
+    runId: v.optional(v.id("productionRuns")),
+    createdAt: v.number(),
+    createdByName: v.string(),
+  }).index("by_business_status", ["businessId", "status", "dueOn"]),
+
+  // Growing areas a farm harvests from: paddocks, blocks, glasshouses, hives, herds.
+  areas: defineTable({
+    businessId: v.id("businesses"),
+    name: v.string(),
+    kind: areaKind,
+    notes: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_business", ["businessId"]),
 
   stocktakes: defineTable({
     businessId: v.id("businesses"),
@@ -389,9 +454,11 @@ export default defineSchema({
     byName: v.string(),
     voided: v.boolean(),
     voidReason: v.optional(v.string()),
+    productionRunId: v.optional(v.id("productionRuns")), // a production check filled in on this batch
   })
     .index("by_business_at", ["businessId", "at"])
-    .index("by_business_type", ["businessId", "recordType", "at"]),
+    .index("by_business_type", ["businessId", "recordType", "at"])
+    .index("by_productionRun", ["productionRunId"]),
 
   // ---- Temperature monitoring ----
   temperatureLogs: defineTable({

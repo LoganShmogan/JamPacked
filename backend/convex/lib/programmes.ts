@@ -124,6 +124,8 @@ export type RecordType = SectorScoped & {
   card: string; // the guide card it comes from
   fields: Field[];
   frequency?: Frequency; // when set, the record shows on the "Due" list
+  /** When set, the record is a production check: it shows on batch ("make") or harvest forms. */
+  production?: "make" | "harvest" | "both";
 };
 
 export type ReceivingPrompt = SectorScoped & { key: string; text: string; guidance?: string };
@@ -266,6 +268,7 @@ const TRANSPORT: RecordType = {
 };
 
 const COOKING: RecordType = {
+  production: "make",
   key: "cooking",
   name: "Cooking / pasteurising",
   description: "Check the centre reached one of: 75°C for 15 s, 72°C for 1 min, 71°C for 2 min, 69°C for 5 min.",
@@ -278,6 +281,7 @@ const COOKING: RecordType = {
 };
 
 const COOLING: RecordType = {
+  production: "make",
   key: "cooling",
   name: "Cooling cooked food",
   description: "From 60°C: down to 21°C within 2 hours, then to 5°C within another 4 hours. Otherwise throw it out.",
@@ -290,6 +294,7 @@ const COOLING: RecordType = {
 };
 
 const REHEATING: RecordType = {
+  production: "make",
   key: "reheating",
   name: "Reheating",
   description: "Reheat until steaming hot, at least 75°C in the middle, then keep above 60°C.",
@@ -301,6 +306,7 @@ const REHEATING: RecordType = {
 };
 
 const WATER_ACTIVITY: RecordType = {
+  production: "make",
   key: "water_activity",
   name: "Water activity test",
   description: "Dried or concentrated food must be below 0.85 water activity throughout, every batch.",
@@ -313,6 +319,7 @@ const WATER_ACTIVITY: RecordType = {
 };
 
 const PH: RecordType = {
+  production: "make",
   key: "ph_test",
   name: "pH test",
   description: "Shelf-stable pickled, fermented or acidified food: pH below 3.6, or 3.6 to 4.6 and then pasteurised or cooked.",
@@ -326,6 +333,7 @@ const PH: RecordType = {
 };
 
 const TUTIN: RecordType = {
+  production: "harvest",
   key: "tutin",
   name: "Tutin in honey",
   description: "Show honey you pack meets the Tutin in Honey Standard: test results, low-risk harvest records or supplier declarations.",
@@ -335,6 +343,35 @@ const TUTIN: RecordType = {
     { key: "batch", label: "Honey batch", type: "text", required: true },
     { key: "evidence", label: "Evidence (test, declaration, harvest timing)", type: "text", required: true },
     yes("meets", "Meets the tutin standard?", "Honey batch may not meet the tutin standard"),
+  ],
+};
+
+// Production checks every programme offers on batches and harvests.
+const ALLERGEN_LABEL: RecordType = {
+  production: "make",
+  key: "allergen_label",
+  name: "Allergen & label check",
+  description: "Before a batch goes out: the area was cleaned down after the last allergen batch and the label is right.",
+  card: "Managing allergens",
+  fields: [
+    yes("cleanDown", "Cleaned down after the last allergen batch?", "Not cleaned down between allergen batches"),
+    yes("allergenLabel", "Label lists every allergen this batch carries?", "Label missing an allergen"),
+    yes("batchLabel", "Batch code and date on the label?", "Batch code or date missing from the label"),
+  ],
+};
+
+const HARVEST: RecordType = {
+  production: "harvest",
+  key: "harvest_check",
+  name: "Harvest check",
+  description: "At harvest: clean containers, withholding periods kept, produce protected from contamination.",
+  card: "Growing and harvesting",
+  fields: [
+    yes("containersClean", "Containers and equipment clean?", "Harvest containers or equipment not clean"),
+    yes("withholding", "Withholding periods for sprays or animal treatments observed?", "Withholding period not observed"),
+    yes("offGround", "Produce kept off the ground and away from contamination?", "Produce exposed to contamination at harvest"),
+    { key: "washWater", label: "Wash water suitable? (if used)", type: "yesno", failIf: { equals: false, message: "Wash water not suitable" } },
+    { key: "notes", label: "Notes", type: "text" },
   ],
 };
 
@@ -417,7 +454,7 @@ const MODULES: Record<BuiltInProgramme, ProgrammeModule> = {
     key: "NP1",
     name: "National Programme 1",
     receivingPrompts: [...COMMON_PROMPTS, HONEY_PROMPT],
-    recordTypes: [...COMMON_RECORDS, { ...TRANSPORT, sectors: ["transport"] }, TUTIN],
+    recordTypes: [...COMMON_RECORDS, { ...TRANSPORT, sectors: ["transport"] }, TUTIN, ALLERGEN_LABEL, HARVEST],
     templates: [
       selfCheck("NP1", [
         { id: "np1a", section: "Transport", text: "Chilled and frozen deliveries had temperature (and humidity) recorded in transport", type: "yesno", sectors: ["transport"] },
@@ -445,6 +482,8 @@ const MODULES: Record<BuiltInProgramme, ProgrammeModule> = {
       REHEATING,
       WATER_ACTIVITY,
       PH,
+      ALLERGEN_LABEL,
+      HARVEST,
     ],
     templates: [
       selfCheck("NP2", [
@@ -465,7 +504,7 @@ const MODULES: Record<BuiltInProgramme, ProgrammeModule> = {
     key: "NP3",
     name: "National Programme 3",
     receivingPrompts: COMMON_PROMPTS,
-    recordTypes: [...COMMON_RECORDS, SICKNESS, TRANSPORT, COOKING, COOLING, REHEATING, WATER_ACTIVITY, PH],
+    recordTypes: [...COMMON_RECORDS, SICKNESS, TRANSPORT, COOKING, COOLING, REHEATING, WATER_ACTIVITY, PH, ALLERGEN_LABEL, HARVEST],
     templates: [
       selfCheck("NP3", [
         SICKNESS_QUESTION,

@@ -104,9 +104,7 @@ void main() {
 
     testWidgets('shows a spinner until the guides load', (tester) async {
       final convex = fakeWith();
-      await tester.pumpWidget(
-        wrapProviders(convex, signedIn(convex), help()),
-      );
+      await tester.pumpWidget(wrapProviders(convex, signedIn(convex), help()));
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       await tester.pumpAndSettle();
       expect(find.byType(CircularProgressIndicator), findsNothing);

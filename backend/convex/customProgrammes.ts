@@ -49,7 +49,9 @@ function copyOf(key: "NP1" | "NP2" | "NP3"): Parts {
   const m = BUILT_IN_MODULES[key];
   return {
     receivingPrompts: m.receivingPrompts.map(({ key, text, guidance }) => ({ key, text, guidance })),
-    recordTypes: m.recordTypes.map(({ key, name, description, fields, frequency }) => ({ key, name, description, fields, frequency })),
+    recordTypes: m.recordTypes.map(({ key, name, description, fields, frequency, production }) => ({
+      key, name, description, fields, frequency, production,
+    })),
     templates: m.templates.map(({ key, name, description, defaultPeriodDays, frequency, questions }) => ({
       key: `custom_${key}`,
       name,

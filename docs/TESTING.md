@@ -4,9 +4,9 @@ All three parts of the project have unit tests with a **100% coverage gate**:
 
 | Part | Framework | Tests | Coverage (enforced) |
 |---|---|---|---|
-| Backend (`backend/`) | Vitest + [`convex-test`](https://www.npmjs.com/package/convex-test) | 201 | 100% statements, branches, functions and lines |
-| App (`app/`) | `flutter_test` (unit + widget tests) | 269 | 100% lines (the Dart VM reports lines only) |
-| Website (`web/`) | Vitest + Testing Library (jsdom) | 27 | 100% statements, branches, functions and lines |
+| Backend (`backend/`) | Vitest + [`convex-test`](https://www.npmjs.com/package/convex-test) | 236 | 100% statements, branches, functions and lines |
+| App (`app/`) | `flutter_test` (unit + widget tests) | 328 | 100% lines (the Dart VM reports lines only) |
+| Website (`web/`) | Vitest + Testing Library (jsdom) | 65 | 100% statements, branches, functions and lines |
 
 No test needs a running Convex deployment, a network connection, a device or a camera.
 
@@ -114,6 +114,8 @@ Tests live in `backend/tests/`, outside `convex/`, so `npx convex deploy` never 
 | `stock.test.ts` | Lots from goods inwards (put-away, void takes stock out, trace forward), on hand (FIFO, flags, location filter), every movement type and its validation, hold/release, opening stock, par levels, recall, locations and stocktakes (mid-count movements, variance CAs). |
 | `analytics.test.ts` | Task timings (stored per member, outliers dropped, no audit-log entry, membership required), the Insights numbers (every count, voided rows left out, the period, the business's and the person's own medians) and task times on the owner dashboard. |
 | `production.test.ts` | Recipes (validation, names from the catalogue), one barcode per product, remembered units, `plan` (scaling, first-expiring-first, skipping held / out-of-date / other-unit stock, no lot promised twice, shortfalls), making a batch (stock out and in, allergens carried through, new made products, batch codes), validation, trace both ways, and past customers. |
+| `productionCore.test.ts` | Business type (unset = mixed), growing areas (roles, archive, isolation), harvests (no inputs, optional inputs, area trace), production checks (saved as linked records, CAs, right kind only, recipe checks required, custom programme checks), planning (shortfalls, start marks done, cancel, roles) and voiding (stock put back, Insights, only untouched batches, managers only). |
+| `seed.test.ts` | The test-account seed (`convex/seed.ts`) refuses to run without `SEED_ALLOWED`, then builds every account end to end; they sign in and have history. `seed.ts` is left out of the coverage gate: which branches its simulated days take depends on its random numbers. |
 | `programmes.test.ts` | Module consistency and sector filtering for NP1/NP2/NP3, `failures`, the `current` module, the **Due** list for each kind of schedule item, programme records (validation, limits → CAs, void), receiving checks on deliveries, programme checklists and record-based facts. |
 | `customProgrammes.test.ts` | Validation of custom parts, building the schedule, create blank / copy, assign, edit, reuse across businesses, ownership. |
 | `retention.test.ts` | Nothing in the backend source deletes records (only sign-out removes a session), every business table is exported, and admin-only paginated export. |
@@ -221,6 +223,7 @@ app/test/
 | `suppliers_screen_test` | List, role permissions, create / edit form, history, pop results. |
 | `record_lists_test` | Expiring stock labels, trace & recall (stock left, dispatched to, made from it, batches made here, recall), products (supplies / made filter, recipes, par levels, new made product). |
 | `production_screen_test` | Batch list and detail, making a batch from a recipe (plan, shortfalls, save) or one-off (new product, picking stock, scanning, removing lines, use-by), validation and errors, the recipe editor and staff read-only. |
+| `production_core_test` | The Production tab by business type (planned batches with shortfalls, start / cancel, harvests, voided batches), a batch's checks and voiding, the harvest form (areas, checks, from a plan), recipe checks on the form and in the recipe editor, planning, growing areas, the nav for farm and retail, and trace for harvests. |
 | `help_insights_test` | The guides file (complete, unique ids), the Help screen (guides, steps, tips, search, copying the email, loading) and Insights (numbers, task times, period picker, `fmtDuration` / `fmtHours`). |
 | `widgets/product_picker_test` | Catalogue search by name / brand / barcode, "New:" for unlisted names, scanning a known and unknown barcode. |
 | `admin_screens_test` | Audit trail filters and change-detail dialog, members and invites, business settings, archive / restore. |

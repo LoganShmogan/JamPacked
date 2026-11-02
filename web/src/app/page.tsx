@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { JsonLd } from "@/components/JsonLd";
 import { Phone } from "@/components/Phone";
-import { priceSummary, steps } from "@/lib/content";
+import { operationCards, priceSummary, steps } from "@/lib/content";
 import { programmes } from "@/lib/programmes";
 import { shots } from "@/lib/screenshots";
 import { pageMetadata, softwareApplication } from "@/lib/seo";
@@ -28,9 +28,10 @@ export default function Home() {
             <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-jam-dark">Food safety app for NZ &amp; AU food businesses</p>
             <h1 className="text-4xl font-bold leading-tight sm:text-5xl">Food safety records that fill themselves in.</h1>
             <p className="mt-5 max-w-xl text-lg text-muted">
-              Enter everything once. Every delivery becomes stock you can rotate, make into your own products and
-              trace, JamPacked keeps the records your MPI National Programme needs, and it answers your audits for you.
-              On your phone, at the back door.
+              Goods in, production and stock in one place. Every delivery becomes stock you can rotate, cook, make or
+              pack into your own products, every harvest goes in with where it was grown, and it all traces both ways.
+              JamPacked keeps the records your MPI National Programme needs and answers your audits for you. On your
+              phone, at the back door or out in the paddock.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/store/" className="rounded-lg bg-jam px-5 py-3 text-center font-semibold text-on-jam hover:bg-jam-dark">
@@ -57,6 +58,25 @@ export default function Home() {
           ))}
         </ol>
         <Link href="/features/" className="mt-6 inline-block font-semibold text-jam hover:underline">See all features →</Link>
+      </section>
+
+      <section className="border-t border-border bg-surface">
+        <div className="mx-auto max-w-5xl px-4 py-14">
+          <h2 className="text-2xl font-bold">Made here, grown here</h2>
+          <p className="mt-3 max-w-2xl text-muted">
+            Tell JamPacked what you do and production fits it, with its own tab, its own words and the checks your
+            programme asks for on every batch.
+          </p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            {operationCards.map(([heading, body]) => (
+              <div key={heading} className="rounded-xl border border-border bg-bg p-5">
+                <h3 className="font-semibold">{heading}</h3>
+                <p className="mt-2 text-sm text-muted">{body}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-sm text-muted">Doing a bit of everything? Choose Mixed / other and you get all of it.</p>
+        </div>
       </section>
 
       <section className="border-t border-border bg-cream">

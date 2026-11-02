@@ -39,6 +39,7 @@ export const mine = query({
         name: b.name,
         programme: b.programme,
         sectors: b.sectors,
+        operation: b.operation ?? "mixed",
         archived: b.archived,
         isOwner: b.ownerId === user._id,
         role: m.role,

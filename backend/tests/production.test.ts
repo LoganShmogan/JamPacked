@@ -290,7 +290,7 @@ describe("trace", () => {
     }
     expect(await t.query(api.production.trace, { ...as, search: "nothing" })).toEqual([]);
     expect(await t.query(api.production.trace, { ...as, search: "  " })).toEqual([]);
-    expect(await t.query(api.production.get, { ...as, id: runId })).toEqual({ run, lot });
+    expect(await t.query(api.production.get, { ...as, id: runId })).toEqual({ run, lot, checks: [] });
   });
 
   test("a run from another business isn't found", async () => {

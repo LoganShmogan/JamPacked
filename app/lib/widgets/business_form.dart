@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import '../services/convex_client.dart';
 import '../theme.dart';
 import 'common.dart';
@@ -32,6 +33,7 @@ class BusinessFormState extends State<BusinessForm> {
   late String? _programme = widget.initialProgramme;
   late final _sectors = {...widget.initialSectors};
   String _jurisdiction = 'NZ';
+  String _operation = 'mixed';
   String? _region;
   bool _showErrors = false;
 
@@ -68,6 +70,7 @@ class BusinessFormState extends State<BusinessForm> {
         'name': _name.text.trim(),
         'jurisdiction': _jurisdiction,
         'region': _region,
+        'operation': _operation,
       },
       'programme': _programme,
       'sectors': _sectors.toList(),
@@ -106,6 +109,11 @@ class BusinessFormState extends State<BusinessForm> {
             ),
           ),
         if (widget.showName) ...[
+          const SizedBox(height: 12),
+          OperationPicker(
+            value: _operation,
+            onChanged: (v) => setState(() => _operation = v),
+          ),
           const SectionTitle('Where is it?'),
           CountryPicker(
             value: _jurisdiction,
@@ -181,6 +189,31 @@ class BusinessFormState extends State<BusinessForm> {
       ],
     );
   }
+}
+
+/// What kind of operation the business is. Sets what Production is called and what it shows.
+class OperationPicker extends StatelessWidget {
+  const OperationPicker({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+  final String value;
+  final ValueChanged<String> onChanged;
+  @override
+  Widget build(BuildContext context) => DropdownButtonFormField<String>(
+    initialValue: value,
+    decoration: const InputDecoration(
+      labelText: 'What do you do?',
+      prefixIcon: Icon(Icons.category_outlined),
+      helperText: 'Mixed / other turns on every production feature',
+    ),
+    items: [
+      for (final e in operations.entries)
+        DropdownMenuItem(value: e.key, child: Text(e.value)),
+    ],
+    onChanged: (v) => onChanged(v!),
+  );
 }
 
 class _ProgrammeCard extends StatelessWidget {

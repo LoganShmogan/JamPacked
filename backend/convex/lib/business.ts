@@ -1,7 +1,7 @@
 import { ConvexError, Infer, v } from "convex/values";
 import { Doc } from "../_generated/dataModel";
 import { MutationCtx } from "../_generated/server";
-import { programmeKey } from "../schema";
+import { operation, programmeKey } from "../schema";
 import { logAudit } from "./audit";
 import { programmeInfo } from "./programmes";
 import { checkRegion } from "./regions";
@@ -12,6 +12,7 @@ export const newBusinessFields = {
   name: v.string(),
   programme: programmeKey,
   sectors: v.optional(v.array(v.string())),
+  operation: v.optional(operation),
   jurisdiction: v.optional(v.union(v.literal("NZ"), v.literal("AU"))),
   region: v.optional(v.string()),
   registrationNumber: v.optional(v.string()),

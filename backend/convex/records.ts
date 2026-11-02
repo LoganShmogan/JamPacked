@@ -1,8 +1,9 @@
-import { ConvexError, v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { ConvexError, Infer, v } from "convex/values";
+import { Doc, Id } from "./_generated/dataModel";
+import { MutationCtx, mutation, query } from "./_generated/server";
 import { logAudit } from "./lib/audit";
 import { loadModule } from "./lib/module";
-import { failures } from "./lib/programmes";
+import { ProgrammeModule, failures } from "./lib/programmes";
 import { inBusiness, requireMember, scoped } from "./lib/session";
 import { answerValue } from "./schema";
 
@@ -23,69 +24,81 @@ export const list = query({
 });
 
 /**
- * Records a programme record. Fields are checked against the record type; any answer outside
- * its limits is listed on the record and raises a corrective action.
+ * Saves a programme record. Fields are checked against the record type; any answer outside its
+ * limits is listed on the record and raises a corrective action. Production checks pass the run.
  */
+export async function saveRecord(
+  ctx: MutationCtx,
+  user: Doc<"users">,
+  businessId: Id<"businesses">,
+  m: ProgrammeModule,
+  recordType: string,
+  values: Record<string, Infer<typeof answerValue>>,
+  productionRunId?: Id<"productionRuns">,
+) {
+  const type = m.recordTypes.find((r) => r.key === recordType);
+  if (!type) throw new ConvexError("Your programme doesn't have that kind of record");
+  const clean: Record<string, string | number | boolean | null> = {};
+  for (const f of type.fields) {
+    let val = values[f.key] ?? null;
+    if (typeof val === "string") val = val.trim() || null;
+    if (val !== null) {
+      const ok =
+        f.type === "yesno" ? typeof val === "boolean" : f.type === "text" ? typeof val === "string" : typeof val === "number";
+      if (!ok) throw new ConvexError(`${f.label}: wrong kind of answer`);
+    }
+    if (f.required && val === null) throw new ConvexError(`${type.name}: ${f.label} is required`);
+    clean[f.key] = val;
+  }
+  const issues = failures(type, clean);
+  const at = Date.now();
+  const id = await ctx.db.insert("records", {
+    businessId,
+    programme: m.key,
+    recordType,
+    recordName: type.name,
+    values: clean,
+    issues,
+    at,
+    byId: user._id,
+    byName: user.name,
+    voided: false,
+    ...(productionRunId ? { productionRunId } : {}),
+  });
+  for (const issue of issues) {
+    const caId = await ctx.db.insert("correctiveActions", {
+      businessId,
+      title: `${type.name}: ${issue}`,
+      description: type.fields
+        .filter((f) => clean[f.key] !== null)
+        .map((f) => `${f.label}: ${clean[f.key]}${f.unit ?? ""}`)
+        .join("; "),
+      source: "record",
+      sourceId: id,
+      severity: "medium",
+      status: "open",
+      raisedAt: at,
+      raisedById: user._id,
+      raisedByName: user.name,
+    });
+    await logAudit(ctx, user, { businessId, action: "create", entityType: "correctiveAction", entityId: caId, summary: `Auto-raised from ${type.name}: ${issue}` });
+  }
+  await logAudit(ctx, user, {
+    businessId,
+    action: "create",
+    entityType: "record",
+    entityId: id,
+    summary: `${type.name} recorded${issues.length ? ` (${issues.join("; ")})` : ""}`,
+    changes: clean,
+  });
+  return id;
+}
+
 export const create = mutation({
   args: { ...scoped, recordType: v.string(), values: v.record(v.string(), answerValue) },
   handler: async (ctx, { sessionToken, businessId, recordType, values }) => {
     const { user, business } = await requireMember(ctx, sessionToken, businessId);
-    const m = await loadModule(ctx, business);
-    const type = m.recordTypes.find((r) => r.key === recordType);
-    if (!type) throw new ConvexError("Your programme doesn't have that kind of record");
-    const clean: Record<string, string | number | boolean | null> = {};
-    for (const f of type.fields) {
-      let val = values[f.key] ?? null;
-      if (typeof val === "string") val = val.trim() || null;
-      if (val !== null) {
-        const ok =
-          f.type === "yesno" ? typeof val === "boolean" : f.type === "text" ? typeof val === "string" : typeof val === "number";
-        if (!ok) throw new ConvexError(`${f.label}: wrong kind of answer`);
-      }
-      if (f.required && val === null) throw new ConvexError(`${f.label} is required`);
-      clean[f.key] = val;
-    }
-    const issues = failures(type, clean);
-    const at = Date.now();
-    const id = await ctx.db.insert("records", {
-      businessId,
-      programme: m.key,
-      recordType,
-      recordName: type.name,
-      values: clean,
-      issues,
-      at,
-      byId: user._id,
-      byName: user.name,
-      voided: false,
-    });
-    for (const issue of issues) {
-      const caId = await ctx.db.insert("correctiveActions", {
-        businessId,
-        title: `${type.name}: ${issue}`,
-        description: type.fields
-          .filter((f) => clean[f.key] !== null)
-          .map((f) => `${f.label}: ${clean[f.key]}${f.unit ?? ""}`)
-          .join("; "),
-        source: "record",
-        sourceId: id,
-        severity: "medium",
-        status: "open",
-        raisedAt: at,
-        raisedById: user._id,
-        raisedByName: user.name,
-      });
-      await logAudit(ctx, user, { businessId, action: "create", entityType: "correctiveAction", entityId: caId, summary: `Auto-raised from ${type.name}: ${issue}` });
-    }
-    await logAudit(ctx, user, {
-      businessId,
-      action: "create",
-      entityType: "record",
-      entityId: id,
-      summary: `${type.name} recorded${issues.length ? ` (${issues.join("; ")})` : ""}`,
-      changes: clean,
-    });
-    return id;
+    return await saveRecord(ctx, user, businessId, await loadModule(ctx, business), recordType, values);
   },
 });
 

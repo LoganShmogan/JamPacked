@@ -5,9 +5,16 @@ import { formatPrice, pricing, site } from "./site";
 export const steps = [
   { title: "Receive", body: "Scan the barcode, check the temperature, batch and use-by. Accept or reject on the spot." },
   { title: "Store", body: "Accepted goods become stock by location, first-expiring first, with holds and low-stock alerts." },
-  { title: "Make", body: "Pick a recipe and say how many. Ingredients come out of stock and the batch goes in, with a batch code." },
+  { title: "Make or grow", body: "Make a batch from a recipe, or harvest from a paddock or hive. It goes into stock with a batch code and its checks." },
   { title: "Trace", body: "Search a batch code to see who supplied it, how much is left and where it went. One tap holds it all." },
   { title: "Audit", body: "Audits fill themselves in from your deliveries, temperatures and records, with the evidence attached." },
+];
+
+/** The home page's production section: one card per kind of operation. */
+export const operationCards: [string, string][] = [
+  ["Kitchens and caterers", "Cook from recipes with ingredients picked from stock, first expiring first. Cooking, cooling and reheating checks are kept with each batch."],
+  ["Manufacturers", "Plan runs, see shortfalls before you start, and give every batch a code that traces back to each supplier batch and on to each customer."],
+  ["Farms and growers", "Record harvests from each paddock, block, glasshouse or hive, with a harvest check, then pack, dispatch and trace them like anything else."],
 ];
 
 export const featureGroups: { heading: string; features: [string, string][] }[] = [
@@ -17,10 +24,20 @@ export const featureGroups: { heading: string; features: [string, string][] }[] 
       ["Goods inwards", "Supplier, invoice, vehicle check, probe temperature, packaging, allergens and put-away, item by item."],
       ["Enter it once", "Every product, supply, supplier and customer is typed once. After that you search for it or scan its barcode and it's all filled in."],
       ["Barcode auto-fill", "New products fill in from Open Food Facts, including allergens."],
-      ["Production and recipes", "Save a recipe once, then make batches from it, or a one-off from whatever stock you pick. Allergens carry through to what you make."],
       ["Stock by location", "Accepted goods become lots you can see by location, oldest use-by first, with par levels and low-stock alerts."],
       ["Holds, recalls and stocktakes", "Put a batch on hold, recall it, or count a location. Every movement is recorded."],
-      ["Trace through production", "Search a supplier batch to see what you made from it and who it went to, or a batch you made to see what went in."],
+    ],
+  },
+  {
+    heading: "Production",
+    features: [
+      ["Its own tab", "Production sits on the main menu, named for what you do: Kitchen, Production or Harvest. Retail keeps it tucked away."],
+      ["Recipes and batches", "Save a recipe once, then make batches from it, or a one-off from whatever stock you pick. Allergens carry through to what you make."],
+      ["Harvests", "Farms and growers record what they picked, cut, extracted or raised, and which paddock, block, glasshouse or hive it came from. No stock needed."],
+      ["Checks on every batch", "Cooking, cooling, reheating, pH, water activity, allergen and label, and harvest checks, kept with the batch. A reading out of limits raises a corrective action."],
+      ["Plan ahead", "Plan the day's or week's batches, see what you're short of before you start, and start a planned batch with one tap."],
+      ["Fix a mistake", "Void a batch recorded by mistake: what went into it goes back into stock and the record stays, struck through."],
+      ["Trace through production", "Search a supplier batch or a paddock to see what you made from it and who it went to, or a batch you made to see what went in."],
     ],
   },
   {
@@ -61,7 +78,10 @@ export const priceSummary = () =>
 
 /** General questions. */
 export const generalFaqs = (): [string, string][] => [
-  ["Who is JamPacked for?", "Food businesses in New Zealand and Australia that receive, store, make and track food: bakeries, early childhood centres, manufacturers, retailers, transporters and more."],
+  ["Who is JamPacked for?", "Food businesses in New Zealand and Australia that receive, store, make, grow and track food: kitchens, cafés and caterers, bakeries and manufacturers, farms, orchards and beekeepers, early childhood centres, retailers, transporters and more."],
+  ["Does it work for a farm or grower?", "Yes. Choose Farm when you set up your business and the Production tab becomes Harvest. Add your paddocks, blocks, glasshouses or hives, then record each harvest with its checks; it goes into stock with a batch code and traces back to where it was grown."],
+  ["What checks does it ask for when I make something?", "The ones your programme has for production: cooking, cooling, reheating, pH and water activity under NP2 and NP3, an allergen and label check, and a harvest check for growers. A recipe can make any of them required on every batch."],
+  ["What if I record a batch by mistake?", "A manager can void it while none of it has been used or sent out. What went into it goes back into stock, and the batch stays on record, struck through, with who voided it and why."],
   ["Which programmes does it support?", "Modules based on MPI's National Programme 1, 2 and 3 guidance, or a custom programme you build yourself from parts of them or from scratch. Australian businesses can switch to FSANZ defaults."],
   ["Does it replace my food control plan or verifier?", "No. JamPacked helps you keep the records, but your registered plan or programme, and your verifier or EHO, still decide what's required. Check the modules against your registration."],
   ["What does it run on?", "Android, iPhone and any web browser, with one account across all of them. Staff can be invited by email."],

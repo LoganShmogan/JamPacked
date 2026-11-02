@@ -26,7 +26,8 @@
 
 Mobile-first Flutter app (Android, iOS, web) with a Convex backend, in the spirit of Safe Food Pro.
 **Goods inwards, stock and production are the core**: every delivery becomes stock you can rotate, use,
-make into your own products, dispatch, hold and recall, and anything entered once is picked or scanned after that. Each business follows a **programme module** (MPI National Programme 1, 2 or 3,
+make into your own products, dispatch, hold and recall; kitchens, manufacturers and farms each get a Production
+tab in their own words, with recipes, harvests from growing areas, production checks, planning and voiding, and anything entered once is picked or scanned after that. Each business follows a **programme module** (MPI National Programme 1, 2 or 3,
 or a custom programme you build) and the app prompts for the checks and records that programme needs.
 One account can run several businesses; you pick the one you're working in each day.
 

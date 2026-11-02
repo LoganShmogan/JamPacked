@@ -154,6 +154,8 @@ void main() {
         'Bakery',
       );
       await pickRegion(tester, 'Manawatū-Whanganui');
+      await tapOn(tester, find.text('Mixed / other'));
+      await tapOn(tester, find.text('Manufacturer').last);
       await tapOn(tester, find.text('NP2: National Programme 2'));
       await tapOn(tester, find.text('Bread'));
       await tapOn(tester, find.text('Create business'));
@@ -161,6 +163,7 @@ void main() {
         'name': 'Bakery',
         'jurisdiction': 'NZ',
         'region': 'Manawatū-Whanganui',
+        'operation': 'manufacturer',
         'programme': 'NP2',
         'sectors': ['bread'],
         'sessionToken': 'tok',

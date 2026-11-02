@@ -48,7 +48,7 @@ describe("businesses:mine / create / setArchived", () => {
     const t = setup();
     const { userId, token, businessId } = await signIn(t, "manager");
     const second = await t.mutation(api.businesses.create, {
-      sessionToken: token, name: " Bakery ", programme: "NP2", sectors: ["bread"],
+      sessionToken: token, name: " Bakery ", programme: "NP2", sectors: ["bread"], operation: "manufacturer",
     });
     const gone = await addBusiness(t, userId, { name: "Left Ltd" });
     await t.run(async (ctx) => {
@@ -62,11 +62,11 @@ describe("businesses:mine / create / setArchived", () => {
     const mine = await t.query(api.businesses.mine, { sessionToken: token });
     expect(mine).toEqual([
       {
-        _id: businessId, name: "Kai Cafe", programme: "NP2", sectors: [], archived: false, isOwner: true,
+        _id: businessId, name: "Kai Cafe", programme: "NP2", sectors: [], operation: "mixed", archived: false, isOwner: true,
         role: "manager", openCorrectiveActions: 1,
       },
       {
-        _id: second, name: "Bakery", programme: "NP2", sectors: ["bread"], archived: true, isOwner: true,
+        _id: second, name: "Bakery", programme: "NP2", sectors: ["bread"], operation: "manufacturer", archived: true, isOwner: true,
         role: "admin", openCorrectiveActions: 0,
       },
     ]);

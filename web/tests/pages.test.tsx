@@ -38,7 +38,7 @@ describe("landing page", () => {
     expect(screen.getByRole("link", { name: "Read the FAQ" })).toHaveAttribute("href", "/faq/");
     expect(screen.getByRole("link", { name: "Contact us" })).toHaveAttribute("href", "/contact/");
     expect(screen.getAllByRole("listitem").map((li) => within(li).getByRole("heading").textContent)).toEqual([
-      "Receive", "Store", "Make", "Trace", "Audit",
+      "Receive", "Store", "Make or grow", "Trace", "Audit",
     ]);
     expect(screen.getByRole("heading", { name: "Type it once. Scan it forever." })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "See it in action" })).toBeInTheDocument();
@@ -52,6 +52,8 @@ describe("landing page", () => {
       expect(screen.getByRole("link", { name: new RegExp(name) })).toHaveAttribute("href", `/programmes/${slug}/`);
     }
     expect(screen.getByText(/not endorsed by MPI or FSANZ/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Made here, grown here" })).toBeInTheDocument();
+    expect(screen.getByText("Farms and growers")).toBeInTheDocument();
     expect([...container.querySelectorAll("a")].filter((a) => a.getAttribute("href")!.includes("#"))).toEqual([]);
     expect(ldTypes(container)).toEqual(["SoftwareApplication"]);
     expect(homeMetadata.title).toEqual({ absolute: "JamPacked: food safety records that fill themselves in" });
@@ -77,7 +79,7 @@ test("features page: how it works and every feature group", () => {
 describe("FAQ page", () => {
   test("general and licence questions, all marked up for search", () => {
     const { container } = render(<Faq />);
-    expect(container.querySelectorAll("details")).toHaveLength(14);
+    expect(container.querySelectorAll("details")).toHaveLength(17);
     expect(screen.getByText(/No\. JamPacked helps you keep the records/)).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -88,12 +90,13 @@ describe("FAQ page", () => {
     expect(screen.getByText(/once an NP1 business adds staff, it's charged at the NP2 price/)).toBeInTheDocument();
     expect(screen.getByText(/email us within 30 days of paying/)).toBeInTheDocument();
     expect(screen.getByText("Do I have to type everything in?")).toBeInTheDocument();
+    expect(screen.getByText("Does it work for a farm or grower?")).toBeInTheDocument();
     expect(screen.getByText(/More › Help & support, for step-by-step guides/)).toBeInTheDocument();
     expect(screen.getByText("Can I buy in the app?")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "/contact/");
     const ld = [...container.querySelectorAll('script[type="application/ld+json"]')].map((s) => JSON.parse(s.innerHTML));
     expect(ld.map((d) => d["@type"])).toEqual(["FAQPage", "BreadcrumbList"]);
-    expect(ld[0].mainEntity).toHaveLength(14);
+    expect(ld[0].mainEntity).toHaveLength(17);
   });
 });
 

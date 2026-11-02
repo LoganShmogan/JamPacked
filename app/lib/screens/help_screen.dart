@@ -16,6 +16,8 @@ const _guideIcons = {
   'stock': Icons.inventory_2,
   'production': Icons.soup_kitchen,
   'recipe': Icons.menu_book,
+  'harvest': Icons.agriculture,
+  'plan': Icons.event_note,
   'temperature': Icons.thermostat,
   'programme': Icons.verified,
   'audit': Icons.fact_check,
