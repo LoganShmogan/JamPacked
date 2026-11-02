@@ -49,7 +49,9 @@ export const insights = query({
     const items = (
       await ctx.db.query("deliveryItems").withIndex("by_business_receivedAt", (q) => q.eq("businessId", businessId).gte("receivedAt", since)).collect()
     ).filter((i) => !i.voided);
-    const runs = await ctx.db.query("productionRuns").withIndex("by_business_madeAt", (q) => q.eq("businessId", businessId).gte("madeAt", since)).collect();
+    const runs = (
+      await ctx.db.query("productionRuns").withIndex("by_business_madeAt", (q) => q.eq("businessId", businessId).gte("madeAt", since)).collect()
+    ).filter((r) => !r.voided);
     const temps = await ctx.db.query("temperatureLogs").withIndex("by_business_checkedAt", (q) => q.eq("businessId", businessId).gte("checkedAt", since)).collect();
     const records = (
       await ctx.db.query("records").withIndex("by_business_at", (q) => q.eq("businessId", businessId).gte("at", since)).collect()

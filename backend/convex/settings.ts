@@ -4,7 +4,7 @@ import { diff, logAudit } from "./lib/audit";
 import { checkSectors } from "./lib/business";
 import { checkRegion } from "./lib/regions";
 import { requireMember } from "./lib/session";
-import { programmeKey } from "./schema";
+import { operation, programmeKey } from "./schema";
 
 /** The current business's settings: details, programme and temperature limits. */
 export const get = query({
@@ -31,6 +31,7 @@ export const update = mutation({
     expiryWarningDays: v.optional(v.number()),
     programme: v.optional(programmeKey),
     sectors: v.optional(v.array(v.string())),
+    operation: v.optional(operation),
   },
   handler: async (ctx, { sessionToken, businessId, businessName, ...rest }) => {
     const { user, business } = await requireMember(ctx, sessionToken, businessId, ["admin"]);
