@@ -1,5 +1,5 @@
 // The test accounts (convex/seed.ts): every account builds cleanly through the app's own mutations.
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
 import { SEED_PASSWORD } from "../convex/seed";
 import { setup } from "./helpers";
@@ -19,8 +19,11 @@ test("refuses to run unless the deployment allows it", async () => {
 
 test("seeds every account, with history, and they can sign in", { timeout: 600_000 }, async () => {
   process.env.SEED_ALLOWED = "true";
+  vi.useFakeTimers({ toFake: ["setTimeout", "setInterval"] }); // not Date: the seed dates records by the clock
   const t = setup();
   const { accounts } = await t.action(internal.seed.run, { confirm: "wipe everything" });
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  vi.useRealTimers();
   expect(accounts).toContain("full@jampacked.test");
   const { token } = await t.action(api.auth.login, { email: "full@jampacked.test", password: SEED_PASSWORD });
   const mine = await t.query(api.businesses.mine, { sessionToken: token });

@@ -553,54 +553,64 @@ async function build(ctx: ActionCtx, s: Scenario) {
   return as;
 }
 
-/** Wipes the deployment and creates every test account. Only for a deployment that isn't live. */
+/**
+ * Wipes the deployment, then builds the accounts one after another, each in its own scheduled action
+ * (one action can't run for long enough to build them all). `seed:next` builds account `index` and
+ * schedules the one after; the last step adds what links the accounts together.
+ */
 export const run = internalAction({
-  args: { confirm: v.literal("wipe everything"), only: v.optional(v.array(v.string())) },
-  handler: async (ctx, { only }) => {
+  args: { confirm: v.literal("wipe everything") },
+  handler: async (ctx) => {
     if (process.env.SEED_ALLOWED !== "true") throw new ConvexError("Seeding is turned off on this deployment");
     for (const table of Object.keys(schema.tables)) {
       while ((await ctx.runMutation(internal.seed.wipeTable, { table })) > 0);
     }
-    const accounts: string[] = [];
-    const built: Record<string, As> = {};
-    for (const s of SCENARIOS.filter((x) => !only || only.includes(x.email))) {
-      built[s.email] = await build(ctx, s);
-      accounts.push(s.email, ...(s.staff ?? []).map((p) => `${p.email} (${p.role} at ${s.business.name})`));
-    }
+    await ctx.scheduler.runAfter(0, internal.seed.next, { index: 0 });
+    return {
+      password: SEED_PASSWORD,
+      accounts: [...SCENARIOS.flatMap((s) => [s.email, ...(s.staff ?? []).map((p) => p.email)]), "pending@jampacked.test", "new@jampacked.test"],
+      note: "Building in the background: new@jampacked.test is created last.",
+    };
+  },
+});
 
-    const full = built["full@jampacked.test"];
-    if (full) {
-      const m = <T>(fn: T, args: object) => ctx.runMutation(fn as never, { ...full, ...args } as never) as Promise<never>;
-      // An invite nobody has taken up yet; staff also works at the factory.
-      await m(api.businesses.invite, { email: "pending@jampacked.test", role: "staff" });
-      const factory = built["factory@jampacked.test"];
-      if (factory) await ctx.runMutation(api.businesses.invite, { ...factory, email: "staff@jampacked.test", role: "staff" });
-      // A second business on a custom programme, and an archived one.
-      const shopId = await ctx.runMutation(api.businesses.create, {
-        sessionToken: full.sessionToken, name: "Fiona's Farm Shop", programme: "NP1", sectors: ["horticulture"], operation: "farm", region: "Otago",
-      });
-      const custom = await ctx.runMutation(api.customProgrammes.create, {
-        sessionToken: full.sessionToken, name: "Farm shop plan", copyFrom: "NP1", businessId: shopId,
-      });
-      const p = (await ctx.runQuery(api.customProgrammes.get, { sessionToken: full.sessionToken, id: custom }))!;
-      await ctx.runMutation(api.customProgrammes.update, {
-        sessionToken: full.sessionToken, id: custom,
-        recordTypes: [
-          ...p.recordTypes,
-          { key: "brix", name: "Brix reading", description: "Sugar level of fruit at harvest.", production: "harvest", fields: [{ key: "brix", label: "Brix", type: "number", unit: "°Bx", required: true, failIf: { below: 10, message: "Fruit not ripe enough" } }] },
-        ],
-      });
-      const oldId = await ctx.runMutation(api.businesses.create, { sessionToken: full.sessionToken, name: "Old Town Café", programme: "NP2", operation: "kitchen", region: "Otago" });
-      await ctx.runMutation(api.businesses.setArchived, { sessionToken: full.sessionToken, businessId: oldId, archived: true });
-      await ctx.runMutation(internal.seed.makePlatformAdmin, { email: "full@jampacked.test" });
-      accounts.push("pending@jampacked.test (invited, not signed up)");
+export const next = internalAction({
+  args: { index: v.number() },
+  handler: async (ctx, { index }) => {
+    if (index < SCENARIOS.length) {
+      await build(ctx, SCENARIOS[index]);
+      await ctx.scheduler.runAfter(0, internal.seed.next, { index: index + 1 });
+      return;
     }
-
-    // A brand new account with an empty business, for trying sign-up and the empty screens.
-    if (!only || only.includes("new@jampacked.test")) {
-      await register(ctx, "new@jampacked.test", "Nina New", { name: "Fresh Start Foods", programme: "NP2", operation: "mixed", region: "Nelson" });
-      accounts.push("new@jampacked.test");
-    }
-    return { password: SEED_PASSWORD, accounts };
+    const login = async (email: string) => {
+      const { token } = await ctx.runAction(api.auth.login, { email, password: SEED_PASSWORD });
+      return token;
+    };
+    const full = await login("full@jampacked.test");
+    const fullBiz = await businessOf(ctx, full, "Harbour Kitchen & Farm");
+    const factory = await login("factory@jampacked.test");
+    // An invite nobody has taken up yet; staff also works at the factory.
+    await ctx.runMutation(api.businesses.invite, { sessionToken: full, businessId: fullBiz, email: "pending@jampacked.test", role: "staff" });
+    await ctx.runMutation(api.businesses.invite, {
+      sessionToken: factory, businessId: await businessOf(ctx, factory, "Southern Preserves Ltd"), email: "staff@jampacked.test", role: "staff",
+    });
+    // A second business on a custom programme with its own harvest check, and an archived one.
+    const shopId = await ctx.runMutation(api.businesses.create, {
+      sessionToken: full, name: "Fiona's Farm Shop", programme: "NP1", sectors: ["horticulture"], operation: "farm", region: "Otago",
+    });
+    const custom = await ctx.runMutation(api.customProgrammes.create, { sessionToken: full, name: "Farm shop plan", copyFrom: "NP1", businessId: shopId });
+    const p = (await ctx.runQuery(api.customProgrammes.get, { sessionToken: full, id: custom }))!;
+    await ctx.runMutation(api.customProgrammes.update, {
+      sessionToken: full, id: custom,
+      recordTypes: [
+        ...p.recordTypes,
+        { key: "brix", name: "Brix reading", description: "Sugar level of fruit at harvest.", production: "harvest", fields: [{ key: "brix", label: "Brix", type: "number", unit: "°Bx", required: true, failIf: { below: 10, message: "Fruit not ripe enough" } }] },
+      ],
+    });
+    const oldId = await ctx.runMutation(api.businesses.create, { sessionToken: full, name: "Old Town Café", programme: "NP2", operation: "kitchen", region: "Otago" });
+    await ctx.runMutation(api.businesses.setArchived, { sessionToken: full, businessId: oldId, archived: true });
+    await ctx.runMutation(internal.seed.makePlatformAdmin, { email: "full@jampacked.test" });
+    // Last: a brand new account with an empty business, for sign-up and the empty screens.
+    await register(ctx, "new@jampacked.test", "Nina New", { name: "Fresh Start Foods", programme: "NP2", operation: "mixed", region: "Nelson" });
   },
 });
