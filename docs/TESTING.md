@@ -4,7 +4,7 @@ All three parts of the project have unit tests with a **100% coverage gate**:
 
 | Part | Framework | Tests | Coverage (enforced) |
 |---|---|---|---|
-| Backend (`backend/`) | Vitest + [`convex-test`](https://www.npmjs.com/package/convex-test) | 234 | 100% statements, branches, functions and lines |
+| Backend (`backend/`) | Vitest + [`convex-test`](https://www.npmjs.com/package/convex-test) | 236 | 100% statements, branches, functions and lines |
 | App (`app/`) | `flutter_test` (unit + widget tests) | 328 | 100% lines (the Dart VM reports lines only) |
 | Website (`web/`) | Vitest + Testing Library (jsdom) | 65 | 100% statements, branches, functions and lines |
 
@@ -115,6 +115,7 @@ Tests live in `backend/tests/`, outside `convex/`, so `npx convex deploy` never 
 | `analytics.test.ts` | Task timings (stored per member, outliers dropped, no audit-log entry, membership required), the Insights numbers (every count, voided rows left out, the period, the business's and the person's own medians) and task times on the owner dashboard. |
 | `production.test.ts` | Recipes (validation, names from the catalogue), one barcode per product, remembered units, `plan` (scaling, first-expiring-first, skipping held / out-of-date / other-unit stock, no lot promised twice, shortfalls), making a batch (stock out and in, allergens carried through, new made products, batch codes), validation, trace both ways, and past customers. |
 | `productionCore.test.ts` | Business type (unset = mixed), growing areas (roles, archive, isolation), harvests (no inputs, optional inputs, area trace), production checks (saved as linked records, CAs, right kind only, recipe checks required, custom programme checks), planning (shortfalls, start marks done, cancel, roles) and voiding (stock put back, Insights, only untouched batches, managers only). |
+| `seed.test.ts` | The test-account seed (`convex/seed.ts`) refuses to run without `SEED_ALLOWED`, then builds every account end to end; they sign in and have history. `seed.ts` is left out of the coverage gate: which branches its simulated days take depends on its random numbers. |
 | `programmes.test.ts` | Module consistency and sector filtering for NP1/NP2/NP3, `failures`, the `current` module, the **Due** list for each kind of schedule item, programme records (validation, limits → CAs, void), receiving checks on deliveries, programme checklists and record-based facts. |
 | `customProgrammes.test.ts` | Validation of custom parts, building the schedule, create blank / copy, assign, edit, reuse across businesses, ownership. |
 | `retention.test.ts` | Nothing in the backend source deletes records (only sign-out removes a session), every business table is exported, and admin-only paginated export. |

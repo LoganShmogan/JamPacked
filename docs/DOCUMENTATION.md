@@ -872,6 +872,29 @@ re-running does nothing once that data is migrated. Try it on a
 copy first (restore a backup into a local deployment). Once it has run, `businessId` can be made required
 in `schema.ts` and the legacy `settings` table and `users.role` field removed.
 
+**Test accounts (before launch only).** `backend/convex/seed.ts` wipes every table and builds the test
+accounts through the app's own mutations, a simulated day at a time, so they have history. It refuses to run
+unless the deployment has `SEED_ALLOWED=true`; **remove that variable before launch**.
+```bash
+ssh -fN -L 3299:127.0.0.1:3210 loganserver
+cd backend && export CONVEX_DEPLOYMENT= CONVEX_SELF_HOSTED_URL=http://127.0.0.1:3299 \
+  CONVEX_SELF_HOSTED_ADMIN_KEY="$(ssh loganserver cat foodsafe/.admin_key)"
+npx convex env set SEED_ALLOWED true
+npx convex run seed:run '{"confirm":"wipe everything"}'
+```
+Every account's password is `jampacked-test`.
+
+| Account | What it is |
+|---|---|
+| `full@jampacked.test` | Everything: Harbour Kitchen & Farm (mixed, NP3, 45 days): deliveries (partial, rejected, voided), recipes with checks, batches and harvests, a voided batch, plans with a shortfall, holds, a transfer, stocktakes, audits, records, open and closed CAs, Insights. Also owns Fiona's Farm Shop (custom programme with a Brix harvest check) and an archived café. Platform admin (owner dashboard). |
+| `manager@` / `staff@jampacked.test` | Manager and staff at Harbour Kitchen & Farm; `staff@` is also staff at Southern Preserves. `pending@` is invited but hasn't signed up. |
+| `factory@jampacked.test` | Big: Southern Preserves Ltd (manufacturer, NP2 spreads, 60 days), jam and chutney with pH checks, dispatches to four customers. `qa@` (manager) and `line@` (staff). |
+| `farm@jampacked.test` | Riverbend Orchard & Apiary (farm, NP1 horticulture + honey, 30 days): four growing areas, harvests with harvest and tutin checks. `picker@` (staff). |
+| `shop@jampacked.test` | Corner Dairy (retail, NP2 retail chilled/frozen, 21 days): goods in and sales only, no Production tab. |
+| `cafe@jampacked.test` | Small: Kai Corner Café (kitchen, NP2, 14 days). |
+| `ece@jampacked.test` | Smaller: Little Kiwis ECE (kitchen, NP2 ECE, 10 days). |
+| `new@jampacked.test` | A new business with nothing in it. |
+
 **Operations:**
 ```bash
 ssh loganserver

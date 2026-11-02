@@ -14,11 +14,12 @@ describe("retention", () => {
     expect(RETENTION_YEARS).toBe(7);
   });
 
-  test("nothing in the backend deletes records: only sign-out removes a session", () => {
+  test("nothing in the backend deletes records: only sign-out removes a session, and the test-data seed (off unless SEED_ALLOWED)", () => {
     const deletes = Object.entries(sources)
       .filter(([path]) => !path.includes("/_generated/"))
       .flatMap(([path, src]) => (src.match(/\bdb\.(delete|replace)\(/g) ?? []).map(() => path.replace("../convex/", "")));
-    expect(deletes).toEqual(["auth.ts"]);
+    expect(deletes).toEqual(["auth.ts", "seed.ts"]);
+    expect(sources["../convex/seed.ts"].match(/process\.env\.SEED_ALLOWED !== "true"/g)).toHaveLength(2);
     expect(sources["../convex/auth.ts"]).toContain("await ctx.db.delete(session._id)");
   });
 

@@ -8,7 +8,9 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["convex/**/*.ts"],
-      exclude: ["convex/_generated/**"],
+      // seed.ts is test-data tooling: tests/seed.test.ts runs it end to end, but which branches its
+      // simulated days take is down to its random numbers, so it's left out of the 100% gate.
+      exclude: ["convex/_generated/**", "convex/seed.ts"],
       reporter: ["text", "html", "lcov"],
       thresholds: { lines: 100, functions: 100, branches: 100, statements: 100 },
     },
