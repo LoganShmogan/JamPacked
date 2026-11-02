@@ -20,6 +20,7 @@ const reset = () => {
   site.playStoreUrl = null;
   site.appStoreUrl = null;
 };
+beforeEach(reset);
 afterEach(reset);
 
 describe("store", () => {

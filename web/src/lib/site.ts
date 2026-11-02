@@ -50,21 +50,30 @@ export const pricing = {
       name: "NP2",
       summary: "National Programme 2, or NP1 with staff.",
       prices: { monthly: 50, yearly: 500 },
-      checkoutUrls: { monthly: null, yearly: null },
+      checkoutUrls: {
+        monthly: "https://buy.stripe.com/8x27sKbC9ffp6ozgxM4c804",
+        yearly: "https://buy.stripe.com/7sY4gy5dL9V54gr95k4c805",
+      },
     },
     {
       key: "np3",
       name: "NP3",
       summary: "National Programme 3.",
       prices: { monthly: 100, yearly: 1000 },
-      checkoutUrls: { monthly: null, yearly: null },
+      checkoutUrls: {
+        monthly: "https://buy.stripe.com/9B6bJ0bC9ebl8wH3L04c802",
+        yearly: "https://buy.stripe.com/7sYdR835D9V53cn0yO4c803",
+      },
     },
     {
       key: "custom",
       name: "Custom",
       summary: "A programme you build yourself, from parts of the NPs or from scratch.",
       prices: { monthly: 120, yearly: 1200 },
-      checkoutUrls: { monthly: null, yearly: null },
+      checkoutUrls: {
+        monthly: "https://buy.stripe.com/cNicN435D1oz9AL95k4c800",
+        yearly: "https://buy.stripe.com/cNi14mdKh7MXdR1a9o4c801",
+      },
     },
   ] as Plan[],
 };

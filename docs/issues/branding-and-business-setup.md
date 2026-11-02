@@ -20,8 +20,9 @@ the legal documents and the store listings.
 - [x] Add JamPacked as a trading name on Save Point Limited's NZBN record (done 31 Oct 2026, alongside MemeLine and QuillFin)
 - [x] Replace "JamPacked and Co" with Save Point Limited where it reads as the legal name (login screen
   copyright, READMEs, DOCUMENTATION.md)
-- [ ] GST: register when turnover is over NZ$60k (or earlier, voluntarily); check AU GST rules if selling
-  to Australian businesses over the AU threshold
+- [x] GST: Save Point Limited is GST-registered; JamPacked sales go on its number and returns (Stripe Tax,
+  inclusive prices). AU businesses with an ABN reverse-charge their own GST; check AU rules before selling to
+  AU businesses that aren't GST-registered
 - [ ] Business email addresses (support@, privacy@, billing@)
 - [x] Bundle ID / application ID: `nz.co.jampacked.app` (Android and iOS)
 - [ ] Register the bundle ID in App Store Connect and the app in Google Play Console

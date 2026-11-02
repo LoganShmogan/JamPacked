@@ -37,7 +37,9 @@ The website reads these from `web/src/lib/site.ts` (`pricing.plans`, one Stripe 
   `canceled` / `unpaid` / no subscription = **read-only**: records can still be viewed and exported, because
   businesses must be able to get at 7 years of records even after they stop paying. Nothing is deleted.
 - **Who pays:** only business admins can start checkout or open the billing portal; staff never see prices.
-- **Tax:** Stripe Tax for NZ GST (15%) and AU GST; decide whether prices are shown GST-inclusive.
+- **Tax:** Save Point Limited is GST-registered. Prices are GST-inclusive (Stripe prices set to "inclusive",
+  Stripe Tax on with the NZ registration, SaaS business-use tax code). Overseas business customers are
+  generally zero-rated, at the same NZ$ price. The GST number goes on receipts (taxable supply information).
 
 ## To do
 - [ ] Stripe account in the business's name (see [branding-and-business-setup.md](branding-and-business-setup.md))

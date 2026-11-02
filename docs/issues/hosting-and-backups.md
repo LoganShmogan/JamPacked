@@ -19,11 +19,11 @@ records they're legally required to keep, and an outage stops them recording del
 
 ## Decision
 Production runs on **Convex Cloud** (database + functions) with the website and Flutter web build on
-**Vercel**. loganserver stays for development / staging if wanted.
+**Cloudflare Pages** (free plan, commercial use allowed; Vercel's free plan isn't, see [costs.md](../costs.md)). loganserver stays for development / staging if wanted.
 
 ## To do
 - [ ] Production and development Convex Cloud deployments; `npx convex deploy` to production
-- [ ] Deploy keys in Vercel and CI; build the apps with the production URL as `CONVEX_URL`
+- [ ] Convex deploy key in Cloudflare Pages and CI; build the apps with the production URL as `CONVEX_URL`
 - [ ] Confirm Convex Cloud's backup schedule and test a restore
 - [ ] Decide where the data is stored and state it in the privacy policy (NZ Privacy Act 2020 allows
   offshore storage, but customers should be told where it is). Check which regions Convex Cloud offers.

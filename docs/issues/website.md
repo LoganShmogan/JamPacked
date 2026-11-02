@@ -9,11 +9,11 @@ Clerk sign-in.
 
 **Done so far:** `web/` has the landing page (how it works, features, programmes, FAQ) and the owner
 dashboard (`/admin`). It's a static export (`web/out/`), so for now `deploy/deploy.sh` serves it from the
-loganserver nginx on `jampacked.co.nz` and `www`; the same build can move to Vercel unchanged.
+loganserver nginx on `jampacked.co.nz` and `www`; the same build moves to Cloudflare Pages unchanged.
 
 ## Design
-- New folder `web/` in this repo (Next.js App Router, TypeScript), deployed to Vercel from `web/`.
-- `www.<domain>` is the website; `app.<domain>` is the Flutter web app (also on Vercel or any static host).
+- New folder `web/` in this repo (Next.js App Router, TypeScript), deployed to Cloudflare Pages from `web/` (static export).
+- `www.<domain>` is the website; `app.<domain>` is the Flutter web app (also on Cloudflare Pages).
 - Uses the `convex` npm client against the same deployment (`backend/convex`), and `@clerk/nextjs`.
 
 Pages:
@@ -56,7 +56,7 @@ Pages:
 - [ ] A proper 1200×630 Open Graph image and a Google Search Console property
 - [x] Serve the site on `jampacked.co.nz` / `www` from loganserver (`deploy/`, DOCUMENTATION.md §14)
 - [x] Put it live with `./deploy/deploy.sh` (27 Oct 2026): `jampacked.co.nz` and `www` now serve the site
-- [ ] Vercel project, domains, preview deployments per branch (when moving off loganserver, see
+- [ ] Cloudflare Pages project, domains, preview deployments per branch (when moving off loganserver, see
   [hosting-and-backups.md](hosting-and-backups.md))
 - [x] Flutter web build on `app.<domain>`
 
