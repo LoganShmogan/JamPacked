@@ -10,7 +10,7 @@
       "where": "Sign-in screen",
       "steps": [
         "On the sign-in screen, choose to create an account and enter your name, email and a password.",
-        "Next, name your main business, pick where it is, and choose the programme it follows: NP1, NP2, NP3 or a custom programme. You're its admin.",
+        "Next, name your main business, say what you do (kitchen, manufacturer, farm, retail or mixed / other), pick where it is, and choose the programme it follows: NP1, NP2, NP3 or a custom programme. You're its admin.",
         "Tick the business types that apply (for example ECE or bread) so you're only asked for the checks you need.",
         "Invite your staff from More › Members. They sign up with the email you invited and tick \"I've been invited\"."
       ],
@@ -66,15 +66,16 @@
       "id": "make-a-batch",
       "title": "Make a batch",
       "icon": "production",
-      "summary": "Record what you made: ingredients come out of stock and the batch goes in.",
-      "where": "More › Production › Make a batch, or Home › Make a batch",
+      "summary": "Record what you made: ingredients come out of stock, the batch goes in, and its checks are kept with it.",
+      "where": "Production tab › Make a batch, or Home › Make a batch",
       "steps": [
         "Tap What are you making? and pick the product, or type a new name.",
         "If it has a recipe, enter how much you made. The ingredients are filled in from stock, first expiring first, and anything you're short of is flagged. Tap Work out ingredients for this after changing the amount.",
         "Without a recipe it's a one-off: tap Add from stock for each thing you used and enter how much.",
+        "Under Checks, tap any your programme asks for (cooking, cooling, allergen and label...) and fill them in. Checks the recipe needs are already open.",
         "Check the batch code and use-by date (both are filled in for you), choose where it's put away, and tap Save batch."
       ],
-      "tip": "The batch carries every allergen in what went into it, and traces back to each supplier batch.",
+      "tip": "The batch carries every allergen in what went into it, and traces back to each supplier batch. A check outside its limits raises a corrective action.",
       "screenshot": "production"
     },
     {
@@ -82,13 +83,55 @@
       "title": "Add a recipe",
       "icon": "recipe",
       "summary": "Enter a recipe once, then make batches from it.",
-      "where": "More › Products (managers)",
+      "where": "Production › Recipes, or More › Products (managers)",
       "steps": [
         "Tap a product and choose Add a recipe, or tap Product you make to start a new one.",
         "Enter how much one batch makes and its unit, and the shelf life in days if it has one.",
         "Tap Add and pick each ingredient: supplies you receive or other things you make. Enter how much one batch takes.",
+        "Under Checks every batch needs, tick the production checks this recipe always needs, such as Cooking or pH.",
         "Tap Save recipe. Production › Recipes lists everything you make."
       ]
+    },
+    {
+      "id": "harvest",
+      "title": "Record a harvest",
+      "icon": "harvest",
+      "summary": "Farms and growers: record what you harvested and where from. It goes into stock with a batch code.",
+      "where": "Harvest tab › Harvest, Home › Harvest, or Production › Record a harvest",
+      "steps": [
+        "Add your paddocks, blocks, glasshouses or hives once under Growing areas (the grass icon at the top of the Production or Harvest tab).",
+        "Tap Harvest, then What did you harvest? and pick the product or type a new one.",
+        "Pick where it was harvested from and enter how much.",
+        "If you used anything from stock (seed, feed, packaging), tap Add from stock. You don't have to.",
+        "Fill in the Harvest check (clean containers, withholding periods, kept off the ground) and tap Save harvest."
+      ],
+      "tip": "Search the area's name in Trace & recall to see every harvest from it and where each one went."
+    },
+    {
+      "id": "plan-batches",
+      "title": "Plan batches",
+      "icon": "plan",
+      "summary": "Plan what to make or harvest ahead, see what you're short of, and start it with one tap.",
+      "where": "Production tab › Plan (managers)",
+      "steps": [
+        "Tap Plan, pick the product, how much and the day. Farms and mixed businesses choose Make or Harvest.",
+        "Planned batches show at the top of the Production tab, with any ingredient you're short of in red.",
+        "When it's time, tap Start: the form is filled in from the plan. Saving it marks the plan done.",
+        "Managers can cancel a plan with the cross."
+      ]
+    },
+    {
+      "id": "void-batch",
+      "title": "Void a batch made by mistake",
+      "icon": "warning",
+      "summary": "Undo a batch recorded by mistake: what went in goes back into stock.",
+      "where": "Production › tap the batch › Void this batch (managers)",
+      "steps": [
+        "Open the batch and tap Void this batch.",
+        "Say why and tap Void. The ingredients go back on their lots and the batch's stock is emptied.",
+        "The batch stays on the list, struck through, with who voided it and why. Its batch code isn't reused."
+      ],
+      "tip": "You can only void a batch none of which has been used, moved or dispatched. After that, waste or adjust its stock instead."
     },
     {
       "id": "temperatures",
