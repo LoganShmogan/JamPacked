@@ -213,7 +213,7 @@ Compared against Xero's NZ terms (the best local reference for B2B SaaS) and typ
 - **Open Food Facts:** the data is under the **ODbL**. Requirements:
   - **Attribution:** "Product data from Open Food Facts" on screens that use it, the Legal page and the
     store listings.
-  - A **custom User-Agent** on API calls.
+  - A **custom User-Agent** on API calls (done: `backend/convex/products.ts`).
   - ⚠️ **Share-alike:** if OFF data is **mixed into our database** (we do save looked-up products into
     the business's catalogue), the ODbL's share-alike *may* apply to that combined database if it's
     "publicly used". It's probably fine because each catalogue is private to its business. **Ask the
@@ -263,9 +263,9 @@ re-accepting the terms.
 | Document | Have | Status / next step |
 |---|---|---|
 | Terms of Service | Draft | Add the clauses in §3, plus AU section; lawyer review |
-| Privacy Policy | Draft | Add privacy officer, providers + countries, IPP 3A, breach handling, 7-year reason, AI |
+| Privacy Policy | Draft | Add privacy officer, IPP 3A, breach handling, 7-year reason, AI (providers and countries added 6 Nov 2026) |
 | Data processing terms | No | New section in the terms (or separate page) |
-| Sub-processors list | No | Convex, Clerk, Stripe, Cloudflare, PostHog, Open Food Facts (barcode only), later Anthropic + email |
+| Sub-processors list | Draft | In the Privacy Policy and [providers.md](providers.md) (6 Nov 2026); confirm Convex Cloud's region |
 | Cookies & data | Draft | Update when Clerk lands |
 | Support policy | No | New, short |
 | Acceptable use | No | Fold into the terms |

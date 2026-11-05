@@ -714,7 +714,8 @@ side rail above** (desktop web). Other screens are pushed with `MaterialPageRout
 `http`, `provider`, `shared_preferences`, `intl`, `mobile_scanner` (camera on Android/iOS/web),
 `share_plus` (export file: share sheet on mobile, download on web).
 Platform setup done: Android `INTERNET` + `CAMERA` permissions and `usesCleartextTraffic` (for local
-http dev), iOS `NSCameraUsageDescription`, web title/theme colour.
+http dev; move it to the debug manifest before store builds), iOS `NSCameraUsageDescription`, web
+title/theme colour. What's left for the stores: [issues/app-store-release.md](issues/app-store-release.md).
 
 ---
 
