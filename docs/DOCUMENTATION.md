@@ -121,7 +121,10 @@ JamPacked/
 ├── README.md                    Quick start
 ├── docs/DOCUMENTATION.md        This file
 ├── docs/TESTING.md              Unit tests: running, structure, helpers, coverage
+├── docs/test-accounts.md        The seeded test accounts: who they are, what to test with each
+├── docs/providers.md            Every outside provider (Stripe, Convex, Clerk, Cloudflare...) and its status
 ├── backend/                     Convex project (TypeScript)
+│   ├── .env.example             Every setting: CLI deployment, and env vars set on the deployment
 │   ├── package.json             scripts: dev, deploy, typecheck, test, test:coverage
 │   ├── vitest.config.mts        Test runner + 100% coverage thresholds
 │   ├── tests/                   Vitest + convex-test unit tests (see docs/TESTING.md)
@@ -149,10 +152,15 @@ JamPacked/
 │       ├── exportData.ts        Admin export of every record a business has
 │       ├── platform.ts          Owner dashboard numbers (platform admins only)
 │       ├── analytics.ts         Task timings from the app, a business's Insights numbers
+│       ├── billing.ts           Licences: status, Stripe webhook events, matching a payment by hand
+│       ├── http.ts              HTTP routes: the Stripe webhook (signature checked)
 │       ├── migrations.ts        One-off: single-business install → multi-business
+│       ├── seed.ts              Test accounts for a deployment that isn't live yet (§14; needs SEED_ALLOWED)
 │       ├── lib/
 │       │   ├── session.ts       requireUser / requireMember / requirePlatformAdmin / inBusiness
+│       │   ├── licence.ts       Plan a business needs, its licence, read-only when unlicensed (BILLING_ENFORCED)
 │       │   ├── business.ts      createBusiness, sector checks
+│       │   ├── regions.ts       NZ regions and AU states, region checks
 │       │   ├── programmes.ts    NP1/NP2/NP3 catalogue and modules (from the MPI guides)
 │       │   ├── module.ts        Load a business's module (built-in or custom)
 │       │   ├── stock.ts         recordMovement, createLot, FIFO, usable, below-par
@@ -180,16 +188,19 @@ JamPacked/
 │       │   ├── common.dart      QueryBuilder, Pill, helpers, constants
 │       │   ├── business_form.dart  Name, programme cards, sectors
 │       │   ├── product_picker.dart Search or scan the catalogue (enter once, pick after)
+│       │   ├── record_fields.dart  A programme record's fields as form inputs (record form, production checks)
 │       │   └── audit_history.dart
 │       └── screens/             One file per screen (see §11)
 ├── web/                         Website: jampacked.co.nz (Next.js, static export to web/out/)
 │   ├── next.config.ts           output: "export", so nginx (or Cloudflare Pages) serves plain files
+│   ├── .env.example             Convex URL, PostHog and (later) Clerk keys
 │   └── src/
 │       ├── app/page.tsx         Landing page: how it works, enter-it-once, programmes, pricing teaser
 │       ├── app/features|faq|programmes|contact/  The other public pages
+│       ├── app/welcome/         Stripe's after-payment page: sends phones to the app (not indexed)
 │       ├── app/help/            How-to guides with screenshots (from lib/guides.json, synced from the app)
 │       ├── app/legal/           Legal index (in the header menu) + terms, privacy, cookies
-│       ├── lib/legal.ts         Legal documents' titles, links and "Last updated" dates
+│       ├── lib/legal.ts         Legal documents' titles, links and "Last updated" dates; outside providers (Privacy Policy)
 │       ├── app/store/           Pricing: a plan per programme, monthly / yearly (PlanPicker.tsx)
 │       ├── app/admin/page.tsx   Owner dashboard (platform admins only)
 │       ├── lib/site.ts          Company details, contact email, URLs, pricing (plans, money-back days)
@@ -222,6 +233,7 @@ multi-business change still validates until `migrations:toMultiBusiness` has run
 | `businesses` | `name`, `jurisdiction` (NZ/AU), `region?` (NZ region or AU state, `lib/regions.ts`; asked for at sign-up, unset on older businesses), `registrationNumber?`, `address?`, `chilledMaxC` (5), `frozenMaxC` (-15), `hotMinC` (60), `expiryWarningDays` (3), `programme` (NP1/NP2/NP3/custom), `customProgrammeId?`, `sectors[]`, `operation?` (kitchen/manufacturer/farm/retail/mixed; unset = mixed), `ownerId`, `archived`, `createdAt` | Replaces the old single-row `settings` table (kept only for the migration). Archived, never deleted. |
 | `memberships` | `userId`, `businessId`, `role` (admin/manager/staff), `active`, `createdAt` | `by_user`, `by_business`, `by_user_business`. |
 | `invites` | `businessId`, `email`, `role`, `invitedByName`, `createdAt`, `acceptedAt?` | Claimed when that email signs up. |
+| `subscriptions` | `businessId?` (unset until the payment is matched to a business), `stripeSubscriptionId` (`by_stripe_id`), `stripeCustomerId?`, `email?`, `businessHint?` (business name typed at checkout), `plan?` (np2/np3/custom), `status` (Stripe's), `currentPeriodEnd?`, `cancelAtPeriodEnd?`, `updatedAt` | Written only by the Stripe webhook and `billing:link`. `by_business`. |
 | `customProgrammes` | `ownerId`, `name`, `description?`, `dailyChilledCheck`, `receivingPrompts[]`, `recordTypes[]`, `templates[]`, timestamps | Owned by a user, usable by any business they administer. |
 
 ### Receiving
@@ -369,6 +381,28 @@ vehicle (low) → one audit-log entry.
 | `customProgrammes:update(id, ...)` | owner | Validated: unique keys, names, ≥1 field per record and question per checklist, no clash with built-in audit keys. |
 | `customProgrammes:useForBusiness(id)` | admin + owner | |
 
+### `billing` (licences)
+| Function | Role | Description |
+|---|---|---|
+| `billing:status()` | any | `{needs, plan, status, currentPeriodEnd, enforced, readOnly}`: the plan the business needs (NP1 alone: none; NP1 with staff or NP2: np2; NP3: np3; custom: custom), the best live plan it has (a dearer plan covers a cheaper one) and whether it's read-only. |
+| `billing:applyEvent(type, object)` | internal | One Stripe event. `checkout.session.completed` (subscription mode) links the subscription to the business in `client_reference_id`, with the buyer's email and the business name typed at checkout; `customer.subscription.*` updates status, plan (from the price, `PLAN_BY_AMOUNT`) and period end. Each upserts, so events can arrive in any order. Logged in the business's audit trail once it's linked. |
+| `billing:link(stripeSubscriptionId, businessId)` | internal | Match a payment to a business by hand (CLI), when Stripe had no `client_reference_id`. |
+
+**`POST /stripe/webhook`** (`http.ts`): checks the `Stripe-Signature` header (HMAC-SHA256 with
+`STRIPE_WEBHOOK_SECRET`, within 5 minutes) and passes the event to `billing:applyEvent`. 503 until the secret
+is set, 400 for a bad signature. Live at `https://app.jampacked.co.nz/http/stripe/webhook` (§14).
+
+**Read-only when unlicensed.** With `BILLING_ENFORCED=true` on the deployment, `requireMember` refuses every
+mutation on a business whose licence doesn't cover what it needs, with a message saying so. Queries
+(including export) always work, because records must be available for 7 years. The admin changes that bring
+a business back within its licence still work: `settings:update` (change programme), `businesses:updateMember`
+(remove staff from a free NP1 business) and `businesses:setArchived`. Unset (as now), nothing is read-only.
+
+**How a payment finds its business:** `/store/?business=<businessId>` adds `?client_reference_id=<id>` to
+the Stripe Payment Links. Until the website has sign-in (Clerk) nothing sends people there with that, so
+payments arrive unmatched: look up the buyer's email and business name in `subscriptions`, then run
+`npx convex run billing:link '{"stripeSubscriptionId":"sub_...","businessId":"..."}'`.
+
 ### `analytics`
 | Function | Role | Description |
 |---|---|---|
@@ -387,7 +421,7 @@ how many businesses, across every business for the last 30 days.
 - `auditLog:list(...)`: entity history for any member; the full trail for mgr. Rows from other businesses
   are never returned.
 - `dashboard:summary(dayStart?)`: today's deliveries/temps, CAs, expiring, plus `stockLines`, `onHold`,
-  `lowStock`, `programme`.
+  `lowStock`, `programme`, `readOnly` (no active licence; Home shows a banner).
 - `exportData:manifest()`, `exportData:page(table, paginationOpts)` (admin): see §10.
 - `migrations:toMultiBusiness(programme, sectors?)` (internal): see §14.
 - `platform:overview()` (platform admin): users, businesses (active in the last 7/30 days, by programme,
@@ -628,9 +662,10 @@ brand, barcode) or scan; with `allowNew` it also offers "New: <typed name>". Use
 otherwise be typed again: goods-in items, recipe ingredients and what a batch makes.
 
 ### Theme (`theme.dart`)
-`AppColors`: `orange #F26B21`, `orangeDark #C94E0E`, `orangeLight #FFF1E8`, `ink`, `muted`, `border`,
-`surface`, and ok/warn/bad pairs. `buildTheme()` sets Material 3 with orange app bars, white rounded
-cards, 50px-tall buttons, filled inputs, and an orange-accented navigation bar.
+`AppColors`: jam colours from the logo, `jam #C94A4E`, `jamDark #A8323A`, `jamLight #FFF0E0`, `ink`,
+`muted`, `border`, `surface`, and ok/warn/bad pairs (warn is mustard, from the lid). `buildTheme()` sets
+Material 3 with jam app bars, white rounded cards, 50px-tall buttons, filled inputs, and a jam-accented
+navigation bar.
 
 ### Navigation
 `main.dart` shows a spinner while restoring, `LoginScreen` if signed out, `BusinessPickerScreen` until a
@@ -695,6 +730,8 @@ http dev), iOS `NSCameraUsageDescription`, web title/theme colour.
 
 ### Home
 - Header: greeting, business name and programme, NZ/MPI or AU/FSANZ badge, and **?** for Help & support.
+- **Read-only for now** (only when billing is enforced and the business has no active licence): nothing new
+  can be recorded, but everything can still be viewed and exported.
 - **Today**: Deliveries, Temp checks, Open actions, Expiring soon. **Stock**: on hand, on hold, low stock.
 - **Due**: what your programme still needs this period (tap to do it). **Programme** opens the full list.
 - **Quick actions**: Receive goods, Temperature check, Make a batch, Stock, Start audit, Trace / recall,
@@ -830,7 +867,8 @@ Internet → Cloudflare → cloudflared tunnel (loganserver) → Caddy (127.0.0.
      http://jampacked.co.nz, www { reverse_proxy foodsafe:80 }
    → foodsafe (nginx), by hostname:
        jampacked.co.nz → the website (web/out, in ~/foodsafe/site); www → 301 to jampacked.co.nz
-       anything else        → the Flutter web build; /api/* → foodsafe-convex:3210 (network "internal")
+       anything else        → the Flutter web build; /api/* → foodsafe-convex:3210 (network "internal");
+                              /http/* → foodsafe-convex:3211, Convex HTTP actions (the Stripe webhook)
    → foodsafe-convex: self-hosted Convex backend, data in volume foodsafe_convex-data
 ```
 
@@ -882,7 +920,8 @@ cd backend && export CONVEX_DEPLOYMENT= CONVEX_SELF_HOSTED_URL=http://127.0.0.1:
 npx convex env set SEED_ALLOWED true
 npx convex run seed:run '{"confirm":"wipe everything"}'
 ```
-Every account's password is `jampacked-test`.
+Every account's password is `jampacked-test`. Who each account is and what to test with it:
+[test-accounts.md](test-accounts.md).
 
 | Account | What it is |
 |---|---|
@@ -939,8 +978,9 @@ The app is structured so only auth plumbing changes:
   what actually went in, but not the recipe as it was.
 - **Planned batches don't reserve stock**: each plan's shortfall is worked out against all stock on its own.
 - **Units aren't converted**: a recipe line in `kg` only draws on lots counted in `kg`.
-- **Plans aren't enforced in the app yet**: pricing is by programme (NP1 free for one user, NP1 with staff
-  at the NP2 price), but nothing checks it until billing exists ([billing-stripe.md](issues/billing-stripe.md)).
+- **Licences are built but off**: with `BILLING_ENFORCED=true` an unlicensed business is read-only (§5
+  `billing`). It stays off until existing businesses are given licences and payments can be matched to a
+  business without doing it by hand ([billing-stripe.md](issues/billing-stripe.md)).
 - **Exports are JSON**: PDF/CSV reports of audits and records for verifiers are a natural next step.
 - **Large businesses**: some queries read whole indexes (e.g. stock on hand, production trace over the last
   2000 runs); pagination would be needed

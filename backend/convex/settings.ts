@@ -34,7 +34,7 @@ export const update = mutation({
     operation: v.optional(operation),
   },
   handler: async (ctx, { sessionToken, businessId, businessName, ...rest }) => {
-    const { user, business } = await requireMember(ctx, sessionToken, businessId, ["admin"]);
+    const { user, business } = await requireMember(ctx, sessionToken, businessId, ["admin"], { unlicensedOk: true });
     const name = businessName?.trim();
     // Convex treats an undefined field in a patch as "remove it", so only set what was given.
     const patch = { ...rest, ...(name ? { name } : {}) };

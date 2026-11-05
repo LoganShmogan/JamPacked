@@ -31,6 +31,15 @@ Steps from [DOCUMENTATION.md §15](../DOCUMENTATION.md#15-migrating-to-clerk):
 - [ ] Remove `passwordHash` / `passwordSalt` and the `sessions` table once everyone has moved
 - [ ] Update §9, §15 and the tests
 
+## Ready for it
+- `backend/.env.example` and `web/.env.example` list the Clerk settings (`CLERK_JWT_ISSUER_DOMAIN` on the
+  Convex deployment; the publishable and secret keys for the website). `auth.config.ts` isn't committed
+  yet: Convex refuses to deploy one that names an env var that isn't set.
+- `getUser` in `lib/session.ts` is the only place that turns a request into a user, so it's the one
+  function to change.
+- Billing is waiting on this: once the website signs admins in, it can send them to `/store/?business=<id>`
+  so payments unlock their business without matching by hand ([billing-stripe.md](billing-stripe.md)).
+
 ## Notes
 - Clerk holds identity (email, password, social logins); Convex keeps the `users` row, memberships, roles
   and all business data.

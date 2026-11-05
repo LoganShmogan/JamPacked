@@ -76,7 +76,9 @@ Map<String, dynamic> summary({
   int onHold = 0,
   int lowStock = 0,
   String jurisdiction = 'NZ',
+  bool readOnly = false,
 }) => {
+  'readOnly': readOnly,
   'businessName': 'Kai Cafe',
   'jurisdiction': jurisdiction,
   'programme': 'NP2',

@@ -86,7 +86,7 @@ export const generalFaqs = (): [string, string][] => [
   ["Does it replace my food control plan or verifier?", "No. JamPacked helps you keep the records, but your registered plan or programme, and your verifier or EHO, still decide what's required. Check the modules against your registration."],
   ["What does it run on?", "Android, iPhone and any web browser, with one account across all of them. Staff can be invited by email."],
   ["Do I have to type everything in?", "Only once. A product, supply, supplier or customer you've entered before is there to pick or scan next time: at goods inwards, in recipes, in production and when you dispatch."],
-  ["How do I get help?", `Tap the ? on the app's home screen, or More › Help & support, for step-by-step guides; they're also on our Help page. Still stuck? Email ${site.email} and a person in New Zealand will reply.`],
+  ["How do I get help?", `Tap the ? on the app's home screen, or More › Help & support, for step-by-step guides; they're also on our Help page. Still stuck? Email ${site.supportEmail} and a person in New Zealand will reply.`],
   ["Can I run more than one business?", "Yes. One account can work across several businesses, with a different role in each. Each business has its own licence."],
   ["What does it cost?", `${priceSummary()} Every paid plan has a ${pricing.moneyBackDays}-day money-back guarantee.`],
 ];

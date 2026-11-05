@@ -21,8 +21,8 @@ describe("guides", () => {
     expect(supportEmail).toBe(app.supportEmail);
   });
 
-  test("the support email is the website's contact address", () => {
-    expect(supportEmail).toBe(site.email);
+  test("the support email is the website's support address", () => {
+    expect(supportEmail).toBe(site.supportEmail);
   });
 
   test("every screenshot a guide names exists, and every screenshot file is there", () => {

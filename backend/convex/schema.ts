@@ -194,6 +194,24 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_business", ["businessId"]),
 
+  // A business's licence, kept in step with Stripe by the webhook (http.ts → billing.ts). businessId is
+  // unset until the payment is matched to a business (client_reference_id, or billing:link by hand).
+  subscriptions: defineTable({
+    businessId,
+    stripeSubscriptionId: v.string(),
+    stripeCustomerId: v.optional(v.string()),
+    email: v.optional(v.string()), // who paid, from Stripe Checkout
+    businessHint: v.optional(v.string()), // the business name typed at checkout, for matching by hand
+    plan: v.optional(v.union(v.literal("np2"), v.literal("np3"), v.literal("custom"))),
+    status: v.string(), // Stripe's: active, trialing, past_due, canceled, unpaid, incomplete...
+    currentPeriodEnd: v.optional(v.number()),
+    cancelAtPeriodEnd: v.optional(v.boolean()),
+    eventAt: v.optional(v.number()), // the newest subscription event applied, so a late older one is ignored
+    updatedAt: v.number(),
+  })
+    .index("by_business", ["businessId"])
+    .index("by_stripe_id", ["stripeSubscriptionId"]),
+
   // Legacy single-row settings, read once by migrations:toMultiBusiness.
   settings: defineTable({
     businessName: v.string(),

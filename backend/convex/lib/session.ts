@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { Doc, Id } from "../_generated/dataModel";
 import { MutationCtx, QueryCtx } from "../_generated/server";
+import { requireLicence } from "./licence";
 
 export type Role = Doc<"memberships">["role"];
 
@@ -44,12 +45,15 @@ export async function membership(ctx: QueryCtx | MutationCtx, userId: Id<"users"
 /**
  * Every business-scoped function starts here: the signed-in user must be an active member of
  * `businessId` (and hold one of `roles`, when given). Returns the user, business and their role in it.
+ * Writes also need the business to be licensed (lib/licence.ts), except `unlicensedOk` ones: the admin
+ * changes that bring a business back within its licence (remove staff, change programme, archive).
  */
 export async function requireMember(
   ctx: QueryCtx | MutationCtx,
   sessionToken: string,
   businessId: Id<"businesses">,
   roles?: Role[],
+  { unlicensedOk = false } = {},
 ) {
   const user = await requireUser(ctx, sessionToken);
   const business = await ctx.db.get(businessId);
@@ -58,6 +62,8 @@ export async function requireMember(
   if (roles && !roles.includes(m.role)) {
     throw new ConvexError(`This action requires one of: ${roles.join(", ")}`);
   }
+  // Queries get a read-only db; only mutations have insert.
+  if ("insert" in ctx.db && !unlicensedOk) await requireLicence(ctx, business);
   return { user, business, role: m.role };
 }
 

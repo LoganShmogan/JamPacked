@@ -31,7 +31,7 @@ export default function Legal() {
         ))}
       </ul>
       <p className="mt-10 text-sm text-muted">
-        Questions? Email <a href={`mailto:${site.email}`} className="font-semibold text-jam">{site.email}</a>.
+        Questions? Email <a href={`mailto:${site.contactEmail}`} className="font-semibold text-jam">{site.contactEmail}</a>.
       </p>
     </div>
   );

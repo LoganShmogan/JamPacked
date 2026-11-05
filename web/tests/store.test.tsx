@@ -1,5 +1,6 @@
 // The store (licence plans and Buy), the after-payment welcome page, and picking the app for a device.
 import { act, render, screen, within } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import Store, { metadata as storeMetadata } from "@/app/store/page";
@@ -40,7 +41,7 @@ describe("store", () => {
       expect(card(name).getByText(`Save ${saving} a year`)).toBeInTheDocument();
     }
     expect(card("NP2").getByRole("link", { name: "Get started by email" })).toHaveAttribute(
-      "href", `mailto:${site.email}?subject=JamPacked%20NP2%20yearly%20licence`,
+      "href", `mailto:${site.contactEmail}?subject=JamPacked%20NP2%20yearly%20licence`,
     );
     expect(screen.getByText("30-day money-back guarantee")).toBeInTheDocument();
 
@@ -50,7 +51,7 @@ describe("store", () => {
     expect(card("NP3").getByText("/ month")).toBeInTheDocument();
     expect(screen.queryByText(/Save \$/)).not.toBeInTheDocument();
     expect(card("NP3").getByRole("link", { name: "Get started by email" })).toHaveAttribute(
-      "href", `mailto:${site.email}?subject=JamPacked%20NP3%20monthly%20licence`,
+      "href", `mailto:${site.contactEmail}?subject=JamPacked%20NP3%20monthly%20licence`,
     );
 
     expect(screen.getByText("Enter a product or supply once, then pick it or scan it")).toBeInTheDocument();
@@ -67,6 +68,20 @@ describe("store", () => {
     expect(card("NP2").getByRole("link", { name: "Buy NP2" })).toHaveAttribute("href", "https://buy.stripe.com/np2-yearly");
     await userEvent.click(screen.getByRole("radio", { name: "Monthly" }));
     expect(card("NP2").getByRole("link", { name: "Buy NP2" })).toHaveAttribute("href", "https://buy.stripe.com/np2-monthly");
+  });
+
+  test("?business=<id> is passed to Stripe so the payment unlocks that business; anything else is ignored", () => {
+    pricing.plans[1].checkoutUrls = { monthly: null, yearly: "https://buy.stripe.com/np2-yearly" };
+    window.history.replaceState(null, "", "/store/?business=k57abc123");
+    const { unmount } = render(<Store />);
+    expect(card("NP2").getByRole("link", { name: "Buy NP2" })).toHaveAttribute("href", "https://buy.stripe.com/np2-yearly?client_reference_id=k57abc123");
+    unmount();
+    window.history.replaceState(null, "", "/store/?business=<script>");
+    render(<Store />);
+    expect(card("NP2").getByRole("link", { name: "Buy NP2" })).toHaveAttribute("href", "https://buy.stripe.com/np2-yearly");
+    window.history.replaceState(null, "", "/");
+    // The static build has no business: plain links.
+    expect(renderToStaticMarkup(<Store />)).toContain('href="https://buy.stripe.com/np2-yearly"');
   });
 
   test("search engines get every paid plan and period, and NP1 once as free", () => {

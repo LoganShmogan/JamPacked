@@ -9,9 +9,9 @@ export const metadata = pageMetadata(
 );
 
 const topics = [
-  ["Buying a licence", "Questions about pricing, several businesses, or paying by invoice.", "JamPacked licence"],
-  ["Help with the app", "Signing in, setting up your programme, or something not working.", "JamPacked support"],
-  ["Privacy and your data", "Access to or correction of your personal information, or exporting records.", "JamPacked privacy request"],
+  ["Buying a licence", "Questions about pricing, several businesses, or paying by invoice.", "JamPacked licence", site.contactEmail],
+  ["Help with the app", "Signing in, setting up your programme, or something not working.", "JamPacked support", site.supportEmail],
+  ["Privacy and your data", "Access to or correction of your personal information, or exporting records.", "JamPacked privacy request", site.supportEmail],
 ];
 
 export default function Contact() {
@@ -19,12 +19,13 @@ export default function Contact() {
     <div className="mx-auto max-w-3xl px-4 py-12">
       <h1 className="text-3xl font-bold sm:text-4xl">Contact</h1>
       <p className="mt-4 text-lg text-muted">
-        Email us at <a href={`mailto:${site.email}`} className="font-semibold text-jam">{site.email}</a>. We reply
+        Email us at <a href={`mailto:${site.contactEmail}`} className="font-semibold text-jam">{site.contactEmail}</a>, or for help
+        with the app <a href={`mailto:${site.supportEmail}`} className="font-semibold text-jam">{site.supportEmail}</a>. We reply
         within one business day (Monday to Friday, New Zealand time).
       </p>
       <div className="mt-8 space-y-4">
-        {topics.map(([title, body, subject]) => (
-          <a key={title} href={`mailto:${site.email}?subject=${encodeURIComponent(subject)}`} className="block rounded-xl border border-border bg-surface p-5 hover:border-jam">
+        {topics.map(([title, body, subject, email]) => (
+          <a key={title} href={`mailto:${email}?subject=${encodeURIComponent(subject)}`} className="block rounded-xl border border-border bg-surface p-5 hover:border-jam">
             <h2 className="font-semibold">{title}</h2>
             <p className="mt-1 text-sm text-muted">{body}</p>
           </a>

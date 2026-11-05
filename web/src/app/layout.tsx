@@ -90,7 +90,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-8 sm:flex-row sm:justify-between">
             <div className="space-y-1">
               <p>© {new Date().getFullYear()} {site.company}, trading as JamPacked · NZBN {site.nzbn}</p>
-              <a href={`mailto:${site.email}`} className="hover:text-ink">{site.email}</a>
+              <a href={`mailto:${site.contactEmail}`} className="hover:text-ink">{site.contactEmail}</a>
             </div>
             <nav aria-label="Legal" className="flex flex-wrap gap-x-5 gap-y-2">
               {legal.map(([label, href]) => (

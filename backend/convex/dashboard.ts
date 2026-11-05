@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { licence } from "./lib/licence";
 import { requireMember, scoped } from "./lib/session";
 import { belowPar, expiryOf, lotsOnHand } from "./lib/stock";
 
@@ -40,6 +41,7 @@ export const summary = query({
       onHold: stock.filter((l) => l.status === "hold").length,
       lowStock: (await belowPar(ctx, businessId)).length,
       inProgressAudits,
+      readOnly: (await licence(ctx, settings)).readOnly, // no licence: Home says why writes are refused
     };
   },
 });

@@ -1,6 +1,6 @@
 {
   "_comment": "How-to guides, written once: the app's Help screen and the website's /help/ page both read this file. Keep the button names in step with the screens. 'screenshot' names a file in web/public/screenshots/ (made by app/screenshots/).",
-  "supportEmail": "contact@savepoint.co.nz",
+  "supportEmail": "support@savepoint.co.nz",
   "guides": [
     {
       "id": "getting-started",

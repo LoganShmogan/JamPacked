@@ -28,7 +28,7 @@ the legal documents and the store listings.
 - [ ] Register the bundle ID in App Store Connect and the app in Google Play Console
 - [x] Logo and app icons (`app/assets/logo.jpg`, generated with `flutter_launcher_icons`)
 - [x] App colours: jam colours from the logo (`app/lib/theme.dart`)
-- [x] Rename the GitHub repo to `JamPacked` (local folder is still `NzSafteyHealthApp`; rename it whenever)
+- [x] Rename the GitHub repo to `JamPacked` (local folder is now `JamPacked/App`)
 - [ ] Server containers / volume are still named `foodsafe` (renaming means moving the live data volume)
 
 ## Notes

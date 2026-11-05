@@ -24,7 +24,7 @@ export function LegalPage({ title, updated, intro, sections }: { title: string; 
         </section>
       ))}
       <p className="mt-12 text-sm text-muted">
-        Questions about this document? Email <a href={`mailto:${site.email}`} className="font-semibold text-jam">{site.email}</a>.
+        Questions about this document? Email <a href={`mailto:${site.contactEmail}`} className="font-semibold text-jam">{site.contactEmail}</a>.
         {" "}<Link href="/legal/" className="font-semibold text-jam hover:underline">All legal documents</Link>
       </p>
     </article>

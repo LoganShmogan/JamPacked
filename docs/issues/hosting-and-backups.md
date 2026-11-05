@@ -27,6 +27,8 @@ Production runs on **Convex Cloud** (database + functions) with the website and 
 - [ ] Confirm Convex Cloud's backup schedule and test a restore
 - [ ] Decide where the data is stored and state it in the privacy policy (NZ Privacy Act 2020 allows
   offshore storage, but customers should be told where it is). Check which regions Convex Cloud offers.
+- [ ] Set the deployment's env vars there too (`backend/.env.example`), and move the Stripe webhook to
+  `https://<deployment>.convex.site/stripe/webhook` (new signing secret)
 - [ ] Copy the existing live data across (`npx convex export` from loganserver, `npx convex import` to cloud)
 - [ ] Uptime monitoring / alerting for the website and backend
 

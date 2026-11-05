@@ -50,6 +50,18 @@ class DashboardScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (d['readOnly'] == true)
+                          const Card(
+                            color: AppColors.warnLight,
+                            child: ListTile(
+                              leading: Icon(Icons.lock, color: AppColors.warn),
+                              title: Text('Read-only for now'),
+                              subtitle: Text(
+                                "This business's licence isn't active, so nothing new can be "
+                                'recorded. Its records can still be viewed and exported.',
+                              ),
+                            ),
+                          ),
                         const SectionTitle('Today'),
                         _KpiGrid(
                           children: [

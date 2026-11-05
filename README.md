@@ -52,6 +52,8 @@ JamPacked/
 ├── docs/
 │   ├── DOCUMENTATION.md    # Full technical and user documentation
 │   ├── TESTING.md          # How the tests are organised
+│   ├── test-accounts.md    # The seeded test accounts: who they are and what to test with them
+│   ├── providers.md        # Every outside provider (Stripe, Convex, Clerk, Cloudflare...) and its status
 │   └── issues/             # Open issues and to-dos before launch
 ├── LICENSE                 # Proprietary, all rights reserved
 └── SECURITY.md
@@ -139,8 +141,9 @@ One licence per business, priced by the programme it follows (NZD incl. GST), wi
 | NP3 | $100 | $1000 |
 | Custom programme | $120 | $1200 |
 
-Prices and Stripe links live in `web/src/lib/site.ts`. Billing isn't built yet, so the app doesn't enforce
-plans: see [`docs/issues/billing-stripe.md`](docs/issues/billing-stripe.md).
+Prices and Stripe Payment Links live in `web/src/lib/site.ts`. A Stripe webhook keeps each business's licence
+in step, and with `BILLING_ENFORCED=true` an unlicensed business is read-only (it can still view and export).
+That's off until billing goes live: see [`docs/issues/billing-stripe.md`](docs/issues/billing-stripe.md).
 
 ## Auth: development now, Clerk later
 See `docs/DOCUMENTATION.md` for full documentation.
@@ -165,7 +168,7 @@ toolchain for mobile builds.
 ## Secrets
 
 No secrets are committed to this repo. Local Convex settings live in `backend/.env.local`, and the website's
-in `web/.env*`. All of them are git-ignored, along with keystores, signing keys and `google-services.json`.
+in `web/.env*`; `backend/.env.example` and `web/.env.example` list every setting (Convex, Stripe, Clerk, PostHog). All of them are git-ignored, along with keystores, signing keys and `google-services.json`.
 The production Convex instance runs on Save Point's own server and is configured there, never in git.
 See [SECURITY.md](SECURITY.md).
 
@@ -175,7 +178,7 @@ See [SECURITY.md](SECURITY.md).
 
 - App: [app.jampacked.co.nz](https://app.jampacked.co.nz)
 - Website: [jampacked.co.nz](https://jampacked.co.nz) · [savepoint.co.nz](https://savepoint.co.nz)
-- General enquiries: [contact@savepoint.co.nz](mailto:contact@savepoint.co.nz)
-- Support, privacy and security: [support@savepoint.co.nz](mailto:support@savepoint.co.nz)
+- General enquiries and buying a licence: [contact@savepoint.co.nz](mailto:contact@savepoint.co.nz)
+- Help with the app, privacy and security: [support@savepoint.co.nz](mailto:support@savepoint.co.nz)
 
 "JamPacked", "Save Point" and their logos are the property of Save Point Limited. MPI, FSANZ, Open Food Facts, Convex, Clerk and Stripe are the names of their respective owners. JamPacked is not affiliated with or endorsed by any of them.

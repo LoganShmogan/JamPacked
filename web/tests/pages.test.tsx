@@ -12,6 +12,7 @@ import Features from "@/app/features/page";
 import Faq from "@/app/faq/page";
 import Terms from "@/app/legal/terms/page";
 import Privacy from "@/app/legal/privacy/page";
+import { providers } from "@/lib/legal";
 import Cookies from "@/app/legal/cookies/page";
 import Legal, { metadata as legalMetadata } from "@/app/legal/page";
 import robots from "@/app/robots";
@@ -157,7 +158,8 @@ describe("programme pages", () => {
 
 test("contact page: email by topic, and who runs JamPacked", () => {
   render(<Contact />);
-  expect(screen.getByRole("link", { name: /Buying a licence/ })).toHaveAttribute("href", `mailto:${site.email}?subject=JamPacked%20licence`);
+  expect(screen.getByRole("link", { name: /Buying a licence/ })).toHaveAttribute("href", `mailto:${site.contactEmail}?subject=JamPacked%20licence`);
+  expect(screen.getByRole("link", { name: /Help with the app/ })).toHaveAttribute("href", `mailto:${site.supportEmail}?subject=JamPacked%20support`);
   expect(screen.getByText(/Save Point Limited \(NZBN 9429053325013\)/)).toBeInTheDocument();
 });
 
@@ -167,21 +169,21 @@ describe("legal pages", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Legal");
     expect(screen.getByText(/Save Point Limited \(NZBN 9429053325013\)/)).toBeInTheDocument();
     expect(screen.getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
-      "/legal/terms/", "/legal/privacy/", "/legal/cookies/", `mailto:${site.email}`,
+      "/legal/terms/", "/legal/privacy/", "/legal/cookies/", `mailto:${site.contactEmail}`,
     ]);
-    expect(screen.getByRole("link", { name: /Terms of Service.*Last updated 31 October 2026/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Terms of Service.*Last updated 6 November 2026/ })).toBeInTheDocument();
     expect(ldTypes(container)).toEqual(["BreadcrumbList"]);
     expect(legalMetadata.alternates).toEqual({ canonical: "/legal/" });
   });
 
   test.each([
-    [Terms, "Terms of Service", "Liability"],
-    [Privacy, "Privacy Policy", "Your rights"],
-    [Cookies, "Cookies & data policy", "This website"],
-  ])("%#: dated, numbered, naming the provider and linking back to Legal", (Page, title, section) => {
+    [Terms, "Terms of Service", "Liability", "6 November 2026"],
+    [Privacy, "Privacy Policy", "Your rights", "6 November 2026"],
+    [Cookies, "Cookies & data policy", "This website", "31 October 2026"],
+  ])("%#: dated, numbered, naming the provider and linking back to Legal", (Page, title, section, date) => {
     render(<Page />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(title);
-    expect(screen.getByText("Save Point Limited, trading as JamPacked · Last updated 31 October 2026")).toBeInTheDocument();
+    expect(screen.getByText(`Save Point Limited, trading as JamPacked · Last updated ${date}`)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: new RegExp(`^\\d+\\. ${section}$`) })).toBeInTheDocument();
     const breadcrumb = within(screen.getByRole("navigation", { name: "Breadcrumb" }));
     expect(breadcrumb.getByRole("link", { name: "Legal" })).toHaveAttribute("href", "/legal/");
@@ -192,7 +194,7 @@ describe("legal pages", () => {
     render(<Terms />);
     expect(screen.getByRole("heading", { name: "2. Licences and plans" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Store" })).toHaveAttribute("href", "/store/");
-    expect(screen.getByText(/Once anyone else is invited to an NP1 business, it needs the NP2 plan/)).toBeInTheDocument();
+    expect(screen.getByText(/Once anyone else joins an NP1 business, it needs the NP2 plan/)).toBeInTheDocument();
     expect(screen.getByText(/its plan changes to match from the next billing period/)).toBeInTheDocument();
     expect(screen.getByText(/at least 30 days beforehand/)).toBeInTheDocument();
     expect(screen.getByText(/Money-back guarantee: if you ask within 30 days of the first payment/)).toBeInTheDocument();
@@ -207,7 +209,11 @@ describe("legal pages", () => {
     render(<Privacy />);
     expect(screen.getByText(/the names of customers stock is dispatched to/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Information about other people/ })).toBeInTheDocument();
-    expect(screen.getByText(/the barcode number, and nothing else, is sent to Open Food Facts/)).toBeInTheDocument();
+    expect(screen.getByText(/Only the barcode number is sent/)).toBeInTheDocument();
+    // Every outside provider is named, and the planned ones say so.
+    for (const p of providers) expect(screen.getByText(p.name)).toBeInTheDocument();
+    expect(screen.getByText("Clerk").parentElement).toHaveTextContent("Clerk (coming soon): Will handle signing in");
+    expect(screen.getByText("Stripe").parentElement).not.toHaveTextContent("coming soon");
     expect(screen.getByText(/The free NP1 plan involves no payment/)).toBeInTheDocument();
     expect(screen.getByText(/the app notes how long the form was open/)).toBeInTheDocument();
   });
@@ -226,7 +232,7 @@ describe("layout", () => {
     expect(html).toContain("font-figtree");
     expect(html).toContain("<p>child</p>");
     expect(html).toContain(`© ${new Date().getFullYear()} Save Point Limited, trading as JamPacked · NZBN 9429053325013`);
-    expect(html).toContain(`href="mailto:${site.email}"`);
+    expect(html).toContain(`href="mailto:${site.contactEmail}"`);
     for (const href of ["/features/", "/programmes/", "/store/", "/help/", "/faq/", "/contact/", "/legal/", "/legal/terms/", "/legal/privacy/", "/legal/cookies/", site.appUrl]) {
       expect(html).toContain(`href="${href}"`);
     }
