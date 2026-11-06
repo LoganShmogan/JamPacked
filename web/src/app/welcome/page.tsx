@@ -16,7 +16,7 @@ export default function Welcome() {
       </p>
       <GetTheApp />
       <p className="mt-8 text-sm text-muted">
-        Questions or trouble signing in? Email <a href={`mailto:${site.email}`} className="font-semibold text-jam">{site.email}</a>.
+        Questions or trouble signing in? Email <a href={`mailto:${site.supportEmail}`} className="font-semibold text-jam">{site.supportEmail}</a>.
       </p>
     </div>
   );

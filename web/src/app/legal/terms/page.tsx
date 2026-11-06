@@ -43,7 +43,7 @@ export default function Terms() {
               to: NP1, NP2, NP3 or Custom. Current prices are on the <Link href="/store/" className="underline">Store</Link> page.
             </p>,
             <p key="b">
-              The NP1 plan is free for one person running the business with no staff. Once anyone else is invited to an NP1
+              The NP1 plan is free for one person running the business with no staff. Once anyone else joins an NP1
               business, it needs the NP2 plan: we&apos;ll ask the business&apos;s admin to buy it, and may limit the business to
               read-only access until they do. Paid plans include the staff you invite to that business.
             </p>,

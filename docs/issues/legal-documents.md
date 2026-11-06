@@ -1,16 +1,16 @@
 # Legal documents
 
-**Priority:** High (needed for the stores, Stripe and launch) · **Status:** Open
+**Priority:** High (needed for the stores, Stripe and launch) · **Status:** In progress (drafts live, need a lawyer)
 
 ## Problem
-There are no terms, privacy policy or other legal pages. Apple, Google and Stripe all require at least a
-privacy policy and terms before launch.
+Apple, Google and Stripe all require at least a privacy policy and terms before launch. Drafts of the
+Terms, Privacy Policy and Cookies & data policy are live on the website, but haven't been reviewed by a lawyer.
 
 ## To do
 Research notes and the gaps found in the drafts (3 Nov 2026): [../legal-research.md](../legal-research.md).
 
 **Drafts are on the website** under `/legal/` (an index page, linked from the header menu and every
-document), all dated 31 October 2026. Dates and titles live in `web/src/lib/legal.ts`; change a date whenever
+document): Terms and Privacy dated 6 November 2026, Cookies 31 October 2026. Dates and titles live in `web/src/lib/legal.ts`; change a date whenever
 that document's wording changes. They now cover: plans by programme, the free NP1 plan and NP1 with staff
 needing NP2, plan changes on a programme change, 30 days' notice of price changes, the 30-day money-back
 guarantee (once per business), production and allergen information being aids rather than checks, Open Food
@@ -30,8 +30,10 @@ Documents (published on the website under `/legal/...`, linked from the app's si
 - [ ] **Compliance disclaimer:** the app helps keep records but doesn't replace the business's registered
   programme, verifier or EHO; templates are a starting point; not endorsed by MPI / FSANZ
 - [ ] **Refund & cancellation policy** (can sit inside the terms)
-- [ ] **Sub-processors list** (Convex, Clerk, Stripe, Cloudflare, PostHog, Open Food Facts lookups, and Anthropic
-  and an email provider once the support chatbot is on: [support-chatbot.md](support-chatbot.md))
+- [x] **Sub-processors list**: in the Privacy Policy, from `providers` in `web/src/lib/legal.ts` (6 Nov 2026);
+  the full list with status is [../providers.md](../providers.md). Still needs the Convex data location
+- [x] Terms: NP1 needs NP2 once anyone else *joins* (it said "is invited", but invites can't be cancelled
+  in the app, so the licence counts members) (6 Nov 2026)
 - [x] Privacy Policy covers task timings (how long forms are open, shown on Insights) (31 Oct 2026)
 - [ ] In-app: tick box to accept the terms at sign-up, record which version and when (audit log)
 - [ ] In-app: a "Legal" entry in More (and on sign-up) opening `https://jampacked.co.nz/legal/` (needs `url_launcher`)
@@ -44,8 +46,7 @@ Documents (published on the website under `/legal/...`, linked from the app's si
   Policy, Terms and Disclaimer (effective 13 May 2026, in `~/Documents/Save Point/01 Company/Legal Policies/`),
   written for client projects. Use them as a starting point, but JamPacked needs its own subscription
   terms and a privacy policy covering customers' staff and records.
-- The website footer already names Save Point Limited and its NZBN; add `/legal/...` links there when the
-  documents exist.
+- The website footer names Save Point Limited and its NZBN, and links each `/legal/...` document.
 - Drafts can be written here, but **have a NZ lawyer review them before launch**. Business-to-business
   terms can contract out of the Consumer Guarantees Act; the Fair Trading Act still applies.
 - Keep each document versioned (date at the top) so accepted versions can be shown later.

@@ -20,6 +20,7 @@ No test needs a running Convex deployment, a network connection, a device or a c
 4. [Writing a new test](#4-writing-a-new-test)
 5. [Keeping coverage at 100%](#5-keeping-coverage-at-100)
 6. [Bugs the tests found](#6-bugs-the-tests-found)
+7. [CI](#7-ci)
 
 ---
 
@@ -70,7 +71,8 @@ dates relative to today, so they're a generator rather than a check).
 - `pages.test.tsx`: the landing page (including the screenshot showcase), features, FAQ, programme
   pages, legal pages, the layout (header menu, footer company details, metadata), `/admin` being hidden
   from search engines, robots.txt and the sitemap.
-- `store.test.tsx`: the plans by programme, monthly / yearly, Buy links and the search-engine offers;
+- `store.test.tsx`: the plans by programme, monthly / yearly, Buy links (with `?business=` passed to Stripe
+  as `client_reference_id`) and the search-engine offers;
   the after-payment welcome page.
 - `help.test.tsx`: the Help page, that `src/lib/guides.json` matches the app's
   `app/assets/help/guides.json` (run `npm run sync-guides` if not), that every screenshot file exists,
@@ -119,6 +121,8 @@ Tests live in `backend/tests/`, outside `convex/`, so `npx convex deploy` never 
 | `programmes.test.ts` | Module consistency and sector filtering for NP1/NP2/NP3, `failures`, the `current` module, the **Due** list for each kind of schedule item, programme records (validation, limits → CAs, void), receiving checks on deliveries, programme checklists and record-based facts. |
 | `customProgrammes.test.ts` | Validation of custom parts, building the schedule, create blank / copy, assign, edit, reuse across businesses, ownership. |
 | `retention.test.ts` | Nothing in the backend source deletes records (only sign-out removes a session), every business table is exported, and admin-only paginated export. |
+| `billing.test.ts` | Licences: off unless `BILLING_ENFORCED`; read-only without one (writes refused, reads and export work); NP1 free alone, NP2 with staff, removing staff frees it; NP3 / custom need their own plan and a dearer one covers a cheaper one; past_due grace, canceled read-only, archiving still allowed. The Stripe webhook: paid checkout unlocks and is logged, events in any order, unmatched payments and `billing:link`, ignored events, bad signatures and no secret, and `verifyStripe` itself. |
+| `platform.test.ts` | The owner dashboard (`platform:overview`): only platform admins, the counts, activity and weekly sign-ups; granting and revoking platform admin, creating a platform admin account, and setting an older business's region. |
 | `migrations.test.ts` | Single-business install → first business: settings, memberships from roles, every record stamped; accounts created after the upgrade are left alone; re-running is a no-op. |
 | `operations.test.ts` | Temperature checks (compliant, out of range, units), corrective actions (create, list, close), the audit log query (per entity, full trail, filters) and the dashboard summary. |
 | `audits.test.ts` | Templates, list, get, start (pre-fill, periods, titles), answer (overrides, locking), refresh auto-fill (keeps manual answers), complete (scoring, findings raise CAs). |
@@ -335,3 +339,18 @@ Fixed while the tests were being written:
 | `backend/convex/migrations.ts` | The migration skipped itself once any business existed, so a sign-up between deploying and migrating would have left the old data invisible. Found by the end-to-end run against a real local backend. | It now looks for legacy users and records instead. |
 | `app/lib/screens/custom_programme_editor.dart` | Setting a yes/no field's problem rule back to "Never" kept the old rule. | The old rule is dropped before the new one is built. |
 
+## 7. CI
+
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`, in three jobs side by
+side, with the same commands as above:
+
+| Job | Steps |
+|---|---|
+| Backend (Convex) | `npm ci`, `npm run typecheck`, `npm run test:coverage` |
+| Website (Next.js) | `npm ci`, `npm run lint`, `npm run test:coverage`, `npm run build` |
+| App (Flutter 3.47.2) | `flutter pub get`, `flutter analyze`, `flutter test --coverage`, `dart run tool/check_coverage.dart`, `flutter build web --release` |
+
+Any failure, or coverage under 100%, fails the check on the pull request. The release workflow runs the
+same jobs again on the tagged commit before releasing. To make them required before merging: Settings →
+Branches → add a rule for `main` with "Require status checks to pass".
+When upgrading Flutter, change `FLUTTER_VERSION` in both `ci.yml` and `release.yml`.

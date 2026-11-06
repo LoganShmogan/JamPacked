@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LegalPage } from "@/components/LegalPage";
-import { legalDocs } from "@/lib/legal";
+import { legalDocs, providers } from "@/lib/legal";
 import { pageMetadata } from "@/lib/seo";
 import { site } from "@/lib/site";
 
@@ -59,8 +59,15 @@ export default function Privacy() {
         {
           heading: "Who we share it with",
           body: [
-            <p key="a">The people in your business can see the records for that business, according to their role. Otherwise we only share information with providers that help us run JamPacked, such as Stripe for payments, and only for that purpose, or when the law requires it.</p>,
-            <p key="b">When you scan a barcode that isn&apos;t in your catalogue, the barcode number, and nothing else, is sent to Open Food Facts to look the product up.</p>,
+            <p key="a">The people in your business can see the records for that business, according to their role. Otherwise we only share information with the providers below, which help us run JamPacked, and only for that purpose, or when the law requires it.</p>,
+            <ul key="b" className="list-disc space-y-1 pl-5">
+              {providers.map((p) => (
+                <li key={p.name}>
+                  <strong>{p.name}</strong>{p.soon && " (coming soon)"}: {p.does} {p.where}.
+                </li>
+              ))}
+            </ul>,
+            <p key="c">Some of these providers are overseas. We only use ones that protect personal information in ways comparable to the New Zealand Privacy Act, and we&apos;ll update this list before we add one.</p>,
           ],
         },
         {
@@ -80,7 +87,7 @@ export default function Privacy() {
           body: [
             <p key="a">
               You can ask to see or correct the personal information we hold about you, or ask us to close your account. Email{" "}
-              <a href={`mailto:${site.email}`} className="underline">{site.email}</a>. Where records must be kept, we may keep your name on them
+              <a href={`mailto:${site.supportEmail}`} className="underline">{site.supportEmail}</a>. Where records must be kept, we may keep your name on them
               but remove your access. If you&apos;re not happy with our response, you can complain to the Office of the Privacy
               Commissioner (<a href="https://www.privacy.org.nz" className="underline">privacy.org.nz</a>).
             </p>,

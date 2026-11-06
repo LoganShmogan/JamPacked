@@ -96,9 +96,9 @@ void main() {
         ),
       );
       await pumpScreen(tester, help(), convex: fakeWith());
-      expect(find.text('contact@savepoint.co.nz'), findsOneWidget);
+      expect(find.text('support@savepoint.co.nz'), findsOneWidget);
       await tapOn(tester, find.byTooltip('Copy email address'));
-      expect(copied, 'contact@savepoint.co.nz');
+      expect(copied, 'support@savepoint.co.nz');
       expect(find.text('Email address copied'), findsOneWidget);
     });
 

@@ -30,19 +30,13 @@
 	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Scan product barcodes when receiving goods.</string>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 		<key>UISceneConfigurations</key>
 		<dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Scan product barcodes when receiving goods.</string>
 			<key>UIWindowSceneSessionRoleApplication</key>
 			<array>
 				<dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Scan product barcodes when receiving goods.</string>
 					<key>UISceneClassName</key>
 					<string>UIWindowScene</string>
 					<key>UISceneConfigurationName</key>

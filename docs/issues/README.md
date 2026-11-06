@@ -9,12 +9,13 @@ folder while developing and add to it as new problems turn up.
 | [Hosting, backups & data location](hosting-and-backups.md) | High | Decided, not started |
 | [Move sign-in to Clerk](clerk-authentication.md) | High | Open |
 | [Account deletion vs 7-year retention](account-deletion-and-retention.md) | High | Open |
-| [Licences & billing with Stripe](billing-stripe.md) | High | Open |
+| [Licences & billing with Stripe](billing-stripe.md) | High | In progress |
 | [Website (landing, pricing, legal, account)](website.md) | High | In progress |
-| [Legal documents](legal-documents.md) | High | Open |
+| [Legal documents](legal-documents.md) | High | In progress |
 | [Queries that grow with the data](growing-queries.md) | Medium | Open |
 | [Exports for large businesses](export-scalability.md) | Medium | Open |
 | [Releasing to the Play Store & App Store](app-store-release.md) | Medium | Open |
+| [Speed (web app first load, round trips, growing calls)](speed.md) | Medium | Open |
 | [Website & in-app usage analytics](analytics-tracking.md) | Medium | In progress |
 | [Owner dashboard (business metrics)](owner-dashboard.md) | Medium | In progress |
 | [Customer compliance reports](customer-reports.md) | Medium | Open |
@@ -24,6 +25,7 @@ folder while developing and add to it as new problems turn up.
 ## Launch plan
 
 Running costs: [../costs.md](../costs.md). Email addresses and where they go: [../email-addresses.md](../email-addresses.md).
+Outside providers and their status: [../providers.md](../providers.md). Test accounts: [../test-accounts.md](../test-accounts.md).
 
 Decisions so far: subscription per business, priced by programme (NP1 free for one user; NP2 $50/mo or $500/yr;
 NP3 $100/$1000; Custom $120/$1200; 30-day money-back, no trial) sold on the website with Stripe;

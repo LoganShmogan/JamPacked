@@ -34,7 +34,7 @@ Pages:
   everything else to the web app (phones also go to the web app until the store URLs are set in `site.ts`).
   Set each Payment Link's confirmation page to `https://jampacked.co.nz/welcome/` in Stripe
 - [x] Decide prices (see [billing-stripe.md](billing-stripe.md)); shown on the store, FAQ, programme pages and home page
-- [ ] Create the Payment Links (NP2, NP3, Custom × monthly / yearly) and fill in `checkoutUrls` in `site.ts`
+- [x] Create the Payment Links (NP2, NP3, Custom × monthly / yearly) and fill in `checkoutUrls` in `site.ts`
 - [x] Production and "enter it once" on the home, features and FAQ pages
 - [x] Help page (`/help/`, in the header menu): the app's how-to guides, synced from
   `app/assets/help/guides.json` before each build (`npm run sync-guides`; a test fails if they drift)
@@ -48,7 +48,7 @@ Pages:
 - [x] SEO: per-page titles, descriptions and canonical URLs; JSON-LD (Organization, SoftwareApplication with
   offers, FAQPage, BreadcrumbList); every public page in the sitemap; `/welcome/` and `/admin/` not indexed
 - [ ] Download section with App Store / Google Play badges (once the apps are listed)
-- [ ] JamPacked email addresses: the site uses `contact@savepoint.co.nz` until they exist (`web/src/lib/site.ts`)
+- [ ] JamPacked email addresses: the site uses `contact@` and `support@savepoint.co.nz` until they exist (`web/src/lib/site.ts`)
 - [ ] Add Clerk (`@clerk/nextjs`) once [clerk-authentication.md](clerk-authentication.md) is done
 - [ ] Sign in / sign up with Clerk, then choose or create a business and go to checkout
 - [ ] Billing page (Checkout + Customer Portal; see [billing-stripe.md](billing-stripe.md))

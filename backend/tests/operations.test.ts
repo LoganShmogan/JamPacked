@@ -140,6 +140,7 @@ describe("dashboard:summary", () => {
       onHold: 0,
       lowStock: 0,
       inProgressAudits: 0,
+      readOnly: false,
     });
   });
 

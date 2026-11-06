@@ -21,7 +21,7 @@ export const organization = {
   alternateName: site.name,
   url: site.url,
   logo: `${site.url}/logo.jpg`,
-  email: site.email,
+  email: site.contactEmail,
   areaServed: ["NZ", "AU"],
   identifier: { "@type": "PropertyValue", propertyID: "NZBN", value: site.nzbn },
 };

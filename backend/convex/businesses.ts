@@ -63,7 +63,7 @@ export const create = mutation({
 export const setArchived = mutation({
   args: { sessionToken: v.string(), businessId: v.id("businesses"), archived: v.boolean() },
   handler: async (ctx, { sessionToken, businessId, archived }) => {
-    const { user, business } = await requireMember(ctx, sessionToken, businessId, ["admin"]);
+    const { user, business } = await requireMember(ctx, sessionToken, businessId, ["admin"], { unlicensedOk: true });
     await ctx.db.patch(businessId, { archived });
     await logAudit(ctx, user, {
       businessId,
@@ -132,7 +132,7 @@ export const updateMember = mutation({
     active: v.optional(v.boolean()),
   },
   handler: async (ctx, { sessionToken, businessId, userId, ...patch }) => {
-    const { user } = await requireMember(ctx, sessionToken, businessId, ["admin"]);
+    const { user } = await requireMember(ctx, sessionToken, businessId, ["admin"], { unlicensedOk: true });
     const m = await membership(ctx, userId, businessId);
     if (!m) throw new ConvexError("User not found");
     if (userId === user._id && (patch.role !== undefined || patch.active === false)) {

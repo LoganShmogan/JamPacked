@@ -5,6 +5,12 @@ All of them are free on Save Point's Google Workspace once `jampacked.co.nz` is 
 **aliases** go to Logan's inbox, **Google Groups** can have several people (e.g. Tim later). Research
 behind this: [legal-research.md](legal-research.md). Costs: [costs.md](costs.md).
 
+**Today**, until those exist: **contact@savepoint.co.nz** for general enquiries and buying a licence
+(`site.contactEmail`: footer, Contact, Legal, Store fallback, search-engine details) and
+**support@savepoint.co.nz** for help with the app, privacy and security (`site.supportEmail`, and
+`supportEmail` in `app/assets/help/guides.json`: the app's Help screen, `/help/`, the FAQ, Welcome, privacy
+requests, the Contact page's help and privacy topics, README and SECURITY.md).
+
 ## The addresses
 
 | Address | Type | Why it's needed | Used for |
@@ -59,7 +65,7 @@ address, add it in Gmail under **Settings → Accounts → Send mail as** (tick 
 ### Website (`web/`)
 | Page | Address |
 |---|---|
-| Footer, Contact, Help, Welcome, Store fallback (`site.email` in `web/src/lib/site.ts`) | support@ |
+| Footer, Contact, Help, Welcome, Store fallback (`site.contactEmail` / `site.supportEmail` in `web/src/lib/site.ts`) | support@ |
 | Privacy Policy: privacy officer and requests | privacy@ |
 | Terms: notices | legal@ |
 | Terms and Store: refunds / billing questions | billing@ |

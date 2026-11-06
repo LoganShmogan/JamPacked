@@ -31,6 +31,8 @@ Live: https://app.jampacked.co.nz
 14. [Deployment (loganserver)](#14-deployment-loganserver)
 15. [Migrating to Clerk](#15-migrating-to-clerk)
 16. [Known limitations & roadmap](#16-known-limitations--roadmap)
+17. [CI, versions & releases](#17-ci-versions--releases)
+18. [Performance](#18-performance)
 
 ---
 
@@ -119,9 +121,16 @@ Live: https://app.jampacked.co.nz
 ```
 JamPacked/
 ├── README.md                    Quick start
+├── CHANGELOG.md                 What changed in each version (§17)
+├── .github/workflows/           ci.yml: every pull request; release.yml: version tags → GitHub release + deploy (§17)
+├── scripts/                     prepare-release.sh (§17), backend-timings.mjs and live-timings.mjs (§18)
 ├── docs/DOCUMENTATION.md        This file
 ├── docs/TESTING.md              Unit tests: running, structure, helpers, coverage
+├── docs/test-accounts.md        The seeded test accounts: who they are, what to test with each
+├── docs/providers.md            Every outside provider (Stripe, Convex, Clerk, Cloudflare...) and its status
+├── docs/performance.md          The speed baseline: backend calls, page and app loads, builds (§18)
 ├── backend/                     Convex project (TypeScript)
+│   ├── .env.example             Every setting: CLI deployment, and env vars set on the deployment
 │   ├── package.json             scripts: dev, deploy, typecheck, test, test:coverage
 │   ├── vitest.config.mts        Test runner + 100% coverage thresholds
 │   ├── tests/                   Vitest + convex-test unit tests (see docs/TESTING.md)
@@ -149,10 +158,15 @@ JamPacked/
 │       ├── exportData.ts        Admin export of every record a business has
 │       ├── platform.ts          Owner dashboard numbers (platform admins only)
 │       ├── analytics.ts         Task timings from the app, a business's Insights numbers
+│       ├── billing.ts           Licences: status, Stripe webhook events, matching a payment by hand
+│       ├── http.ts              HTTP routes: the Stripe webhook (signature checked)
 │       ├── migrations.ts        One-off: single-business install → multi-business
+│       ├── seed.ts              Test accounts for a deployment that isn't live yet (§14; needs SEED_ALLOWED)
 │       ├── lib/
 │       │   ├── session.ts       requireUser / requireMember / requirePlatformAdmin / inBusiness
+│       │   ├── licence.ts       Plan a business needs, its licence, read-only when unlicensed (BILLING_ENFORCED)
 │       │   ├── business.ts      createBusiness, sector checks
+│       │   ├── regions.ts       NZ regions and AU states, region checks
 │       │   ├── programmes.ts    NP1/NP2/NP3 catalogue and modules (from the MPI guides)
 │       │   ├── module.ts        Load a business's module (built-in or custom)
 │       │   ├── stock.ts         recordMovement, createLot, FIFO, usable, below-par
@@ -180,16 +194,19 @@ JamPacked/
 │       │   ├── common.dart      QueryBuilder, Pill, helpers, constants
 │       │   ├── business_form.dart  Name, programme cards, sectors
 │       │   ├── product_picker.dart Search or scan the catalogue (enter once, pick after)
+│       │   ├── record_fields.dart  A programme record's fields as form inputs (record form, production checks)
 │       │   └── audit_history.dart
 │       └── screens/             One file per screen (see §11)
 ├── web/                         Website: jampacked.co.nz (Next.js, static export to web/out/)
 │   ├── next.config.ts           output: "export", so nginx (or Cloudflare Pages) serves plain files
+│   ├── .env.example             Convex URL, PostHog and (later) Clerk keys
 │   └── src/
 │       ├── app/page.tsx         Landing page: how it works, enter-it-once, programmes, pricing teaser
 │       ├── app/features|faq|programmes|contact/  The other public pages
+│       ├── app/welcome/         Stripe's after-payment page: sends phones to the app (not indexed)
 │       ├── app/help/            How-to guides with screenshots (from lib/guides.json, synced from the app)
 │       ├── app/legal/           Legal index (in the header menu) + terms, privacy, cookies
-│       ├── lib/legal.ts         Legal documents' titles, links and "Last updated" dates
+│       ├── lib/legal.ts         Legal documents' titles, links and "Last updated" dates; outside providers (Privacy Policy)
 │       ├── app/store/           Pricing: a plan per programme, monthly / yearly (PlanPicker.tsx)
 │       ├── app/admin/page.tsx   Owner dashboard (platform admins only)
 │       ├── lib/site.ts          Company details, contact email, URLs, pricing (plans, money-back days)
@@ -222,6 +239,7 @@ multi-business change still validates until `migrations:toMultiBusiness` has run
 | `businesses` | `name`, `jurisdiction` (NZ/AU), `region?` (NZ region or AU state, `lib/regions.ts`; asked for at sign-up, unset on older businesses), `registrationNumber?`, `address?`, `chilledMaxC` (5), `frozenMaxC` (-15), `hotMinC` (60), `expiryWarningDays` (3), `programme` (NP1/NP2/NP3/custom), `customProgrammeId?`, `sectors[]`, `operation?` (kitchen/manufacturer/farm/retail/mixed; unset = mixed), `ownerId`, `archived`, `createdAt` | Replaces the old single-row `settings` table (kept only for the migration). Archived, never deleted. |
 | `memberships` | `userId`, `businessId`, `role` (admin/manager/staff), `active`, `createdAt` | `by_user`, `by_business`, `by_user_business`. |
 | `invites` | `businessId`, `email`, `role`, `invitedByName`, `createdAt`, `acceptedAt?` | Claimed when that email signs up. |
+| `subscriptions` | `businessId?` (unset until the payment is matched to a business), `stripeSubscriptionId` (`by_stripe_id`), `stripeCustomerId?`, `email?`, `businessHint?` (business name typed at checkout), `plan?` (np2/np3/custom), `status` (Stripe's), `currentPeriodEnd?`, `cancelAtPeriodEnd?`, `updatedAt` | Written only by the Stripe webhook and `billing:link`. `by_business`. |
 | `customProgrammes` | `ownerId`, `name`, `description?`, `dailyChilledCheck`, `receivingPrompts[]`, `recordTypes[]`, `templates[]`, timestamps | Owned by a user, usable by any business they administer. |
 
 ### Receiving
@@ -369,6 +387,28 @@ vehicle (low) → one audit-log entry.
 | `customProgrammes:update(id, ...)` | owner | Validated: unique keys, names, ≥1 field per record and question per checklist, no clash with built-in audit keys. |
 | `customProgrammes:useForBusiness(id)` | admin + owner | |
 
+### `billing` (licences)
+| Function | Role | Description |
+|---|---|---|
+| `billing:status()` | any | `{needs, plan, status, currentPeriodEnd, enforced, readOnly}`: the plan the business needs (NP1 alone: none; NP1 with staff or NP2: np2; NP3: np3; custom: custom), the best live plan it has (a dearer plan covers a cheaper one) and whether it's read-only. |
+| `billing:applyEvent(type, object)` | internal | One Stripe event. `checkout.session.completed` (subscription mode) links the subscription to the business in `client_reference_id`, with the buyer's email and the business name typed at checkout; `customer.subscription.*` updates status, plan (from the price, `PLAN_BY_AMOUNT`) and period end. Each upserts, so events can arrive in any order. Logged in the business's audit trail once it's linked. |
+| `billing:link(stripeSubscriptionId, businessId)` | internal | Match a payment to a business by hand (CLI), when Stripe had no `client_reference_id`. |
+
+**`POST /stripe/webhook`** (`http.ts`): checks the `Stripe-Signature` header (HMAC-SHA256 with
+`STRIPE_WEBHOOK_SECRET`, within 5 minutes) and passes the event to `billing:applyEvent`. 503 until the secret
+is set, 400 for a bad signature. Live at `https://app.jampacked.co.nz/http/stripe/webhook` (§14).
+
+**Read-only when unlicensed.** With `BILLING_ENFORCED=true` on the deployment, `requireMember` refuses every
+mutation on a business whose licence doesn't cover what it needs, with a message saying so. Queries
+(including export) always work, because records must be available for 7 years. The admin changes that bring
+a business back within its licence still work: `settings:update` (change programme), `businesses:updateMember`
+(remove staff from a free NP1 business) and `businesses:setArchived`. Unset (as now), nothing is read-only.
+
+**How a payment finds its business:** `/store/?business=<businessId>` adds `?client_reference_id=<id>` to
+the Stripe Payment Links. Until the website has sign-in (Clerk) nothing sends people there with that, so
+payments arrive unmatched: look up the buyer's email and business name in `subscriptions`, then run
+`npx convex run billing:link '{"stripeSubscriptionId":"sub_...","businessId":"..."}'`.
+
 ### `analytics`
 | Function | Role | Description |
 |---|---|---|
@@ -387,7 +427,7 @@ how many businesses, across every business for the last 30 days.
 - `auditLog:list(...)`: entity history for any member; the full trail for mgr. Rows from other businesses
   are never returned.
 - `dashboard:summary(dayStart?)`: today's deliveries/temps, CAs, expiring, plus `stockLines`, `onHold`,
-  `lowStock`, `programme`.
+  `lowStock`, `programme`, `readOnly` (no active licence; Home shows a banner).
 - `exportData:manifest()`, `exportData:page(table, paginationOpts)` (admin): see §10.
 - `migrations:toMultiBusiness(programme, sectors?)` (internal): see §14.
 - `platform:overview()` (platform admin): users, businesses (active in the last 7/30 days, by programme,
@@ -628,9 +668,10 @@ brand, barcode) or scan; with `allowNew` it also offers "New: <typed name>". Use
 otherwise be typed again: goods-in items, recipe ingredients and what a batch makes.
 
 ### Theme (`theme.dart`)
-`AppColors`: `orange #F26B21`, `orangeDark #C94E0E`, `orangeLight #FFF1E8`, `ink`, `muted`, `border`,
-`surface`, and ok/warn/bad pairs. `buildTheme()` sets Material 3 with orange app bars, white rounded
-cards, 50px-tall buttons, filled inputs, and an orange-accented navigation bar.
+`AppColors`: jam colours from the logo, `jam #C94A4E`, `jamDark #A8323A`, `jamLight #FFF0E0`, `ink`,
+`muted`, `border`, `surface`, and ok/warn/bad pairs (warn is mustard, from the lid). `buildTheme()` sets
+Material 3 with jam app bars, white rounded cards, 50px-tall buttons, filled inputs, and a jam-accented
+navigation bar.
 
 ### Navigation
 `main.dart` shows a spinner while restoring, `LoginScreen` if signed out, `BusinessPickerScreen` until a
@@ -679,7 +720,8 @@ side rail above** (desktop web). Other screens are pushed with `MaterialPageRout
 `http`, `provider`, `shared_preferences`, `intl`, `mobile_scanner` (camera on Android/iOS/web),
 `share_plus` (export file: share sheet on mobile, download on web).
 Platform setup done: Android `INTERNET` + `CAMERA` permissions and `usesCleartextTraffic` (for local
-http dev), iOS `NSCameraUsageDescription`, web title/theme colour.
+http dev; move it to the debug manifest before store builds), iOS `NSCameraUsageDescription`, web
+title/theme colour. What's left for the stores: [issues/app-store-release.md](issues/app-store-release.md).
 
 ---
 
@@ -695,6 +737,8 @@ http dev), iOS `NSCameraUsageDescription`, web title/theme colour.
 
 ### Home
 - Header: greeting, business name and programme, NZ/MPI or AU/FSANZ badge, and **?** for Help & support.
+- **Read-only for now** (only when billing is enforced and the business has no active licence): nothing new
+  can be recorded, but everything can still be viewed and exported.
 - **Today**: Deliveries, Temp checks, Open actions, Expiring soon. **Stock**: on hand, on hold, low stock.
 - **Due**: what your programme still needs this period (tap to do it). **Programme** opens the full list.
 - **Quick actions**: Receive goods, Temperature check, Make a batch, Stock, Start audit, Trace / recall,
@@ -830,7 +874,8 @@ Internet → Cloudflare → cloudflared tunnel (loganserver) → Caddy (127.0.0.
      http://jampacked.co.nz, www { reverse_proxy foodsafe:80 }
    → foodsafe (nginx), by hostname:
        jampacked.co.nz → the website (web/out, in ~/foodsafe/site); www → 301 to jampacked.co.nz
-       anything else        → the Flutter web build; /api/* → foodsafe-convex:3210 (network "internal")
+       anything else        → the Flutter web build; /api/* → foodsafe-convex:3210 (network "internal");
+                              /http/* → foodsafe-convex:3211, Convex HTTP actions (the Stripe webhook)
    → foodsafe-convex: self-hosted Convex backend, data in volume foodsafe_convex-data
 ```
 
@@ -846,6 +891,14 @@ Internet → Cloudflare → cloudflared tunnel (loganserver) → Caddy (127.0.0.
 ```bash
 ./deploy/deploy.sh            # default host: loganserver
 ```
+Releases can also deploy themselves from GitHub Actions, running this same script (§17). Deploy from a
+tagged commit, so what's live is a version in [CHANGELOG.md](../CHANGELOG.md); the script prints the
+version it ships.
+
+**The Convex image has moved** to `ghcr.io/convex/convex-backend`; `docker-compose.yml` still names the
+old `ghcr.io/get-convex/convex-backend`, which can't be pulled any more. The server runs its cached copy,
+so deploys work, but see [issues/hosting-and-backups.md](issues/hosting-and-backups.md) before rebuilding
+the server or upgrading Convex. The dashboard is now `ghcr.io/convex/convex-dashboard`.
 It builds the web app with `CONVEX_URL=https://app.jampacked.co.nz` and the website with the same
 `NEXT_PUBLIC_CONVEX_URL`, rsyncs both builds and the configs, runs `docker compose up -d`, generates the Convex admin key on first run, adds the Caddy routes if
 missing (and switches servers that still redirect jampacked.co.nz to the app over to the website), then pushes Convex functions via `npx convex deploy` over an SSH tunnel (local port 3299).
@@ -882,7 +935,8 @@ cd backend && export CONVEX_DEPLOYMENT= CONVEX_SELF_HOSTED_URL=http://127.0.0.1:
 npx convex env set SEED_ALLOWED true
 npx convex run seed:run '{"confirm":"wipe everything"}'
 ```
-Every account's password is `jampacked-test`.
+Every account's password is `jampacked-test`. Who each account is and what to test with it:
+[test-accounts.md](test-accounts.md).
 
 | Account | What it is |
 |---|---|
@@ -904,7 +958,7 @@ docker compose logs -f convex     # backend logs
 docker compose restart            # restart both containers
 docker run --rm -v foodsafe_convex-data:/d -v $PWD:/b alpine tar czf /b/convex-backup-$(date +%F).tgz -C /d .   # backup
 ```
-Convex dashboard (self-hosted): `docker run --rm -p 6791:6791 -e NEXT_PUBLIC_DEPLOYMENT_URL=http://127.0.0.1:3210 ghcr.io/get-convex/convex-dashboard`
+Convex dashboard (self-hosted): `docker run --rm -p 6791:6791 -e NEXT_PUBLIC_DEPLOYMENT_URL=http://127.0.0.1:3210 ghcr.io/convex/convex-dashboard`
 on the server, then SSH-forward port 6791 and log in with the admin key.
 
 ---
@@ -939,10 +993,81 @@ The app is structured so only auth plumbing changes:
   what actually went in, but not the recipe as it was.
 - **Planned batches don't reserve stock**: each plan's shortfall is worked out against all stock on its own.
 - **Units aren't converted**: a recipe line in `kg` only draws on lots counted in `kg`.
-- **Plans aren't enforced in the app yet**: pricing is by programme (NP1 free for one user, NP1 with staff
-  at the NP2 price), but nothing checks it until billing exists ([billing-stripe.md](issues/billing-stripe.md)).
+- **Licences are built but off**: with `BILLING_ENFORCED=true` an unlicensed business is read-only (§5
+  `billing`). It stays off until existing businesses are given licences and payments can be matched to a
+  business without doing it by hand ([billing-stripe.md](issues/billing-stripe.md)).
 - **Exports are JSON**: PDF/CSV reports of audits and records for verifiers are a natural next step.
 - **Large businesses**: some queries read whole indexes (e.g. stock on hand, production trace over the last
   2000 runs); pagination would be needed
   at very large scale.
 - **Dev auth** (§9): no password reset, no rate limiting; Clerk resolves these.
+- **The web app's first load on a phone** takes about 17 s on a weak 4G signal (2.65 MB before the sign-in
+  screen): §18 and [issues/speed.md](issues/speed.md).
+
+---
+
+## 17. CI, versions & releases
+
+**CI** (`.github/workflows/ci.yml`) runs on every pull request and push to `main`: the backend's type
+check and tests, the website's lint, tests and build, and the app's analyze, tests and web build, with
+100% coverage enforced ([TESTING.md §7](TESTING.md#7-ci)). A red check means don't merge.
+
+**Versions.** One version for the app, backend and website, because they ship together:
+`version:` in `app/pubspec.yaml` (`0.1.0+2`: the version, then the app's build number, which the stores
+need to go up every time) and `version` in `backend/package.json` and `web/package.json`.
+[Semver](https://semver.org): PATCH for fixes, MINOR for new features, MAJOR for changes people must adapt
+to; 0.x while in testing, 1.0.0 at launch. Every pull request adds a line under **Unreleased** in
+[CHANGELOG.md](../CHANGELOG.md), written for the people who use JamPacked.
+
+**Cutting a release:**
+```bash
+scripts/prepare-release.sh 0.2.0   # sets the version everywhere, build number +1, dates the changelog
+git commit -am "Release v0.2.0"     # in a pull request; merge it to main as usual
+git switch main && git pull
+git tag v0.2.0 && git push origin v0.2.0
+```
+The tag starts `.github/workflows/release.yml`:
+1. CI runs again on the tagged commit.
+2. The tag is checked against the versions in the code, and `CHANGELOG.md` must have that version.
+3. A GitHub release is published: the changelog section, then GitHub's list of the pull requests merged
+   since the last release, with a link comparing the two versions.
+4. If deploys are on, the release is deployed to production with `deploy/deploy.sh`.
+
+Nothing is released if any step fails. To redo a release, fix it, delete the tag and the GitHub release,
+and tag again. To roll back, deploy an older tag: `git checkout v0.1.0 && ./deploy/deploy.sh`.
+
+**Switching on deploys from GitHub** (one-off). loganserver is only reachable over Tailscale, so the
+release job joins the tailnet, then deploys over SSH:
+1. **Tailscale** (admin console): in the access controls, add `"tag:ci"` to `tagOwners` (owned by
+   `autogroup:admin`) and a rule letting `tag:ci` reach loganserver on port 22 only. Then Settings → OAuth
+   clients → generate one with the `auth_keys` (write) scope and the `tag:ci` tag.
+2. **A deploy key:** `ssh-keygen -t ed25519 -f jampacked-deploy -C github-actions -N ""`, and add
+   `jampacked-deploy.pub` to `~/.ssh/authorized_keys` on loganserver. Record the server's host key from a
+   machine you trust: `ssh-keyscan loganserver`.
+3. **GitHub** (Settings → Environments → New environment `production`; under "Deployment branches and
+   tags" allow only tags `v*`; add yourself as a required reviewer if you want to approve each deploy).
+   Environment secrets: `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_SECRET`, `DEPLOY_SSH_KEY` (the private key file),
+   `DEPLOY_KNOWN_HOSTS` (the `ssh-keyscan` output) and `DEPLOY_HOST` (e.g. `loganyoung@loganserver`, or
+   the server's tailnet address). Then Settings → Variables → Actions → `DEPLOY_ENABLED` = `true`.
+4. Delete the local copy of the private key. If any of these leak: [SECURITY.md](../SECURITY.md).
+
+The deploy key can do anything the server account can (including Docker), so keep it only in that
+environment. When production moves to Convex Cloud and Cloudflare Pages
+([issues/hosting-and-backups.md](issues/hosting-and-backups.md)), the deploy job becomes
+`npx convex deploy` with a deploy key and a Cloudflare Pages upload, and no server access.
+
+**Not in releases yet:** the Android and iOS builds. Add them to `release.yml` as release files once
+signing is set up ([issues/app-store-release.md](issues/app-store-release.md)); they'll take the version
+and build number from `pubspec.yaml`.
+
+## 18. Performance
+
+[performance.md](performance.md) has the baseline, measured on 6 Nov 2026: every call the app's screens
+make (fastest, median, average and slowest), the live site's page loads and the web app's first frame on
+a good connection and a weak phone signal, and how long the builds and tests take. In short: the backend
+takes 5 to 20 ms for most screens, the network about 100 ms a call, and the web app's first load on a
+phone is the slowest thing people wait for.
+
+To measure again after a change: `node scripts/backend-timings.mjs <seeded test deployment>` and
+`node scripts/live-timings.mjs [--phone]` (setup in performance.md). What to look at first:
+[issues/speed.md](issues/speed.md).

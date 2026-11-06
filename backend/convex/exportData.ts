@@ -24,6 +24,7 @@ export const EXPORT_TABLES = [
   "memberships",
   "invites",
   "taskTimings",
+  "subscriptions",
   "auditLog",
 ] as const;
 
@@ -72,6 +73,7 @@ export const page = query({
       memberships: "by_business",
       invites: "by_business",
       taskTimings: "by_business_at",
+      subscriptions: "by_business",
       auditLog: "by_business_at",
     }[table];
     return await (ctx.db.query(table) as unknown as ByBusiness)

@@ -3,8 +3,10 @@ export const site = {
   name: "JamPacked",
   url: "https://jampacked.co.nz",
   appUrl: "https://app.jampacked.co.nz",
-  // JamPacked mailboxes aren't set up yet; Save Point's inbox until they are.
-  email: "contact@savepoint.co.nz",
+  // JamPacked mailboxes aren't set up yet; Save Point's until they are (docs/email-addresses.md).
+  // contact@ for general enquiries and buying; support@ for help with the app, privacy and security.
+  contactEmail: "contact@savepoint.co.nz",
+  supportEmail: "support@savepoint.co.nz",
   company: "Save Point Limited",
   nzbn: "9429053325013",
   description:

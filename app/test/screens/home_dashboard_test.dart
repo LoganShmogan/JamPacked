@@ -127,6 +127,15 @@ void main() {
         expect(find.text(t), findsOneWidget);
       }
       expect(find.text('IN PROGRESS'), findsNothing);
+      expect(find.text('Read-only for now'), findsNothing);
+    });
+
+    testWidgets('a business without an active licence says it is read-only', (
+      tester,
+    ) async {
+      await pumpDash(tester, summary(readOnly: true));
+      expect(find.text('Read-only for now'), findsOneWidget);
+      expect(find.textContaining('can still be viewed and exported'), findsOneWidget);
     });
 
     testWidgets('problem day shows warnings, AU badge and in-progress audits', (
