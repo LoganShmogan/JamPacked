@@ -15,8 +15,15 @@
   <a href="docs/DOCUMENTATION.md">Docs</a> ·
   <a href="docs/TESTING.md">Testing</a> ·
   <a href="docs/issues/README.md">Issues</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="https://github.com/LoganShmogan/JamPacked/releases">Releases</a> ·
   <a href="SECURITY.md">Security</a> ·
   <a href="LICENSE">Licence</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/LoganShmogan/JamPacked/actions/workflows/ci.yml"><img src="https://github.com/LoganShmogan/JamPacked/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/LoganShmogan/JamPacked/releases"><img src="https://img.shields.io/github/v/release/LoganShmogan/JamPacked" alt="Latest release"></a>
 </p>
 
 ---
@@ -35,6 +42,7 @@ One account can run several businesses; you pick the one you're working in each 
 
 ```
 JamPacked/
+├── .github/workflows/      # ci.yml (every pull request), release.yml (version tags: release + deploy)
 ├── app/                    # Flutter app (Android, iOS, web)
 │   ├── lib/                # main.dart, screens/, services/ (Convex client, auth), theme
 │   ├── assets/help/        # guides.json: the in-app Help and the website's /help/ page
@@ -49,12 +57,15 @@ JamPacked/
 │   ├── src/                # app/ routes, lib/site.ts (prices, contact details)
 │   ├── public/  scripts/  tests/
 ├── deploy/                 # loganserver deploy: deploy.sh, docker-compose.yml, nginx.conf
+├── scripts/                # prepare-release.sh, backend-timings.mjs, live-timings.mjs
 ├── docs/
 │   ├── DOCUMENTATION.md    # Full technical and user documentation
 │   ├── TESTING.md          # How the tests are organised
 │   ├── test-accounts.md    # The seeded test accounts: who they are and what to test with them
 │   ├── providers.md        # Every outside provider (Stripe, Convex, Clerk, Cloudflare...) and its status
+│   ├── performance.md      # How long things take: the speed baseline and how to re-measure it
 │   └── issues/             # Open issues and to-dos before launch
+├── CHANGELOG.md            # What changed in each version
 ├── LICENSE                 # Proprietary, all rights reserved
 └── SECURITY.md
 ```
@@ -100,6 +111,21 @@ cd web && npm test                      # or: npm run test:coverage
 ```
 
 See [`docs/TESTING.md`](docs/TESTING.md) for how the tests are organised and how to add new ones.
+GitHub Actions runs all of them, plus the lint, type checks and both builds, on every pull request
+(`.github/workflows/ci.yml`).
+
+## Versions and releases
+
+One version for the app, backend and website ([`CHANGELOG.md`](CHANGELOG.md)), 0.x while in testing.
+Note each change under **Unreleased** in its pull request; to release, run
+`scripts/prepare-release.sh 0.2.0`, merge, then push the tag `v0.2.0`. The release workflow checks it,
+publishes the GitHub release and, once deploys are switched on, deploys it. See
+[`docs/DOCUMENTATION.md` §17](docs/DOCUMENTATION.md#17-ci-versions--releases).
+
+## Speed
+
+How long everything takes today (backend calls, page and app loads, builds) and how to re-measure:
+[`docs/performance.md`](docs/performance.md).
 
 Open issues and to-dos before launch (hosting, Clerk, store release, scaling) are tracked in
 [`docs/issues/`](docs/issues/README.md).

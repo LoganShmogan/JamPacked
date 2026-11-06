@@ -1,0 +1,83 @@
+# Pushing a version tag (v1.2.3) releases it: CI runs again on the tagged commit, the tag is checked against
+# the version in the code, and a GitHub release is published with that version's CHANGELOG.md section.
+# Then, if deploys are switched on (repository variable DEPLOY_ENABLED = true), it deploys to production
+# with deploy/deploy.sh. How to cut a release and set up deploys: docs/DOCUMENTATION.md §17.
+name: Release
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: 3.47.2 # keep in step with ci.yml
+  NODE_VERSION: 24
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: GitHub release
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: The tag matches the version in the code, and the changelog has it
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          grep -q "^version: $v+" app/pubspec.yaml || { echo "::error::app/pubspec.yaml isn't version $v"; exit 1; }
+          for p in backend web; do
+            [ "$(node -p "require('./$p/package.json').version")" = "$v" ] || { echo "::error::$p/package.json isn't version $v"; exit 1; }
+          done
+          awk -v h="## $v " 'index($0, h) == 1 { f = 1; next } /^## / { f = 0 } f' CHANGELOG.md > notes.md
+          grep -q '[^[:space:]]' notes.md || { echo "::error::CHANGELOG.md has no '## $v' section"; exit 1; }
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # The CHANGELOG section first, then GitHub's list of merged pull requests since the last release.
+        run: gh release create "$GITHUB_REF_NAME" --title "JamPacked $GITHUB_REF_NAME" --notes-file notes.md --generate-notes --verify-tag
+
+  deploy:
+    name: Deploy to production
+    needs: release
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      # loganserver is only reachable over the tailnet. The OAuth client may only create tag:ci devices,
+      # and the tailnet policy lets tag:ci reach loganserver's SSH and nothing else.
+      - uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: SSH key for the server
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Deploy
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+        run: ./deploy/deploy.sh "$HOST"

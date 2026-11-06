@@ -9,7 +9,9 @@ DOMAIN=jampacked.co.nz
 URL=https://app.$DOMAIN
 TUNNEL_PORT=3299
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+VERSION=$(sed -n 's/^version: //p' "$ROOT/app/pubspec.yaml")   # e.g. 0.1.0+2 (scripts/prepare-release.sh)
 
+echo "==> Deploying JamPacked $VERSION to $HOST"
 echo "==> Building web app"
 (cd "$ROOT/app" && flutter build web --release --dart-define=CONVEX_URL=$URL)
 
@@ -71,7 +73,8 @@ echo "==> Pushing Convex functions (via SSH tunnel)"
 ADMIN_KEY=$(ssh "$HOST" "cat $DIR/.admin_key")
 ssh -fN -o ExitOnForwardFailure=yes -L $TUNNEL_PORT:127.0.0.1:3210 "$HOST"
 trap 'pkill -f "ssh -fN -o ExitOnForwardFailure=yes -L $TUNNEL_PORT" || true' EXIT
-(cd "$ROOT/backend" && CONVEX_DEPLOYMENT= CONVEX_SELF_HOSTED_URL=http://127.0.0.1:$TUNNEL_PORT \
+# npm ci first: the Convex CLI from the lockfile, not whatever npx would fetch (CI has no node_modules).
+(cd "$ROOT/backend" && npm ci && CONVEX_DEPLOYMENT= CONVEX_SELF_HOSTED_URL=http://127.0.0.1:$TUNNEL_PORT \
   CONVEX_SELF_HOSTED_ADMIN_KEY="$ADMIN_KEY" npx convex deploy -y)
 
-echo "==> Done: $URL and https://$DOMAIN"
+echo "==> Done: JamPacked $VERSION on $URL and https://$DOMAIN"

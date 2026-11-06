@@ -15,6 +15,7 @@ folder while developing and add to it as new problems turn up.
 | [Queries that grow with the data](growing-queries.md) | Medium | Open |
 | [Exports for large businesses](export-scalability.md) | Medium | Open |
 | [Releasing to the Play Store & App Store](app-store-release.md) | Medium | Open |
+| [Speed (web app first load, round trips, growing calls)](speed.md) | Medium | Open |
 | [Website & in-app usage analytics](analytics-tracking.md) | Medium | In progress |
 | [Owner dashboard (business metrics)](owner-dashboard.md) | Medium | In progress |
 | [Customer compliance reports](customer-reports.md) | Medium | Open |

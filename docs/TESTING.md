@@ -20,6 +20,7 @@ No test needs a running Convex deployment, a network connection, a device or a c
 4. [Writing a new test](#4-writing-a-new-test)
 5. [Keeping coverage at 100%](#5-keeping-coverage-at-100)
 6. [Bugs the tests found](#6-bugs-the-tests-found)
+7. [CI](#7-ci)
 
 ---
 
@@ -338,3 +339,18 @@ Fixed while the tests were being written:
 | `backend/convex/migrations.ts` | The migration skipped itself once any business existed, so a sign-up between deploying and migrating would have left the old data invisible. Found by the end-to-end run against a real local backend. | It now looks for legacy users and records instead. |
 | `app/lib/screens/custom_programme_editor.dart` | Setting a yes/no field's problem rule back to "Never" kept the old rule. | The old rule is dropped before the new one is built. |
 
+## 7. CI
+
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`, in three jobs side by
+side, with the same commands as above:
+
+| Job | Steps |
+|---|---|
+| Backend (Convex) | `npm ci`, `npm run typecheck`, `npm run test:coverage` |
+| Website (Next.js) | `npm ci`, `npm run lint`, `npm run test:coverage`, `npm run build` |
+| App (Flutter 3.47.2) | `flutter pub get`, `flutter analyze`, `flutter test --coverage`, `dart run tool/check_coverage.dart`, `flutter build web --release` |
+
+Any failure, or coverage under 100%, fails the check on the pull request. The release workflow runs the
+same jobs again on the tagged commit before releasing. To make them required before merging: Settings →
+Branches → add a rule for `main` with "Require status checks to pass".
+When upgrading Flutter, change `FLUTTER_VERSION` in both `ci.yml` and `release.yml`.

@@ -16,7 +16,8 @@ We will acknowledge your report within 2 working days and keep you updated until
 
 ## Secrets
 
-Nothing secret belongs in this repository. Local settings live in `backend/.env.local` and `web/.env*`, which are git-ignored, as are Android keystores (`*.jks`, `key.properties`) and Firebase/Google config files. Production configuration lives only on the server.
+Nothing secret belongs in this repository. Deploy secrets live in GitHub (Settings → Environments →
+`production`), only for the release workflow; pull requests, including ones from forks, never see them. Local settings live in `backend/.env.local` and `web/.env*`, which are git-ignored, as are Android keystores (`*.jks`, `key.properties`) and Firebase/Google config files. Production configuration lives only on the server.
 
 ## If a secret leaks
 
@@ -26,6 +27,8 @@ Nothing secret belongs in this repository. Local settings live in `backend/.env.
 | Android upload keystore | Contact Google Play support to reset the upload key; never commit the new one |
 | A user's session token | Sessions are random tokens with a 7-day expiry; sign the user out (delete the session row) to revoke it immediately |
 | Server SSH access | Remove the key from `~/.ssh/authorized_keys` on loganserver and issue a new one |
+| `STRIPE_WEBHOOK_SECRET` | Roll the signing secret in Stripe (Developers → Webhooks), then `npx convex env set STRIPE_WEBHOOK_SECRET` with the new one |
+| GitHub Actions deploy secrets (`DEPLOY_SSH_KEY`, `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET`) | Remove the deploy key from `authorized_keys` on loganserver and revoke the OAuth client in Tailscale's admin console; set `DEPLOY_ENABLED` to `false` until new ones are in place |
 
 ## How JamPacked is protected
 

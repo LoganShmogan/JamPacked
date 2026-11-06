@@ -31,6 +31,8 @@ Live: https://app.jampacked.co.nz
 14. [Deployment (loganserver)](#14-deployment-loganserver)
 15. [Migrating to Clerk](#15-migrating-to-clerk)
 16. [Known limitations & roadmap](#16-known-limitations--roadmap)
+17. [CI, versions & releases](#17-ci-versions--releases)
+18. [Performance](#18-performance)
 
 ---
 
@@ -119,10 +121,14 @@ Live: https://app.jampacked.co.nz
 ```
 JamPacked/
 ├── README.md                    Quick start
+├── CHANGELOG.md                 What changed in each version (§17)
+├── .github/workflows/           ci.yml: every pull request; release.yml: version tags → GitHub release + deploy (§17)
+├── scripts/                     prepare-release.sh (§17), backend-timings.mjs and live-timings.mjs (§18)
 ├── docs/DOCUMENTATION.md        This file
 ├── docs/TESTING.md              Unit tests: running, structure, helpers, coverage
 ├── docs/test-accounts.md        The seeded test accounts: who they are, what to test with each
 ├── docs/providers.md            Every outside provider (Stripe, Convex, Clerk, Cloudflare...) and its status
+├── docs/performance.md          The speed baseline: backend calls, page and app loads, builds (§18)
 ├── backend/                     Convex project (TypeScript)
 │   ├── .env.example             Every setting: CLI deployment, and env vars set on the deployment
 │   ├── package.json             scripts: dev, deploy, typecheck, test, test:coverage
@@ -885,6 +891,14 @@ Internet → Cloudflare → cloudflared tunnel (loganserver) → Caddy (127.0.0.
 ```bash
 ./deploy/deploy.sh            # default host: loganserver
 ```
+Releases can also deploy themselves from GitHub Actions, running this same script (§17). Deploy from a
+tagged commit, so what's live is a version in [CHANGELOG.md](../CHANGELOG.md); the script prints the
+version it ships.
+
+**The Convex image has moved** to `ghcr.io/convex/convex-backend`; `docker-compose.yml` still names the
+old `ghcr.io/get-convex/convex-backend`, which can't be pulled any more. The server runs its cached copy,
+so deploys work, but see [issues/hosting-and-backups.md](issues/hosting-and-backups.md) before rebuilding
+the server or upgrading Convex. The dashboard is now `ghcr.io/convex/convex-dashboard`.
 It builds the web app with `CONVEX_URL=https://app.jampacked.co.nz` and the website with the same
 `NEXT_PUBLIC_CONVEX_URL`, rsyncs both builds and the configs, runs `docker compose up -d`, generates the Convex admin key on first run, adds the Caddy routes if
 missing (and switches servers that still redirect jampacked.co.nz to the app over to the website), then pushes Convex functions via `npx convex deploy` over an SSH tunnel (local port 3299).
@@ -944,7 +958,7 @@ docker compose logs -f convex     # backend logs
 docker compose restart            # restart both containers
 docker run --rm -v foodsafe_convex-data:/d -v $PWD:/b alpine tar czf /b/convex-backup-$(date +%F).tgz -C /d .   # backup
 ```
-Convex dashboard (self-hosted): `docker run --rm -p 6791:6791 -e NEXT_PUBLIC_DEPLOYMENT_URL=http://127.0.0.1:3210 ghcr.io/get-convex/convex-dashboard`
+Convex dashboard (self-hosted): `docker run --rm -p 6791:6791 -e NEXT_PUBLIC_DEPLOYMENT_URL=http://127.0.0.1:3210 ghcr.io/convex/convex-dashboard`
 on the server, then SSH-forward port 6791 and log in with the admin key.
 
 ---
@@ -987,3 +1001,73 @@ The app is structured so only auth plumbing changes:
   2000 runs); pagination would be needed
   at very large scale.
 - **Dev auth** (§9): no password reset, no rate limiting; Clerk resolves these.
+- **The web app's first load on a phone** takes about 17 s on a weak 4G signal (2.65 MB before the sign-in
+  screen): §18 and [issues/speed.md](issues/speed.md).
+
+---
+
+## 17. CI, versions & releases
+
+**CI** (`.github/workflows/ci.yml`) runs on every pull request and push to `main`: the backend's type
+check and tests, the website's lint, tests and build, and the app's analyze, tests and web build, with
+100% coverage enforced ([TESTING.md §7](TESTING.md#7-ci)). A red check means don't merge.
+
+**Versions.** One version for the app, backend and website, because they ship together:
+`version:` in `app/pubspec.yaml` (`0.1.0+2`: the version, then the app's build number, which the stores
+need to go up every time) and `version` in `backend/package.json` and `web/package.json`.
+[Semver](https://semver.org): PATCH for fixes, MINOR for new features, MAJOR for changes people must adapt
+to; 0.x while in testing, 1.0.0 at launch. Every pull request adds a line under **Unreleased** in
+[CHANGELOG.md](../CHANGELOG.md), written for the people who use JamPacked.
+
+**Cutting a release:**
+```bash
+scripts/prepare-release.sh 0.2.0   # sets the version everywhere, build number +1, dates the changelog
+git commit -am "Release v0.2.0"     # in a pull request; merge it to main as usual
+git switch main && git pull
+git tag v0.2.0 && git push origin v0.2.0
+```
+The tag starts `.github/workflows/release.yml`:
+1. CI runs again on the tagged commit.
+2. The tag is checked against the versions in the code, and `CHANGELOG.md` must have that version.
+3. A GitHub release is published: the changelog section, then GitHub's list of the pull requests merged
+   since the last release, with a link comparing the two versions.
+4. If deploys are on, the release is deployed to production with `deploy/deploy.sh`.
+
+Nothing is released if any step fails. To redo a release, fix it, delete the tag and the GitHub release,
+and tag again. To roll back, deploy an older tag: `git checkout v0.1.0 && ./deploy/deploy.sh`.
+
+**Switching on deploys from GitHub** (one-off). loganserver is only reachable over Tailscale, so the
+release job joins the tailnet, then deploys over SSH:
+1. **Tailscale** (admin console): in the access controls, add `"tag:ci"` to `tagOwners` (owned by
+   `autogroup:admin`) and a rule letting `tag:ci` reach loganserver on port 22 only. Then Settings → OAuth
+   clients → generate one with the `auth_keys` (write) scope and the `tag:ci` tag.
+2. **A deploy key:** `ssh-keygen -t ed25519 -f jampacked-deploy -C github-actions -N ""`, and add
+   `jampacked-deploy.pub` to `~/.ssh/authorized_keys` on loganserver. Record the server's host key from a
+   machine you trust: `ssh-keyscan loganserver`.
+3. **GitHub** (Settings → Environments → New environment `production`; under "Deployment branches and
+   tags" allow only tags `v*`; add yourself as a required reviewer if you want to approve each deploy).
+   Environment secrets: `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_SECRET`, `DEPLOY_SSH_KEY` (the private key file),
+   `DEPLOY_KNOWN_HOSTS` (the `ssh-keyscan` output) and `DEPLOY_HOST` (e.g. `loganyoung@loganserver`, or
+   the server's tailnet address). Then Settings → Variables → Actions → `DEPLOY_ENABLED` = `true`.
+4. Delete the local copy of the private key. If any of these leak: [SECURITY.md](../SECURITY.md).
+
+The deploy key can do anything the server account can (including Docker), so keep it only in that
+environment. When production moves to Convex Cloud and Cloudflare Pages
+([issues/hosting-and-backups.md](issues/hosting-and-backups.md)), the deploy job becomes
+`npx convex deploy` with a deploy key and a Cloudflare Pages upload, and no server access.
+
+**Not in releases yet:** the Android and iOS builds. Add them to `release.yml` as release files once
+signing is set up ([issues/app-store-release.md](issues/app-store-release.md)); they'll take the version
+and build number from `pubspec.yaml`.
+
+## 18. Performance
+
+[performance.md](performance.md) has the baseline, measured on 6 Nov 2026: every call the app's screens
+make (fastest, median, average and slowest), the live site's page loads and the web app's first frame on
+a good connection and a weak phone signal, and how long the builds and tests take. In short: the backend
+takes 5 to 20 ms for most screens, the network about 100 ms a call, and the web app's first load on a
+phone is the slowest thing people wait for.
+
+To measure again after a change: `node scripts/backend-timings.mjs <seeded test deployment>` and
+`node scripts/live-timings.mjs [--phone]` (setup in performance.md). What to look at first:
+[issues/speed.md](issues/speed.md).
