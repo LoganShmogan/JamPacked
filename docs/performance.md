@@ -130,8 +130,10 @@ On the development laptop:
 | App: web release build | 32 s |
 | Seeding the test accounts on an empty backend | 30 to 50 s |
 
-CI on GitHub runs the backend, website and app jobs side by side; times are in each run on the Actions
-tab ([DOCUMENTATION.md §17](DOCUMENTATION.md#17-ci-versions--releases)).
+CI on GitHub runs the backend, website and app jobs side by side
+([DOCUMENTATION.md §17](DOCUMENTATION.md#17-ci-versions--releases)). First run, 6 Nov 2026: backend
+29 s, website 1 min 22 s, app 2 min 41 s (including the web release build), so about **2 min 45 s** for
+a pull request's checks. Later runs are on the Actions tab.
 
 ## How to re-run
 
