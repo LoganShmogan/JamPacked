@@ -415,8 +415,10 @@ payments arrive unmatched: look up the buyer's email and business name in `subsc
 | `analytics:recordTask(task, durationMs)` | any | The app reports how long a task took, from opening the form to saving it. Under 1 second or over 4 hours is dropped (a double tap, or a form left open). |
 | `analytics:insights(days?)` | any | The Insights screen for the last `days` (7 to 365, default 30): deliveries, items received and rejected, batches made, temperature checks and how many were in range, programme records, waste and dispatch movements, corrective actions raised and closed with the median time to close, and per task the business's median time and the signed-in person's own. Business totals only: no person-by-person comparison. |
 
-`platform:overview` also returns `taskTimes`: per task, the median time, how many times it was done and by
-how many businesses, across every business for the last 30 days.
+`platform:overview(taskDays?)` also returns `taskTimes`, across every business for the last `taskDays`
+(7, 30 or 90; default 30): per task, the median time, the usual range (a quarter are quicker than
+`quickMs`, a tenth slower than `slowMs`), the median in the same number of days before that, and how many
+times it was done, by how many businesses and people. Durations and counts only.
 
 ### Other modules
 - `temperature:record/list/units` (any); rules in `lib/settings.ts → unitCompliant`.

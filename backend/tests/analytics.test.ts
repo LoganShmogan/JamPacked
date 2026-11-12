@@ -1,7 +1,7 @@
 // Usage analytics: task timings from the app, a business's Insights numbers, and timings on the owner dashboard.
 import { describe, expect, test } from "vitest";
 import { api } from "../convex/_generated/api";
-import { MAX_MS, MIN_MS, median } from "../convex/analytics";
+import { MAX_MS, MIN_MS, median, percentile } from "../convex/analytics";
 import { DAY, addBusiness, addSupplier, auditLog, item, setup, signIn } from "./helpers";
 
 const timings = (t: ReturnType<typeof setup>) => t.run((ctx) => ctx.db.query("taskTimings").collect());
@@ -132,7 +132,39 @@ describe("platform:overview task times", () => {
       ctx.db.insert("taskTimings", { businessId: admin.businessId, userId: admin.userId, task: "temperature", durationMs: 1, at: Date.now() - 31 * DAY }),
     );
     const o = await t.query(api.platform.overview, { sessionToken: admin.token });
-    expect(o.taskTimes).toContainEqual({ task: "temperature", count: 2, medianMs: 20_000, businesses: 2 });
-    expect(o.taskTimes).toContainEqual({ task: "goodsIn", count: 0, medianMs: null, businesses: 0 });
+    expect(o.taskDays).toBe(30);
+    // The timing from 31 days ago isn't counted, but it is the period before's typical time.
+    expect(o.taskTimes).toContainEqual({
+      task: "temperature", count: 2, medianMs: 20_000, quickMs: 10_000, slowMs: 30_000, previousMedianMs: 1, businesses: 2, people: 2,
+    });
+    expect(o.taskTimes).toContainEqual({
+      task: "goodsIn", count: 0, medianMs: null, quickMs: null, slowMs: null, previousMedianMs: null, businesses: 0, people: 0,
+    });
+  });
+
+  test("the period is 7, 30 or 90 days; anything else is 30", async () => {
+    const t = setup();
+    const admin = await signIn(t, "admin", { platformAdmin: true });
+    await t.run((ctx) =>
+      ctx.db.insert("taskTimings", { businessId: admin.businessId, userId: admin.userId, task: "record", durationMs: 5_000, at: Date.now() - 10 * DAY }),
+    );
+    const record = async (taskDays: number) => {
+      const o = await t.query(api.platform.overview, { sessionToken: admin.token, taskDays });
+      return [o.taskDays, o.taskTimes.find((r) => r.task === "record")!.count, o.taskTimes.find((r) => r.task === "record")!.previousMedianMs];
+    };
+    expect(await record(7)).toEqual([7, 0, 5_000]);
+    expect(await record(90)).toEqual([90, 1, null]);
+    expect(await record(45)).toEqual([30, 1, null]);
+  });
+});
+
+describe("percentile", () => {
+  test("nearest rank, and null for none", () => {
+    const values = [50, 10, 40, 20, 30, 60, 70, 80, 90, 100];
+    expect(percentile(values, 0.25)).toBe(30);
+    expect(percentile(values, 0.9)).toBe(90);
+    expect(percentile(values, 0)).toBe(10);
+    expect(percentile([7], 0.9)).toBe(7);
+    expect(percentile([], 0.5)).toBeNull();
   });
 });

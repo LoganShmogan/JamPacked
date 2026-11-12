@@ -22,6 +22,13 @@ export function median(values: number[]) {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
+/** The value that `p` (0 to 1) of the values are at or under (nearest rank), or null for none. */
+export function percentile(values: number[], p: number) {
+  if (values.length === 0) return null;
+  const s = [...values].sort((a, b) => a - b);
+  return s[Math.max(0, Math.ceil(p * s.length) - 1)];
+}
+
 /** The app reports how long a task took once it's saved. Outliers are dropped rather than stored. */
 export const recordTask = mutation({
   args: { ...scoped, task: timedTask, durationMs: v.number() },

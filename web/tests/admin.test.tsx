@@ -33,10 +33,13 @@ function overview(over: Partial<Overview["businesses"]> = {}, list?: Overview["b
       ...over,
     },
     signupsByWeek: { users: weeks([0, 1, 0, 3]), businesses: weeks([2, 0, 0, 1]) },
+    taskDays: 30,
     taskTimes: [
-      { task: "goodsIn", count: 40, medianMs: 272_000, businesses: 3 },
-      { task: "temperature", count: 0, medianMs: null, businesses: 0 },
-      { task: "somethingNew", count: 1, medianMs: 5_000, businesses: 1 },
+      { task: "goodsIn", count: 40, medianMs: 272_000, quickMs: 150_000, slowMs: 600_000, previousMedianMs: 340_000, businesses: 3, people: 7 },
+      { task: "temperature", count: 0, medianMs: null, quickMs: null, slowMs: null, previousMedianMs: 20_000, businesses: 0, people: 0 },
+      { task: "production", count: 2, medianMs: 66_000, quickMs: 60_000, slowMs: 72_000, previousMedianMs: 60_000, businesses: 1, people: 1 },
+      { task: "record", count: 3, medianMs: 30_000, quickMs: 30_000, slowMs: 30_000, previousMedianMs: 30_100, businesses: 1, people: 2 },
+      { task: "somethingNew", count: 1, medianMs: 5_000, quickMs: 5_000, slowMs: 5_000, previousMedianMs: null, businesses: 1, people: 1 },
     ],
     businessList: list ?? [
       { _id: "b1", name: "Kai Cafe", programme: "NP2", jurisdiction: "NZ", region: "Otago", archived: false, createdAt: NOW - 2 * DAY, members: 3, lastActivityAt: Date.now() },
@@ -70,7 +73,7 @@ describe("signing in", () => {
     await signIn();
     expect(await screen.findByRole("heading", { name: "Owner dashboard" })).toBeInTheDocument();
     expect(convex.action).toHaveBeenCalledWith("auth:login", { email: "logan@savepoint.co.nz", password: "secret123" });
-    expect(convex.query).toHaveBeenCalledWith("platform:overview", { sessionToken: "tok" });
+    expect(convex.query).toHaveBeenCalledWith("platform:overview", { sessionToken: "tok", taskDays: 30 });
     expect(sessionStorage.getItem("jampacked-admin-token")).toBe("tok");
     expect(screen.queryByPlaceholderText("Email")).not.toBeInTheDocument();
   });
@@ -119,7 +122,7 @@ describe("an earlier sign-in in this tab", () => {
     convex.query.mockResolvedValue(overview());
     render(<AdminPage />);
     expect(await screen.findByText("Businesses by programme")).toBeInTheDocument();
-    expect(convex.query).toHaveBeenCalledWith("platform:overview", { sessionToken: "old" });
+    expect(convex.query).toHaveBeenCalledWith("platform:overview", { sessionToken: "old", taskDays: 30 });
   });
 
   test("is forgotten when it has expired", async () => {
@@ -171,10 +174,25 @@ describe("the dashboard", () => {
     const table = within(screen.getByRole("heading", { name: "How long tasks take, last 30 days" }).closest("section")!);
     const rows = table.getAllByRole("row").slice(1).map((r) => [...r.querySelectorAll("td")].map((td) => td.textContent));
     expect(rows).toEqual([
-      ["Receiving goods", "4 min 32 s", "40", "3"],
-      ["Temperature check", "–", "0", "0"],
-      ["somethingNew", "5 s", "1", "1"], // a task the dashboard doesn't know yet shows its key
+      ["Receiving goods", "4 min 32 s", "2 min 30 s to 10 min", "20% quicker", "40", "3", "7"],
+      ["Temperature check", "–", "–", "–", "0", "0", "0"],
+      ["Making a batch", "1 min 6 s", "1 min to 1 min 12 s", "10% slower", "2", "1", "1"],
+      ["Programme record", "30 s", "30 s to 30 s", "Same", "3", "1", "2"],
+      ["somethingNew", "5 s", "5 s to 5 s", "–", "1", "1", "1"], // a task the dashboard doesn't know yet shows its key
     ]);
+  });
+
+  test("task times for 7 or 90 days, and Refresh keeps the period", async () => {
+    const user = await shown();
+    expect(screen.getByRole("button", { name: "30 days" })).toHaveAttribute("aria-pressed", "true");
+    convex.query.mockResolvedValue({ ...overview(), taskDays: 90 });
+    await user.click(screen.getByRole("button", { name: "90 days" }));
+    expect(await screen.findByRole("heading", { name: "How long tasks take, last 90 days" })).toBeInTheDocument();
+    expect(convex.query).toHaveBeenLastCalledWith("platform:overview", { sessionToken: "tok", taskDays: 90 });
+    expect(screen.getByRole("columnheader", { name: "Against the 90 days before" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
+    await waitFor(() => expect(convex.query).toHaveBeenCalledTimes(3));
+    expect(convex.query).toHaveBeenLastCalledWith("platform:overview", { sessionToken: "tok", taskDays: 90 });
   });
 
   test("no archived note when nothing is archived", async () => {

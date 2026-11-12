@@ -20,6 +20,7 @@ folder while developing and add to it as new problems turn up.
 | [Owner dashboard (business metrics)](owner-dashboard.md) | Medium | In progress |
 | [Customer compliance reports](customer-reports.md) | Medium | Open |
 | [Support chatbot, handing over to a person](support-chatbot.md) | Medium | Planned |
+| [Pre-launch audit, 13 Nov 2026](pre-launch-audit.md) | High | Open |
 | [Finish the multi-business migration](multi-business-cleanup.md) | Low | Open |
 
 ## Launch plan
