@@ -42,6 +42,7 @@ class _CustomProgrammeEditorState extends State<CustomProgrammeEditor> {
   String? _error;
   final _name = TextEditingController();
   final _description = TextEditingController();
+  final _started = DateTime.now(); // timed for the owner dashboard
 
   @override
   void initState() {
@@ -91,6 +92,7 @@ class _CustomProgrammeEditorState extends State<CustomProgrammeEditor> {
         'recordTypes': _records,
         'templates': _checklists,
       });
+      if (mounted) context.recordTask('customProgramme', _started);
       return true;
     }, success: 'Programme saved');
     if (ok != null) nav.pop();

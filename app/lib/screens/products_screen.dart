@@ -55,6 +55,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   /// A product you make: named once, then its recipe.
   Future<void> _newMade() async {
+    final started = DateTime.now(); // timed for the owner dashboard
     final name = await promptText(
       context,
       title: 'New product you make',
@@ -71,6 +72,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
       }),
     );
     if (id != null && mounted) {
+      context.recordTask('product', started);
       _openRecipe({'_id': id, 'name': name});
     }
   }

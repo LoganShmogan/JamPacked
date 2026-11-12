@@ -109,6 +109,8 @@ describe("analytics:insights", () => {
       { task: "stocktake", count: 0, medianMs: null, myCount: 0, myMedianMs: null },
       { task: "audit", count: 0, medianMs: null, myCount: 0, myMedianMs: null },
       { task: "correctiveAction", count: 0, medianMs: null, myCount: 0, myMedianMs: null },
+      { task: "stockHold", count: 0, medianMs: null, myCount: 0, myMedianMs: null },
+      { task: "raiseCorrectiveAction", count: 0, medianMs: null, myCount: 0, myMedianMs: null },
     ]);
     // The other person sees the same business numbers but their own times.
     const theirs = await t.query(api.analytics.insights, { sessionToken: them.token, businessId: me.businessId });
@@ -182,8 +184,9 @@ describe("tasks timed on the server", () => {
     const admin = await signIn(t, "admin", { platformAdmin: true });
     const as = { sessionToken: admin.token, businessId: admin.businessId };
     await t.mutation(api.analytics.recordTask, { ...as, task: "signUp", durationMs: 180_000 });
-    expect((await t.query(api.platform.overview, { sessionToken: admin.token })).taskTimes.at(-1)).toMatchObject({ task: "signUp", count: 1, medianMs: 180_000 });
-    expect((await t.query(api.analytics.insights, as)).tasks.map((x) => x.task)).not.toContain("signUp");
+    expect((await t.query(api.platform.overview, { sessionToken: admin.token })).taskTimes).toContainEqual(expect.objectContaining({ task: "signUp", count: 1, medianMs: 180_000 }));
+    const mine = (await t.query(api.analytics.insights, as)).tasks.map((x) => x.task);
+    for (const setup of ["signUp", "supplier", "product", "openingStock", "customProgramme"]) expect(mine).not.toContain(setup);
   });
 });
 

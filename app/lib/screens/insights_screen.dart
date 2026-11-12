@@ -12,6 +12,8 @@ const taskLabels = {
   'stocktake': 'Stocktake',
   'audit': 'Audit',
   'correctiveAction': 'Closing a corrective action',
+  'stockHold': 'Holding or releasing stock',
+  'raiseCorrectiveAction': 'Raising a corrective action',
 };
 
 /// "45 s", "3 min 20 s", "12 min", "1 h 5 min"; "-" when there's nothing to show.

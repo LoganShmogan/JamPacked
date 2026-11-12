@@ -105,6 +105,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
   };
   late bool _approved = s?['approved'] ?? true;
   late bool _active = s?['active'] ?? true;
+  final _started = DateTime.now(); // timed for the owner dashboard
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
@@ -113,16 +114,17 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
         e.key: e.value.text.trim().isEmpty ? null : e.value.text.trim(),
       'approved': _approved,
     };
-    final r = await context.run(
-      () => s == null
+    final r = await context.run(() async {
+      final r = await (s == null
           ? context.m('suppliers:create', fields)
           : context.m('suppliers:update', {
               ...fields,
               'id': s['_id'],
               'active': _active,
-            }),
-      success: 'Supplier saved',
-    );
+            }));
+      if (mounted) context.recordTask('supplier', _started);
+      return r;
+    }, success: 'Supplier saved');
     if (mounted && (r != null || s != null)) {
       Navigator.pop(context, s == null ? r : null);
     }
