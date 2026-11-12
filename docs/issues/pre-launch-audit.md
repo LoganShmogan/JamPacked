@@ -10,7 +10,7 @@ folder. Things already tracked (Clerk, backups, the Convex image, Android signin
 repeated here.
 
 ## Why it matters
-The first three let a stranger in, or leave a paying customer locked out.
+The first two let a stranger in and leave us without our own accounts.
 
 ## To do
 - [ ] **A platform admin login is published.** The live server holds the seeded test accounts, the
@@ -21,15 +21,14 @@ The first three let a stranger in, or leave a paying customer locked out.
 - [ ] **Logan and Tim have no platform admin account.** The seed on 2 Nov wiped every table, including the
   accounts made on 27 Oct; the server has only the 12 test accounts. Re-create them with
   `platform:createPlatformAdmin` (DOCUMENTATION.md §9), and note in §14 that the seed removes them
-- [ ] **A discounted payment doesn't unlock anything.** `billing.ts` works out the plan from the amount
-  paid (`PLAN_BY_AMOUNT`), so a promotion code, a coupon or a price change gives no plan and the business
-  stays read-only after paying. Either keep promotion codes off on every Payment Link, or match on the
-  Stripe price ID / lookup key instead (the `ponytail:` note in `lib/licence.ts`)
-- [ ] **No security headers.** Neither `jampacked.co.nz` nor `app.jampacked.co.nz` sends
-  `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options` or a `Referrer-Policy`, so
-  `/admin` and the app can be framed by another site. Add them in `deploy/nginx.conf` (every `location`
-  that has its own `add_header`), or as a Cloudflare response header rule, which also covers Cloudflare
-  Pages later
+- [x] **A discounted payment could lose who paid.** `billing.ts` worked out the plan from the amount
+  paid, so with a promotion code the checkout event had no plan. With a business on the Payment Link the
+  later subscription event still filled it in; without one the event was ignored and the buyer's email and
+  business name were lost, leaving nothing to match by hand. Fixed 13 Nov: the plan comes from
+  `amount_subtotal`, the price before discounts
+- [x] **No security headers.** Fixed 13 Nov: `deploy/security-headers.conf`, included from every server and
+  location in `deploy/nginx.conf`, sends `Strict-Transport-Security`, `X-Content-Type-Options`,
+  `X-Frame-Options: DENY` and `Referrer-Policy`. Cloudflare Pages will need the same as a `_headers` file
 - [ ] **Failed sign-ins fill the audit log.** Each one writes a `login_failed` row with no business, with
   no limit on attempts, so guessing passwords also grows the database. Clerk's rate limiting ends it
   ([clerk-authentication.md](clerk-authentication.md)); don't take real customers before then

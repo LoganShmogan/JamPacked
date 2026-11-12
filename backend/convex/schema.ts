@@ -108,8 +108,21 @@ export const recipe = v.object({
 
 export const productKind = v.union(v.literal("supply"), v.literal("made"));
 
-/** Tasks the app times from opening the form to saving it (analytics.ts). */
-export const timedTask = v.union(v.literal("goodsIn"), v.literal("production"), v.literal("temperature"), v.literal("record"));
+/**
+ * Tasks that are timed (analytics.ts). The app times most from opening the form to saving it; stocktakes
+ * and audits are timed here, from started to completed.
+ */
+export const timedTask = v.union(
+  v.literal("goodsIn"),
+  v.literal("production"),
+  v.literal("temperature"),
+  v.literal("record"),
+  v.literal("stockMove"),
+  v.literal("stocktake"),
+  v.literal("audit"),
+  v.literal("correctiveAction"),
+  v.literal("signUp"),
+);
 
 export const answerValue = v.union(v.string(), v.number(), v.boolean(), v.null());
 

@@ -421,6 +421,11 @@ void main() {
           'sessionToken': 'tok',
           ?noteKey: note,
         });
+        // Timed for Insights.
+        expect(
+          convex.callsTo('analytics:recordTask').single.args['task'],
+          'stockMove',
+        );
       });
     }
 

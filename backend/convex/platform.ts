@@ -7,7 +7,7 @@ import { QueryCtx, internalAction, internalMutation, query } from "./_generated/
 import { logAudit } from "./lib/audit";
 import { hashPassword } from "./lib/password";
 import { checkRegion } from "./lib/regions";
-import { TASKS, median, percentile } from "./analytics";
+import { PLATFORM_TASKS, median, percentile } from "./analytics";
 import { requirePlatformAdmin } from "./lib/session";
 
 const DAY = 86_400_000;
@@ -55,7 +55,7 @@ async function taskTimes(ctx: QueryCtx, now: number, days: number) {
   const since = now - days * DAY;
   // ponytail: reads two periods of timings whole; keep running totals once there are thousands a day.
   const timings = await ctx.db.query("taskTimings").withIndex("by_at", (q) => q.gte("at", since - days * DAY)).collect();
-  return TASKS.map((task) => {
+  return PLATFORM_TASKS.map((task) => {
     const rows = timings.filter((t) => t.task === task && t.at >= since);
     const durations = rows.map((t) => t.durationMs);
     return {

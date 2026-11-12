@@ -178,6 +178,11 @@ const TASKS: Record<string, string> = {
   production: "Making a batch",
   temperature: "Temperature check",
   record: "Programme record",
+  stockMove: "Using or moving stock",
+  stocktake: "Stocktake",
+  audit: "Audit",
+  correctiveAction: "Closing a corrective action",
+  signUp: "Signing up",
 };
 
 /** "12% slower" / "8% quicker" than the period before, or "–" when either has nothing to compare. */

@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { timeTask } from "./analytics";
 import { logAudit } from "./lib/audit";
 import { computeFacts } from "./lib/facts";
 import { inBusiness, requireMember, scoped } from "./lib/session";
@@ -206,6 +207,7 @@ export const complete = mutation({
       completedById: user._id,
       completedByName: user.name,
     });
+    await timeTask(ctx, businessId, user._id, "audit", Date.now() - audit.startedAt);
     await logAudit(ctx, user, {
       businessId,
       action: "complete",

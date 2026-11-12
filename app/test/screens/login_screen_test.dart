@@ -177,6 +177,12 @@ void main() {
       });
       expect(auth.user, isNotNull);
       expect(auth.business?.id, 'b1');
+      // How long signing up took, for the owner dashboard.
+      final timing = convex.callsTo('analytics:recordTask').single.args;
+      expect(timing['task'], 'signUp');
+      expect(timing['businessId'], 'b1');
+      expect(timing['sessionToken'], 'r');
+      expect(timing['durationMs'], isA<int>());
     },
   );
 

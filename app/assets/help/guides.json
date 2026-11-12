@@ -230,7 +230,7 @@
       "steps": [
         "Choose the last 7, 30 or 90 days.",
         "See deliveries, rejected items, batches made, temperature checks in range, records, waste and corrective actions.",
-        "How long tasks take shows the business's typical time for receiving goods, making a batch, temperature checks and records, next to your own."
+        "How long tasks take shows the business's typical time for everyday tasks (receiving goods, making a batch, temperature checks, records, using or moving stock, stocktakes, audits and closing corrective actions), next to your own."
       ],
       "tip": "Times are only counted from when a form is opened to when it's saved, so they show how long the paperwork takes.",
       "screenshot": "insights"

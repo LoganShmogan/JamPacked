@@ -40,7 +40,7 @@ echo "==> Uploading"
 ssh "$HOST" "mkdir -p $DIR/web $DIR/site"
 rsync -az --delete "$ROOT/app/build/web/" "$HOST:$DIR/web/"
 rsync -az --delete "$ROOT/web/out/" "$HOST:$DIR/site/"
-rsync -az "$ROOT/deploy/docker-compose.yml" "$ROOT/deploy/nginx.conf" "$HOST:$DIR/"
+rsync -az "$ROOT/deploy/docker-compose.yml" "$ROOT/deploy/nginx.conf" "$ROOT/deploy/security-headers.conf" "$HOST:$DIR/"
 
 echo "==> Starting containers"
 ssh "$HOST" bash -s <<REMOTE

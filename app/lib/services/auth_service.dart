@@ -131,6 +131,19 @@ class AuthService extends ChangeNotifier {
     }),
   );
 
+  /// Reports how long signing up took, from [started] to now, for the owner dashboard. Someone
+  /// invited to several businesses hasn't picked one yet, so isn't timed.
+  void timeSignUp(DateTime started) {
+    final b = business;
+    if (b == null) return;
+    convex.mutation('analytics:recordTask', {
+      'sessionToken': token,
+      'businessId': b.id,
+      'task': 'signUp',
+      'durationMs': DateTime.now().difference(started).inMilliseconds,
+    }).ignore();
+  }
+
   Future<void> _start(Future<dynamic> call) async {
     final res = await call;
     token = res['token'];
