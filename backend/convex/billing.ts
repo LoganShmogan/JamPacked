@@ -35,7 +35,8 @@ export const applyEvent = internalMutation({
         stripeCustomerId: o.customer ?? undefined,
         email: o.customer_details?.email ?? undefined,
         businessHint: o.custom_fields?.find((f: { text?: { value?: string } }) => f.text?.value)?.text.value,
-        plan: PLAN_BY_AMOUNT[o.amount_total],
+        // The price before any promotion code or coupon: a discounted payment is still that plan.
+        plan: PLAN_BY_AMOUNT[o.amount_subtotal],
         // Paid: active, unless a subscription event has already said where it stands.
         status: o.payment_status === "paid" && (!row || row.status === "incomplete") ? "active" : undefined,
       });

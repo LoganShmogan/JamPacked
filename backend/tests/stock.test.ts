@@ -365,7 +365,11 @@ describe("stocktakes", () => {
     await t.mutation(api.stock.move, { ...as, lotId: lots[0]._id, type: "use", qty: 1 });
     expect((await t.query(api.stocktakes.list, as))[0]).toMatchObject({ counted: 3, total: 3, variances: 2 });
 
+    await t.run((ctx) => ctx.db.patch(id, { startedAt: Date.now() - 20 * 60_000 }));
     await t.mutation(api.stocktakes.complete, { ...as, id });
+    // Timed from started to completed, for Insights and the owner dashboard.
+    const timed = await t.run((ctx) => ctx.db.query("taskTimings").collect());
+    expect(timed.map((r) => [r.task, Math.round(r.durationMs / 60_000)])).toEqual([["stocktake", 20]]);
     expect((await lotOf(t, lots[0]._id))?.qtyOnHand).toBe(10);
     expect((await lotOf(t, lots[1]._id))?.qtyOnHand).toBe(9.5);
     expect((await lotOf(t, lots[2]._id))?.qtyOnHand).toBe(6);

@@ -34,7 +34,8 @@ const paid = (businessId: string | null, amount = 50000, sub = "sub_1") => ({
   client_reference_id: businessId,
   customer_details: { email: "owner@example.com" },
   custom_fields: [{ key: "business", text: { value: "Kai Cafe" } }],
-  amount_total: amount,
+  amount_subtotal: amount,
+  amount_total: amount - 2500, // a promotion code: the plan comes from the price, not from what was paid
   payment_status: "paid",
 });
 

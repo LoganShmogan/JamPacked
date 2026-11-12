@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { timeTask } from "./analytics";
 import { logAudit } from "./lib/audit";
 import { inBusiness, requireMember, scoped } from "./lib/session";
 import { lotsOnHand, recordMovement } from "./lib/stock";
@@ -118,6 +119,7 @@ export const complete = mutation({
       await logAudit(ctx, user, { businessId, action: "create", entityType: "correctiveAction", entityId: caId, summary: `Auto-raised from ${s.title}: large variances` });
     }
     await ctx.db.patch(id, { status: "completed", completedAt: Date.now(), completedByName: user.name });
+    await timeTask(ctx, businessId, user._id, "stocktake", Date.now() - s.startedAt);
     await logAudit(ctx, user, {
       businessId,
       action: "complete",

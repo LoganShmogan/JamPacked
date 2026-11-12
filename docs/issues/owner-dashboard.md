@@ -28,6 +28,15 @@ There's no way for us to see how the business is doing: sign-ups, free NP1 busin
 - [ ] Subscriptions by status and plan, MRR, churn, NP1 → paid conversion and money-back refunds (needs [billing-stripe.md](billing-stripe.md))
 - [x] How long tasks take across all businesses, last 30 days (typical time, times done, businesses), from
   `taskTimings` ([analytics-tracking.md](analytics-tracking.md))
+- [x] Task times for the last 7, 30 or 90 days, with the usual range, the change against the period before
+  and how many people did each task (13 Nov 2026)
+- [x] More tasks timed (13 Nov 2026): using or moving stock, closing a corrective action and signing up
+  (timed in the app), stocktakes and audits (timed in Convex from started to completed, dropped over 4
+  hours). Sign-up shows here only, not in a business's Insights
+- [ ] Not timed yet: adding a supplier or product, opening stock, transfers and holds, raising a corrective
+  action by hand, setting up a custom programme
+- [ ] Platform admin accounts for Logan and Tim again: the seed on 2 Nov wiped the ones made on 27 Oct
+  ([pre-launch-audit.md](pre-launch-audit.md))
 - [ ] Support tickets from the chatbot ([support-chatbot.md](support-chatbot.md))
 - [x] Per-business view for support (programme, members, signed up, last activity) without their records
 - [x] Platform admin accounts on the live server for Logan (logan@savepoint.co.nz) and Tim

@@ -1,7 +1,7 @@
 // Usage analytics: task timings from the app, a business's Insights numbers, and timings on the owner dashboard.
 import { describe, expect, test } from "vitest";
 import { api } from "../convex/_generated/api";
-import { MAX_MS, MIN_MS, median } from "../convex/analytics";
+import { MAX_MS, MIN_MS, median, percentile } from "../convex/analytics";
 import { DAY, addBusiness, addSupplier, auditLog, item, setup, signIn } from "./helpers";
 
 const timings = (t: ReturnType<typeof setup>) => t.run((ctx) => ctx.db.query("taskTimings").collect());
@@ -105,6 +105,10 @@ describe("analytics:insights", () => {
       { task: "production", count: 0, medianMs: null, myCount: 0, myMedianMs: null },
       { task: "temperature", count: 0, medianMs: null, myCount: 0, myMedianMs: null },
       { task: "record", count: 0, medianMs: null, myCount: 0, myMedianMs: null },
+      { task: "stockMove", count: 0, medianMs: null, myCount: 0, myMedianMs: null },
+      { task: "stocktake", count: 0, medianMs: null, myCount: 0, myMedianMs: null },
+      { task: "audit", count: 0, medianMs: null, myCount: 0, myMedianMs: null },
+      { task: "correctiveAction", count: 0, medianMs: null, myCount: 0, myMedianMs: null },
     ]);
     // The other person sees the same business numbers but their own times.
     const theirs = await t.query(api.analytics.insights, { sessionToken: them.token, businessId: me.businessId });
@@ -132,7 +136,64 @@ describe("platform:overview task times", () => {
       ctx.db.insert("taskTimings", { businessId: admin.businessId, userId: admin.userId, task: "temperature", durationMs: 1, at: Date.now() - 31 * DAY }),
     );
     const o = await t.query(api.platform.overview, { sessionToken: admin.token });
-    expect(o.taskTimes).toContainEqual({ task: "temperature", count: 2, medianMs: 20_000, businesses: 2 });
-    expect(o.taskTimes).toContainEqual({ task: "goodsIn", count: 0, medianMs: null, businesses: 0 });
+    expect(o.taskDays).toBe(30);
+    // The timing from 31 days ago isn't counted, but it is the period before's typical time.
+    expect(o.taskTimes).toContainEqual({
+      task: "temperature", count: 2, medianMs: 20_000, quickMs: 10_000, slowMs: 30_000, previousMedianMs: 1, businesses: 2, people: 2,
+    });
+    expect(o.taskTimes).toContainEqual({
+      task: "goodsIn", count: 0, medianMs: null, quickMs: null, slowMs: null, previousMedianMs: null, businesses: 0, people: 0,
+    });
+  });
+
+  test("the period is 7, 30 or 90 days; anything else is 30", async () => {
+    const t = setup();
+    const admin = await signIn(t, "admin", { platformAdmin: true });
+    await t.run((ctx) =>
+      ctx.db.insert("taskTimings", { businessId: admin.businessId, userId: admin.userId, task: "record", durationMs: 5_000, at: Date.now() - 10 * DAY }),
+    );
+    const record = async (taskDays: number) => {
+      const o = await t.query(api.platform.overview, { sessionToken: admin.token, taskDays });
+      return [o.taskDays, o.taskTimes.find((r) => r.task === "record")!.count, o.taskTimes.find((r) => r.task === "record")!.previousMedianMs];
+    };
+    expect(await record(7)).toEqual([7, 0, 5_000]);
+    expect(await record(90)).toEqual([90, 1, null]);
+    expect(await record(45)).toEqual([30, 1, null]);
+  });
+});
+
+describe("tasks timed on the server", () => {
+  test("an audit is timed from started to completed (a stocktake too: stock.test.ts)", async () => {
+    const t = setup();
+    const { token, businessId, userId } = await signIn(t, "manager");
+    const as = { sessionToken: token, businessId };
+    const audit = await t.mutation(api.audits.start, { ...as, templateKey: "hygiene" });
+    for (const a of (await t.run((ctx) => ctx.db.get(audit)))!.answers) {
+      await t.mutation(api.audits.answer, { ...as, id: audit, questionId: a.questionId, value: true });
+    }
+    await t.run((ctx) => ctx.db.patch(audit, { startedAt: Date.now() - 5 * 60_000 }));
+    await t.mutation(api.audits.complete, { ...as, id: audit });
+    const rows = await timings(t);
+    expect(rows.map((r) => [r.task, r.userId, Math.round(r.durationMs / 60_000)])).toEqual([["audit", userId, 5]]);
+  });
+
+  test("sign-up times show on the owner dashboard but not in a business's Insights", async () => {
+    const t = setup();
+    const admin = await signIn(t, "admin", { platformAdmin: true });
+    const as = { sessionToken: admin.token, businessId: admin.businessId };
+    await t.mutation(api.analytics.recordTask, { ...as, task: "signUp", durationMs: 180_000 });
+    expect((await t.query(api.platform.overview, { sessionToken: admin.token })).taskTimes.at(-1)).toMatchObject({ task: "signUp", count: 1, medianMs: 180_000 });
+    expect((await t.query(api.analytics.insights, as)).tasks.map((x) => x.task)).not.toContain("signUp");
+  });
+});
+
+describe("percentile", () => {
+  test("nearest rank, and null for none", () => {
+    const values = [50, 10, 40, 20, 30, 60, 70, 80, 90, 100];
+    expect(percentile(values, 0.25)).toBe(30);
+    expect(percentile(values, 0.9)).toBe(90);
+    expect(percentile(values, 0)).toBe(10);
+    expect(percentile([7], 0.9)).toBe(7);
+    expect(percentile([], 0.5)).toBeNull();
   });
 });

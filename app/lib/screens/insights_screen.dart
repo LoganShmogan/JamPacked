@@ -8,6 +8,10 @@ const taskLabels = {
   'production': 'Making a batch',
   'temperature': 'Temperature check',
   'record': 'Programme record',
+  'stockMove': 'Using or moving stock',
+  'stocktake': 'Stocktake',
+  'audit': 'Audit',
+  'correctiveAction': 'Closing a corrective action',
 };
 
 /// "45 s", "3 min 20 s", "12 min", "1 h 5 min"; "-" when there's nothing to show.

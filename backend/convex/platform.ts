@@ -7,7 +7,7 @@ import { QueryCtx, internalAction, internalMutation, query } from "./_generated/
 import { logAudit } from "./lib/audit";
 import { hashPassword } from "./lib/password";
 import { checkRegion } from "./lib/regions";
-import { TASKS, median } from "./analytics";
+import { PLATFORM_TASKS, median, percentile } from "./analytics";
 import { requirePlatformAdmin } from "./lib/session";
 
 const DAY = 86_400_000;
@@ -43,19 +43,40 @@ function byCountry(businesses: { jurisdiction: string; region: string | null }[]
   );
 }
 
-async function taskTimes(ctx: QueryCtx, now: number) {
-  const timings = await ctx.db.query("taskTimings").withIndex("by_at", (q) => q.gte("at", now - 30 * DAY)).collect();
-  return TASKS.map((task) => {
-    const durations = timings.filter((t) => t.task === task).map((t) => t.durationMs);
-    return { task, count: durations.length, medianMs: median(durations), businesses: new Set(timings.filter((t) => t.task === task).map((t) => t.businessId)).size };
+/** The periods the dashboard offers for task times; anything else gets 30 days. */
+export const TASK_DAYS = [7, 30, 90];
+
+/**
+ * How long each task took over the last `days`, across every business: the typical time, the quick and
+ * slow ends, how often and by how many businesses and people, and the typical time in the `days` before
+ * that, to show which way it's heading. Durations and counts only: nothing about what was recorded.
+ */
+async function taskTimes(ctx: QueryCtx, now: number, days: number) {
+  const since = now - days * DAY;
+  // ponytail: reads two periods of timings whole; keep running totals once there are thousands a day.
+  const timings = await ctx.db.query("taskTimings").withIndex("by_at", (q) => q.gte("at", since - days * DAY)).collect();
+  return PLATFORM_TASKS.map((task) => {
+    const rows = timings.filter((t) => t.task === task && t.at >= since);
+    const durations = rows.map((t) => t.durationMs);
+    return {
+      task,
+      count: durations.length,
+      medianMs: median(durations),
+      quickMs: percentile(durations, 0.25),
+      slowMs: percentile(durations, 0.9),
+      previousMedianMs: median(timings.filter((t) => t.task === task && t.at < since).map((t) => t.durationMs)),
+      businesses: new Set(rows.map((t) => t.businessId)).size,
+      people: new Set(rows.map((t) => t.userId)).size,
+    };
   });
 }
 
 export const overview = query({
-  args: { sessionToken: v.string() },
-  handler: async (ctx, { sessionToken }) => {
+  args: { sessionToken: v.string(), taskDays: v.optional(v.number()) },
+  handler: async (ctx, { sessionToken, taskDays = 30 }) => {
     await requirePlatformAdmin(ctx, sessionToken);
     const now = Date.now();
+    const days = TASK_DAYS.includes(taskDays) ? taskDays : 30;
     const users = await ctx.db.query("users").collect();
     const businesses = await ctx.db.query("businesses").collect();
 
@@ -102,8 +123,8 @@ export const overview = query({
         users: weekly(users.map((u) => u.createdAt), now),
         businesses: weekly(businesses.map((b) => b.createdAt), now),
       },
-      // How long tasks take across every business, last 30 days. Durations only: no records.
-      taskTimes: await taskTimes(ctx, now),
+      taskDays: days,
+      taskTimes: await taskTimes(ctx, now, days),
       // Newest first: the support view (status and activity, not records).
       businessList: perBusiness.sort((a, b) => b.createdAt - a.createdAt),
     };

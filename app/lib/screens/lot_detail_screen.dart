@@ -40,6 +40,7 @@ class LotDetailScreen extends StatelessWidget {
       'adjust' => 'Reason for the adjustment',
       _ => null,
     };
+    final started = DateTime.now(); // timed for Insights
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -92,16 +93,16 @@ class LotDetailScreen extends StatelessWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await context.run(
-      () => context.m('stock:move', {
+    await context.run(() async {
+      await context.m('stock:move', {
         'lotId': id,
         'type': type,
         'qty': double.tryParse(qty.text) ?? 0,
         if (type == 'dispatch') 'customer': note.text,
         if (type == 'waste' || type == 'adjust') 'reason': note.text,
-      }),
-      success: 'Saved',
-    );
+      });
+      if (context.mounted) context.recordTask('stockMove', started);
+    }, success: 'Saved');
   }
 
   Future<void> _transfer(BuildContext context) async {

@@ -34,9 +34,9 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function load(t: string) {
+  async function load(t: string, taskDays: number) {
     try {
-      setSession({ token: t, data: await convex.query(fns.overview, { sessionToken: t }) });
+      setSession({ token: t, data: await convex.query(fns.overview, { sessionToken: t, taskDays }) });
       setError(null);
     } catch (e) {
       setError(message(e));
@@ -50,7 +50,7 @@ export default function AdminPage() {
   useEffect(() => {
     const t = stored.get();
     if (!t) return;
-    convex.query(fns.overview, { sessionToken: t }).then(
+    convex.query(fns.overview, { sessionToken: t, taskDays: 30 }).then(
       (data) => setSession({ token: t, data }),
       () => stored.clear(),
     );
@@ -68,7 +68,7 @@ export default function AdminPage() {
         password: String(form.get("password")),
       });
       stored.set(t);
-      await load(t);
+      await load(t, 30);
     } catch (e) {
       setError(message(e));
       setBusy(false);
@@ -96,6 +96,7 @@ export default function AdminPage() {
 
   const { token, data } = session;
   const b = data.businesses;
+  const reload = (taskDays: number) => { setBusy(true); void load(token, taskDays); };
 
   async function signOut() {
     await convex.mutation(fns.logout, { sessionToken: token }).catch(() => {});
@@ -109,7 +110,7 @@ export default function AdminPage() {
         <h1 className="text-2xl font-bold">Owner dashboard</h1>
         <div className="flex items-center gap-4 text-sm text-muted">
           <span>Updated {new Date(data.generatedAt).toLocaleTimeString("en-NZ", { hour: "numeric", minute: "2-digit" })}</span>
-          <button onClick={() => { setBusy(true); void load(token); }} disabled={busy} className="hover:text-ink">Refresh</button>
+          <button onClick={() => reload(data.taskDays)} disabled={busy} className="hover:text-ink">Refresh</button>
           <button onClick={signOut} className="hover:text-ink">Sign out</button>
         </div>
       </div>
@@ -131,7 +132,7 @@ export default function AdminPage() {
         <ByCountry countries={b.byCountry} />
       </div>
 
-      <TaskTimes rows={data.taskTimes} />
+      <TaskTimes rows={data.taskTimes} days={data.taskDays} busy={busy} onDays={reload} />
 
       <section className="mt-6 rounded-xl border border-border bg-surface">
         <h2 className="px-5 pt-4 font-semibold">Businesses</h2>
@@ -177,33 +178,67 @@ const TASKS: Record<string, string> = {
   production: "Making a batch",
   temperature: "Temperature check",
   record: "Programme record",
+  stockMove: "Using or moving stock",
+  stocktake: "Stocktake",
+  audit: "Audit",
+  correctiveAction: "Closing a corrective action",
+  signUp: "Signing up",
 };
 
-/** How long tasks take in the app, across every business (the typical time, from opening the form to saving it). */
-function TaskTimes({ rows }: { rows: Overview["taskTimes"] }) {
+/** "12% slower" / "8% quicker" than the period before, or "–" when either has nothing to compare. */
+function change(now: number | null, before: number | null) {
+  if (now === null || before === null) return "–";
+  const pct = Math.round(((now - before) / before) * 100);
+  return pct === 0 ? "Same" : `${Math.abs(pct)}% ${pct > 0 ? "slower" : "quicker"}`;
+}
+
+/**
+ * How long tasks take in the app, across every business, from opening the form to saving it: the typical
+ * time, the range most fall in (a quarter are quicker than the first, a tenth slower than the second) and
+ * whether it's getting quicker. Durations and counts only: never what was recorded.
+ */
+function TaskTimes({ rows, days, busy, onDays }: { rows: Overview["taskTimes"]; days: number; busy: boolean; onDays: (days: number) => void }) {
   return (
     <section className="mt-6 rounded-xl border border-border bg-surface">
-      <h2 className="px-5 pt-4 font-semibold">How long tasks take, last 30 days</h2>
-      <table className="mt-2 w-full text-left text-sm">
-        <thead className="text-muted">
-          <tr className="border-b border-border">
-            <th className="px-5 py-2 font-medium">Task</th>
-            <th className="px-3 py-2 font-medium text-right">Typical time</th>
-            <th className="px-3 py-2 font-medium text-right">Times done</th>
-            <th className="px-5 py-2 font-medium text-right">Businesses</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.task} className="border-b border-border last:border-0">
-              <td className="px-5 py-2">{TASKS[r.task] ?? r.task}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{duration(r.medianMs)}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{r.count}</td>
-              <td className="px-5 py-2 text-right tabular-nums">{r.businesses}</td>
-            </tr>
+      <div className="flex flex-wrap items-baseline justify-between gap-3 px-5 pt-4">
+        <h2 className="font-semibold">How long tasks take, last {days} days</h2>
+        <div className="flex gap-1 text-sm">
+          {[7, 30, 90].map((d) => (
+            <button key={d} onClick={() => onDays(d)} disabled={busy} aria-pressed={d === days}
+              className={`rounded-md px-2 py-0.5 ${d === days ? "bg-jam text-on-jam" : "text-muted hover:text-ink"}`}>
+              {d} days
+            </button>
           ))}
-        </tbody>
-      </table>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="mt-2 w-full text-left text-sm">
+          <thead className="text-muted">
+            <tr className="border-b border-border">
+              <th className="px-5 py-2 font-medium">Task</th>
+              <th className="px-3 py-2 font-medium text-right">Typical time</th>
+              <th className="px-3 py-2 font-medium text-right">Usual range</th>
+              <th className="px-3 py-2 font-medium text-right">Against the {days} days before</th>
+              <th className="px-3 py-2 font-medium text-right">Times done</th>
+              <th className="px-3 py-2 font-medium text-right">Businesses</th>
+              <th className="px-5 py-2 font-medium text-right">People</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.task} className="border-b border-border last:border-0">
+                <td className="px-5 py-2">{TASKS[r.task] ?? r.task}</td>
+                <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{duration(r.medianMs)}</td>
+                <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{r.count ? `${duration(r.quickMs)} to ${duration(r.slowMs)}` : "–"}</td>
+                <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{change(r.medianMs, r.previousMedianMs)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{r.count}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{r.businesses}</td>
+                <td className="px-5 py-2 text-right tabular-nums">{r.people}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

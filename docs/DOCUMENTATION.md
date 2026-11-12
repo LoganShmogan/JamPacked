@@ -219,6 +219,7 @@ JamPacked/
 └── deploy/
     ├── docker-compose.yml       Self-hosted Convex + nginx
     ├── nginx.conf               Serves the website and the web app by hostname, proxies /api to Convex
+    ├── security-headers.conf    The security headers nginx.conf sends with every response
     └── deploy.sh                One-command build & deploy
 ```
 
@@ -412,11 +413,13 @@ payments arrive unmatched: look up the buyer's email and business name in `subsc
 ### `analytics`
 | Function | Role | Description |
 |---|---|---|
-| `analytics:recordTask(task, durationMs)` | any | The app reports how long a task took, from opening the form to saving it. Under 1 second or over 4 hours is dropped (a double tap, or a form left open). |
+| `analytics:recordTask(task, durationMs)` | any | The app reports how long a task took, from opening the form to saving it: receiving goods, making a batch, a temperature check, a programme record, using or moving stock (`stockMove`), closing a corrective action, and signing up (`signUp`, owner dashboard only). Under 1 second or over 4 hours is dropped (a double tap, or a form left open). Stocktakes and audits are timed by `stocktakes:complete` and `audits:complete` themselves, from started to completed (`timeTask`). Only the duration is stored, never what was recorded. |
 | `analytics:insights(days?)` | any | The Insights screen for the last `days` (7 to 365, default 30): deliveries, items received and rejected, batches made, temperature checks and how many were in range, programme records, waste and dispatch movements, corrective actions raised and closed with the median time to close, and per task the business's median time and the signed-in person's own. Business totals only: no person-by-person comparison. |
 
-`platform:overview` also returns `taskTimes`: per task, the median time, how many times it was done and by
-how many businesses, across every business for the last 30 days.
+`platform:overview(taskDays?)` also returns `taskTimes`, across every business for the last `taskDays`
+(7, 30 or 90; default 30): per task, the median time, the usual range (a quarter are quicker than
+`quickMs`, a tenth slower than `slowMs`), the median in the same number of days before that, and how many
+times it was done, by how many businesses and people. Durations and counts only.
 
 ### Other modules
 - `temperature:record/list/units` (any); rules in `lib/settings.ts → unitCompliant`.
@@ -879,7 +882,7 @@ Internet → Cloudflare → cloudflared tunnel (loganserver) → Caddy (127.0.0.
    → foodsafe-convex: self-hosted Convex backend, data in volume foodsafe_convex-data
 ```
 
-- Files on server: `~/foodsafe/` (`docker-compose.yml`, `nginx.conf`, `web/` (app), `site/` (website),
+- Files on server: `~/foodsafe/` (`docker-compose.yml`, `nginx.conf`, `security-headers.conf`, `web/` (app), `site/` (website),
   `.admin_key`).
 - Convex is published only on `127.0.0.1:3210` on the server; deploys reach it through an SSH tunnel.
 - Caddy routes are added to `~/caddy/Caddyfile` by the deploy (a timestamped backup is taken first).

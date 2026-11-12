@@ -210,6 +210,7 @@ class _CaCard extends StatelessWidget {
                   icon: const Icon(Icons.check_circle_outline),
                   label: const Text('Close out'),
                   onPressed: () async {
+                    final started = DateTime.now(); // timed for Insights
                     final r = await promptText(
                       context,
                       title: 'How was it resolved?',
@@ -218,13 +219,15 @@ class _CaCard extends StatelessWidget {
                       hint: 'e.g. Product discarded, supplier credited',
                     );
                     if (r == null || r.isEmpty || !context.mounted) return;
-                    await context.run(
-                      () => context.m('correctiveActions:close', {
+                    await context.run(() async {
+                      await context.m('correctiveActions:close', {
                         'id': ca['_id'],
                         'resolution': r,
-                      }),
-                      success: 'Closed',
-                    );
+                      });
+                      if (context.mounted) {
+                        context.recordTask('correctiveAction', started);
+                      }
+                    }, success: 'Closed');
                   },
                 ),
               ),

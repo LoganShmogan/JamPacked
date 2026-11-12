@@ -18,6 +18,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _password = TextEditingController();
   final _business = GlobalKey<BusinessFormState>();
   bool _register = false;
+  DateTime _started =
+      DateTime.now(); // sign-up is timed from choosing to create an account
   bool _busy = false;
   bool _obscure = true;
 
@@ -36,12 +38,14 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _busy = true);
     try {
       if (_register) {
-        await context.auth.register(
+        final auth = context.auth;
+        await auth.register(
           _name.text.trim(),
           _email.text.trim(),
           _password.text,
           business: business,
         );
+        auth.timeSignUp(_started);
       } else {
         await context.auth.login(_email.text.trim(), _password.text);
       }
@@ -188,7 +192,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       )
                     else
                       TextButton(
-                        onPressed: () => setState(() => _register = !_register),
+                        onPressed: () => setState(() {
+                          _register = !_register;
+                          _started = DateTime.now();
+                        }),
                         child: Text(
                           _register
                               ? 'I already have an account'

@@ -2,13 +2,17 @@
 // to saving it), and the numbers behind each business's Insights screen. Business totals only: nothing
 // here compares one staff member with another. platform.ts reads the timings across businesses.
 import { Infer, v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { MutationCtx, mutation, query } from "./_generated/server";
 import { requireMember, scoped } from "./lib/session";
 import { timedTask } from "./schema";
 
 const DAY = 86_400_000;
 export type Task = Infer<typeof timedTask>;
-export const TASKS: Task[] = ["goodsIn", "production", "temperature", "record"];
+/** Everyday tasks, shown on each business's Insights screen and on the owner dashboard. */
+export const TASKS: Task[] = ["goodsIn", "production", "temperature", "record", "stockMove", "stocktake", "audit", "correctiveAction"];
+/** The owner dashboard also shows how long signing up takes, which is no use to the business itself. */
+export const PLATFORM_TASKS: Task[] = [...TASKS, "signUp"];
 
 // Shorter than this was a double tap; longer, the form was left open. Neither says how long the task takes.
 export const MIN_MS = 1_000;
@@ -22,14 +26,26 @@ export function median(values: number[]) {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-/** The app reports how long a task took once it's saved. Outliers are dropped rather than stored. */
+/** The value that `p` (0 to 1) of the values are at or under (nearest rank), or null for none. */
+export function percentile(values: number[], p: number) {
+  if (values.length === 0) return null;
+  const s = [...values].sort((a, b) => a - b);
+  return s[Math.max(0, Math.ceil(p * s.length) - 1)];
+}
+
+/** Stores how long a task took: a duration and nothing about the task. Outliers are dropped. */
+export async function timeTask(ctx: MutationCtx, businessId: Id<"businesses">, userId: Id<"users">, task: Task, durationMs: number) {
+  if (!(durationMs >= MIN_MS && durationMs <= MAX_MS)) return false;
+  await ctx.db.insert("taskTimings", { businessId, userId, task, durationMs: Math.round(durationMs), at: Date.now() });
+  return true;
+}
+
+/** The app reports how long a task took once it's saved. */
 export const recordTask = mutation({
   args: { ...scoped, task: timedTask, durationMs: v.number() },
   handler: async (ctx, { sessionToken, businessId, task, durationMs }) => {
     const { user } = await requireMember(ctx, sessionToken, businessId);
-    if (!(durationMs >= MIN_MS && durationMs <= MAX_MS)) return false;
-    await ctx.db.insert("taskTimings", { businessId, userId: user._id, task, durationMs: Math.round(durationMs), at: Date.now() });
-    return true;
+    return await timeTask(ctx, businessId, user._id, task, durationMs);
   },
 });
 

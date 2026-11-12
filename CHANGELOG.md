@@ -11,6 +11,21 @@ GitHub release notes ([DOCUMENTATION.md §17](docs/DOCUMENTATION.md#17-ci-versio
 
 ## Unreleased
 
+### App (Android, iOS, web)
+- Insights times more everyday tasks: using or moving stock, stocktakes, audits and closing corrective
+  actions, alongside receiving goods, making a batch, temperature checks and records.
+
+### Behind the scenes
+- A payment made with a promotion code now unlocks the right plan (the plan comes from the price, not from
+  the amount paid).
+- Both sites send security headers (HTTPS only, no framing by other sites).
+- Signing up is timed for the owner dashboard.
+
+### Website (jampacked.co.nz)
+- Owner dashboard: how long tasks take can be shown for the last 7, 30 or 90 days, with the usual range
+  (quick to slow), whether each task is getting quicker or slower than the period before, and how many
+  people did it. Still durations and counts only, never what was recorded.
+
 ## 0.1.0 (2026-11-06)
 
 The first tagged version: everything built so far, in web testing on app.jampacked.co.nz and

@@ -91,6 +91,11 @@ void main() {
       'sessionToken': 'tok',
     });
     expect(find.text('Closed'), findsWidgets);
+    // Timed for Insights, and only once it's closed.
+    expect(
+      convex.callsTo('analytics:recordTask').single.args['task'],
+      'correctiveAction',
+    );
   });
 
   testWidgets('raise a manual corrective action', (tester) async {

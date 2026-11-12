@@ -21,7 +21,17 @@ export type Overview = {
     byCountry: { country: string; count: number; regions: { region: string; count: number }[] }[];
   };
   signupsByWeek: { users: Week[]; businesses: Week[] };
-  taskTimes: { task: string; count: number; medianMs: number | null; businesses: number }[];
+  taskDays: number;
+  taskTimes: {
+    task: string;
+    count: number;
+    medianMs: number | null;
+    quickMs: number | null;
+    slowMs: number | null;
+    previousMedianMs: number | null;
+    businesses: number;
+    people: number;
+  }[];
   businessList: {
     _id: string;
     name: string;
@@ -38,5 +48,5 @@ export type Overview = {
 export const fns = {
   login: makeFunctionReference<"action", { email: string; password: string }, { token: string }>("auth:login"),
   logout: makeFunctionReference<"mutation", { sessionToken: string }, null>("auth:logout"),
-  overview: makeFunctionReference<"query", { sessionToken: string }, Overview>("platform:overview"),
+  overview: makeFunctionReference<"query", { sessionToken: string; taskDays?: number }, Overview>("platform:overview"),
 };
