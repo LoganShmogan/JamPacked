@@ -108,6 +108,7 @@ class LotDetailScreen extends StatelessWidget {
   Future<void> _transfer(BuildContext context) async {
     final locations = await context.run(() => context.q('locations:list'));
     if (locations == null || !context.mounted) return;
+    final started = DateTime.now(); // timed for Insights
     final to = await showDialog<String>(
       context: context,
       builder: (c) => SimpleDialog(
@@ -122,13 +123,14 @@ class LotDetailScreen extends StatelessWidget {
       ),
     );
     if (to == null || !context.mounted) return;
-    await context.run(
-      () => context.m('stock:transfer', {'lotId': id, 'locationId': to}),
-      success: 'Moved',
-    );
+    await context.run(() async {
+      await context.m('stock:transfer', {'lotId': id, 'locationId': to});
+      if (context.mounted) context.recordTask('stockMove', started);
+    }, success: 'Moved');
   }
 
   Future<void> _holdOrRelease(BuildContext context, bool held) async {
+    final started = DateTime.now(); // timed for Insights
     final reason = await promptText(
       context,
       title: held ? 'Release from hold' : 'Put on hold',
@@ -136,13 +138,13 @@ class LotDetailScreen extends StatelessWidget {
       confirm: held ? 'Release' : 'Hold',
     );
     if (reason == null || !context.mounted) return;
-    await context.run(
-      () => context.m(held ? 'stock:release' : 'stock:hold', {
+    await context.run(() async {
+      await context.m(held ? 'stock:release' : 'stock:hold', {
         'lotId': id,
         'reason': reason,
-      }),
-      success: held ? 'Released' : 'On hold',
-    );
+      });
+      if (context.mounted) context.recordTask('stockHold', started);
+    }, success: held ? 'Released' : 'On hold');
   }
 
   @override

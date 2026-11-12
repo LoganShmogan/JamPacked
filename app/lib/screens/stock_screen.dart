@@ -338,6 +338,7 @@ class _AddStockScreenState extends State<AddStockScreen> {
   final _unit = TextEditingController(text: 'ea');
   final _batch = TextEditingController();
   final _reason = TextEditingController(text: 'Opening stock');
+  final _started = DateTime.now(); // timed for the owner dashboard
   String _storage = 'chilled';
   String? _location;
   int? _useBy;
@@ -358,7 +359,9 @@ class _AddStockScreenState extends State<AddStockScreen> {
       }),
       success: 'Added to stock',
     );
-    if (id != null) nav.pop();
+    if (id == null) return;
+    if (mounted) context.recordTask('openingStock', _started);
+    nav.pop();
   }
 
   @override

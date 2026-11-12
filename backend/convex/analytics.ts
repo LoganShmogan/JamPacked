@@ -10,9 +10,9 @@ import { timedTask } from "./schema";
 const DAY = 86_400_000;
 export type Task = Infer<typeof timedTask>;
 /** Everyday tasks, shown on each business's Insights screen and on the owner dashboard. */
-export const TASKS: Task[] = ["goodsIn", "production", "temperature", "record", "stockMove", "stocktake", "audit", "correctiveAction"];
-/** The owner dashboard also shows how long signing up takes, which is no use to the business itself. */
-export const PLATFORM_TASKS: Task[] = [...TASKS, "signUp"];
+export const TASKS: Task[] = ["goodsIn", "production", "temperature", "record", "stockMove", "stocktake", "audit", "correctiveAction", "stockHold", "raiseCorrectiveAction"];
+/** The owner dashboard also shows signing up and setting up, which are no use to the business itself. */
+export const PLATFORM_TASKS: Task[] = [...TASKS, "signUp", "supplier", "product", "openingStock", "customProgramme"];
 
 // Shorter than this was a double tap; longer, the form was left open. Neither says how long the task takes.
 export const MIN_MS = 1_000;

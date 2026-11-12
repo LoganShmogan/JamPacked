@@ -182,7 +182,13 @@ const TASKS: Record<string, string> = {
   stocktake: "Stocktake",
   audit: "Audit",
   correctiveAction: "Closing a corrective action",
+  stockHold: "Holding or releasing stock",
+  raiseCorrectiveAction: "Raising a corrective action",
   signUp: "Signing up",
+  supplier: "Adding or editing a supplier",
+  product: "Adding a product you make",
+  openingStock: "Adding opening stock",
+  customProgramme: "Editing a custom programme",
 };
 
 /** "12% slower" / "8% quicker" than the period before, or "–" when either has nothing to compare. */

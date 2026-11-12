@@ -19,6 +19,7 @@ class CorrectiveActionsScreen extends StatelessWidget {
     final title = TextEditingController();
     final desc = TextEditingController();
     var severity = 'medium';
+    final started = DateTime.now(); // timed for Insights
     final ok = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -74,14 +75,16 @@ class CorrectiveActionsScreen extends StatelessWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    await context.run(
-      () => context.m('correctiveActions:create', {
+    await context.run(() async {
+      await context.m('correctiveActions:create', {
         'title': title.text.trim(),
         'description': desc.text.trim().isEmpty ? null : desc.text.trim(),
         'severity': severity,
-      }),
-      success: 'Corrective action raised',
-    );
+      });
+      if (context.mounted) {
+        context.recordTask('raiseCorrectiveAction', started);
+      }
+    }, success: 'Corrective action raised');
   }
 
   @override

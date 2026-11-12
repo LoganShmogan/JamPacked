@@ -121,7 +121,13 @@ export const timedTask = v.union(
   v.literal("stocktake"),
   v.literal("audit"),
   v.literal("correctiveAction"),
+  v.literal("stockHold"),
+  v.literal("raiseCorrectiveAction"),
   v.literal("signUp"),
+  v.literal("supplier"),
+  v.literal("product"),
+  v.literal("openingStock"),
+  v.literal("customProgramme"),
 );
 
 export const answerValue = v.union(v.string(), v.number(), v.boolean(), v.null());
