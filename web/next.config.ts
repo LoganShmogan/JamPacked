@@ -4,6 +4,7 @@ import type { NextConfig } from "next";
 // browser. It can be served by nginx on loganserver now and by Vercel later, unchanged.
 const nextConfig: NextConfig = {
   output: "export",
+  basePath: process.env.BASE_PATH || undefined, // e.g. /mockup, to host a preview build under a sub-path
   trailingSlash: true,
   images: { unoptimized: true },
   reactCompiler: true,

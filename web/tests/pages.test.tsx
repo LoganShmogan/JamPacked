@@ -31,7 +31,7 @@ const ldTypes = (container: HTMLElement) =>
 describe("landing page", () => {
   test("an overview that links out to its own pages, not to parts of itself", () => {
     const { container } = render(<Home />);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Food safety records that fill themselves in.");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Jam-packed with every record your audit needs.");
     expect(screen.getByRole("link", { name: "Get JamPacked" })).toHaveAttribute("href", "/store/");
     expect(screen.getByRole("link", { name: "Find your programme" })).toHaveAttribute("href", "/programmes/");
     expect(screen.getByRole("link", { name: "See all features →" })).toHaveAttribute("href", "/features/");
@@ -41,8 +41,8 @@ describe("landing page", () => {
     expect(screen.getAllByRole("listitem").map((li) => within(li).getByRole("heading").textContent)).toEqual([
       "Receive", "Store", "Make or grow", "Trace", "Audit",
     ]);
-    expect(screen.getByRole("heading", { name: "Type it once. Scan it forever." })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "See it in action" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Label it once. Scan it forever." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "See what's inside" })).toBeInTheDocument();
     expect(screen.getAllByRole("figure").map((f) => f.querySelector("img")!.getAttribute("src"))).toEqual([
       "/screenshots/receive.png", "/screenshots/production.png", "/screenshots/trace.png", "/screenshots/insights.png",
     ]);
