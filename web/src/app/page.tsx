@@ -219,7 +219,7 @@ export default function Home() {
                 <div className="flex h-20 items-end gap-1.5">
                   {p.slug === "custom"
                     ? [JAR.large, JAR.medium, JAR.small].map((b) => <Jar key={b} body={b} className="w-9" />)
-                    : <Jar body={programmeJar[p.slug] ?? JAR.medium} className="w-11" />}
+                    : <Jar body={programmeJar[p.slug]} className="w-11" />}
                 </div>
                 <span className="mt-4 block text-xs font-semibold uppercase tracking-wide text-jam-dark">{p.risk}</span>
                 <h3 className="mt-1 font-semibold group-hover:text-jam">{p.name}</h3>
