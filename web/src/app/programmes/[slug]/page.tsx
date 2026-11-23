@@ -53,7 +53,7 @@ export default async function Programme({ params }: PageProps<"/programmes/[slug
       <div className="mt-12 rounded-xl bg-cream p-6">
         <h2 className="text-xl font-bold">What {p.short} costs</h2>
         <p className="mt-2 text-muted">{planPrice(p.slug)} Every feature is included, and you can switch programme at any time.</p>
-        <Link href="/store/" className="mt-4 inline-block rounded-lg bg-jam px-5 py-3 font-semibold text-on-jam hover:bg-jam-dark">
+        <Link href="/store/" className="mt-4 inline-block rounded-full bg-jam-dark px-5 py-3 font-semibold text-on-jam hover:opacity-90">
           Get JamPacked
         </Link>
       </div>

@@ -29,10 +29,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#540026" },
-    { media: "(prefers-color-scheme: dark)", color: "#540026" },
-  ],
+  themeColor: "#fffaf8",
 };
 
 const nav = [
@@ -55,29 +52,30 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en-NZ" className={`${figtree.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
-        <header className="sticky top-0 z-10 bg-burgundy text-peach">
+        <header className="sticky top-0 z-10 border-b border-border bg-bg/95 backdrop-blur">
           <nav aria-label="Main" className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
             <Link href="/">
-              <Image src="/logo.svg" alt="JamPacked" width={668} height={138} priority className="h-9 w-auto" />
+              {/* The burgundy wordmark, for the light page. */}
+              <Image src="/logo-light.svg" alt="JamPacked" width={668} height={138} priority className="h-9 w-auto" />
             </Link>
             <div className="hidden items-center gap-5 text-sm lg:flex">
               {nav.map(([label, href]) => (
-                <Link key={href} href={href} className="text-peach/80 hover:text-peach">{label}</Link>
+                <Link key={href} href={href} className="text-muted hover:text-ink">{label}</Link>
               ))}
-              <Link href="/store/" className="btn-rose rounded-full px-4 py-2 font-semibold">
+              <Link href="/store/" className="rounded-full bg-jam-dark px-4 py-2 font-semibold text-on-jam hover:opacity-90">
                 Get JamPacked
               </Link>
             </div>
             {/* Phones: a plain disclosure menu, so it works before (and without) any JavaScript. */}
             <details className="relative lg:hidden">
-              <summary aria-label="Menu" className="list-none rounded-full border border-peach/40 px-4 py-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+              <summary aria-label="Menu" className="list-none rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
                 Menu
               </summary>
               <div className="absolute right-0 mt-2 flex w-48 flex-col rounded-xl border border-border bg-surface p-2 text-ink shadow-lg">
                 {nav.map(([label, href]) => (
                   <Link key={href} href={href} className="rounded-lg px-3 py-3 hover:bg-cream">{label}</Link>
                 ))}
-                <Link href="/store/" className="mt-1 rounded-lg bg-jam px-3 py-3 text-center font-semibold text-on-jam">
+                <Link href="/store/" className="mt-1 rounded-lg bg-jam-dark px-3 py-3 text-center font-semibold text-on-jam">
                   Get JamPacked
                 </Link>
               </div>
@@ -85,17 +83,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </nav>
         </header>
         <main className="flex-1">{children}</main>
-        <footer className="bg-burgundy text-sm text-peach/80">
+        <footer className="border-t border-border bg-surface text-sm text-muted">
           <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-8 sm:flex-row sm:justify-between">
             <div className="space-y-1">
               <p>© {new Date().getFullYear()} {site.company}, trading as JamPacked · NZBN {site.nzbn}</p>
-              <a href={`mailto:${site.contactEmail}`} className="hover:text-peach">{site.contactEmail}</a>
+              <a href={`mailto:${site.contactEmail}`} className="hover:text-ink">{site.contactEmail}</a>
             </div>
             <nav aria-label="Legal" className="flex flex-wrap gap-x-5 gap-y-2">
               {legal.map(([label, href]) => (
-                <Link key={href} href={href} className="hover:text-peach">{label}</Link>
+                <Link key={href} href={href} className="hover:text-ink">{label}</Link>
               ))}
-              <a href={site.appUrl} className="hover:text-peach">Sign in</a>
+              <a href={site.appUrl} className="hover:text-ink">Sign in</a>
             </nav>
           </div>
         </footer>

@@ -56,7 +56,7 @@ export function PlanPicker() {
                 <p className="mt-1 text-sm font-semibold text-jam-dark">Save {formatPrice(saving)} a year</p>
               )}
               <p className="mt-3 flex-1 text-sm text-muted">{plan.summary}</p>
-              <a href={href} className="mt-5 block rounded-lg bg-jam px-4 py-2.5 text-center font-semibold text-on-jam hover:bg-jam-dark">
+              <a href={href} className="mt-5 block rounded-full bg-jam-dark px-4 py-2.5 text-center font-semibold text-on-jam hover:opacity-90">
                 {!price ? "Start free" : checkout ? `Buy ${plan.name}` : "Get started by email"}
               </a>
             </section>
@@ -65,7 +65,7 @@ export function PlanPicker() {
       </div>
       <p className="mt-4 text-sm text-muted">
         {pricing.currency} per business, incl. GST. Every paid plan has a{" "}
-        <strong className="text-ink">{pricing.moneyBackDays}-day money-back guarantee</strong>. Card payments are handled by Stripe.
+        <strong className="text-ink">{pricing.moneyBackDays} day money back guarantee</strong>. Card payments are handled by Stripe.
       </p>
     </div>
   );

@@ -5,7 +5,7 @@ export const legalDocs = {
     title: "Terms of Service",
     href: "/legal/terms/",
     updated: "6 November 2026",
-    summary: "The terms for buying and using a JamPacked licence: plans by programme, the free NP1 plan, the money-back guarantee, production and allergen records, and your data.",
+    summary: "The terms for buying and using a JamPacked licence: plans by programme, the free NP1 plan, the money back guarantee, production and allergen records, and your data.",
   },
   privacy: {
     title: "Privacy Policy",

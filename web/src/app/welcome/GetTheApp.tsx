@@ -27,7 +27,7 @@ export function GetTheApp() {
   if (!link) return null;
   return (
     <div className="mt-8 rounded-2xl border border-border bg-surface p-6">
-      <a href={link.url} className="block rounded-lg bg-jam px-5 py-4 text-center text-lg font-semibold text-on-jam hover:bg-jam-dark">
+      <a href={link.url} className="block rounded-full bg-jam-dark px-5 py-4 text-center text-lg font-semibold text-on-jam hover:opacity-90">
         {link.label}
       </a>
       {cancelled ? (

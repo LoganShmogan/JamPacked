@@ -43,7 +43,7 @@ describe("store", () => {
     expect(card("NP2").getByRole("link", { name: "Get started by email" })).toHaveAttribute(
       "href", `mailto:${site.contactEmail}?subject=JamPacked%20NP2%20yearly%20licence`,
     );
-    expect(screen.getByText("30-day money-back guarantee")).toBeInTheDocument();
+    expect(screen.getByText("30 day money back guarantee")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("radio", { name: "Monthly" }));
     expect(screen.getByRole("radio", { name: "Monthly" })).toHaveAttribute("aria-checked", "true");

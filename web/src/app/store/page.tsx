@@ -9,13 +9,13 @@ import { PlanPicker } from "./PlanPicker";
 export const metadata = pageMetadata(
   "/store/",
   "Pricing and licences",
-  "JamPacked is priced by your programme: NP1 free for sole operators, NP2 from $50 a month, NP3 from $100, custom from $120. 30-day money-back guarantee.",
+  "JamPacked is priced by your programme: NP1 free for sole operators, NP2 from $50 a month, NP3 from $100, custom from $120. 30 day money back guarantee.",
 );
 
 const included = [
   "Goods inwards, stock, production and recipes",
   "Enter a product or supply once, then pick it or scan it",
-  "Your whole team, each with their own sign-in (NP2 and up)",
+  "Your whole team, each with their own sign in (NP2 and up)",
   "Android, iPhone and web app",
   "Temperatures, programme records and audits",
   "Records kept for 7 years, with full export",
