@@ -27,6 +27,11 @@ GitHub release notes ([DOCUMENTATION.md §17](docs/DOCUMENTATION.md#17-ci-versio
 - Owner dashboard: how long tasks take can be shown for the last 7, 30 or 90 days, with the usual range
   (quick to slow), whether each task is getting quicker or slower than the period before, and how many
   people did it. Still durations and counts only, never what was recorded.
+- A new look: an off white page with burgundy text and pink as the accent, a new logo, and jam jars and
+  clipboards on the home page, where the day's checklist ticks off as the jar fills.
+- Plainer wording across the site and the help guides (in the app too): "use by date", "sign in",
+  "30 day money back guarantee" and so on.
+- Built on Next.js 16.4.6 and nginx 1.30 (security updates).
 
 ## 0.1.0 (2026-11-06)
 

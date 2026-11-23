@@ -85,7 +85,7 @@ export default function AdminPage() {
             className="rounded-lg border border-border bg-surface px-3 py-2" />
           <input name="password" type="password" required autoComplete="current-password" placeholder="Password"
             className="rounded-lg border border-border bg-surface px-3 py-2" />
-          <button disabled={busy} className="rounded-lg bg-jam px-4 py-2 font-semibold text-on-jam hover:bg-jam-dark disabled:opacity-60">
+          <button disabled={busy} className="rounded-full bg-jam-dark px-4 py-2 font-semibold text-on-jam hover:opacity-90 disabled:opacity-60">
             {busy ? "Signing in…" : "Sign in"}
           </button>
           {error && <p role="alert" className="text-sm text-jam-dark">{error}</p>}

@@ -31,7 +31,7 @@ const ldTypes = (container: HTMLElement) =>
 describe("landing page", () => {
   test("an overview that links out to its own pages, not to parts of itself", () => {
     const { container } = render(<Home />);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Food safety records that fill themselves in.");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("JamPacked with every record your audit needs.");
     expect(screen.getByRole("link", { name: "Get JamPacked" })).toHaveAttribute("href", "/store/");
     expect(screen.getByRole("link", { name: "Find your programme" })).toHaveAttribute("href", "/programmes/");
     expect(screen.getByRole("link", { name: "See all features →" })).toHaveAttribute("href", "/features/");
@@ -41,14 +41,14 @@ describe("landing page", () => {
     expect(screen.getAllByRole("listitem").map((li) => within(li).getByRole("heading").textContent)).toEqual([
       "Receive", "Store", "Make or grow", "Trace", "Audit",
     ]);
-    expect(screen.getByRole("heading", { name: "Type it once. Scan it forever." })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "See it in action" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Label it once. Scan it forever." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "See what's inside" })).toBeInTheDocument();
     expect(screen.getAllByRole("figure").map((f) => f.querySelector("img")!.getAttribute("src"))).toEqual([
       "/screenshots/receive.png", "/screenshots/production.png", "/screenshots/trace.png", "/screenshots/insights.png",
     ]);
     expect(screen.getByRole("link", { name: "How to use it, step by step →" })).toHaveAttribute("href", "/help/");
     expect(screen.getByText(/NP1 is free for one person with no staff\. NP2 is \$50 a month or \$500 a year/)).toBeInTheDocument();
-    expect(screen.getByText(/30-day money-back guarantee/)).toBeInTheDocument();
+    expect(screen.getByText(/30 day money back guarantee/)).toBeInTheDocument();
     for (const [name, slug] of [["National Programme 1", "np1"], ["National Programme 2", "np2"], ["National Programme 3", "np3"], ["Custom programme", "custom"]]) {
       expect(screen.getByRole("link", { name: new RegExp(name) })).toHaveAttribute("href", `/programmes/${slug}/`);
     }
@@ -72,7 +72,7 @@ test("features page: how it works and every feature group", () => {
   expect(screen.getByRole("heading", { name: "Insights" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "A look inside" })).toBeInTheDocument();
   expect(screen.getAllByRole("figure")).toHaveLength(7);
-  expect(screen.getByRole("link", { name: "See the step-by-step guides" })).toHaveAttribute("href", "/help/");
+  expect(screen.getByRole("link", { name: "See the step by step guides" })).toHaveAttribute("href", "/help/");
   expect(screen.getByRole("link", { name: "Get JamPacked" })).toHaveAttribute("href", "/store/");
   expect(ldTypes(container)).toEqual(["BreadcrumbList"]);
 });
@@ -85,14 +85,14 @@ describe("FAQ page", () => {
     expect(
       screen.getByText(
         "NP1 is free for one person with no staff. NP2 is $50 a month or $500 a year, NP3 $100 a month or $1000 a year " +
-          "and a custom programme $120 a month or $1200 a year, per business, incl. GST. Every paid plan has a 30-day money-back guarantee.",
+          "and a custom programme $120 a month or $1200 a year, per business, incl. GST. Every paid plan has a 30 day money back guarantee.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(/once an NP1 business adds staff, it's charged at the NP2 price/)).toBeInTheDocument();
     expect(screen.getByText(/email us within 30 days of paying/)).toBeInTheDocument();
     expect(screen.getByText("Do I have to type everything in?")).toBeInTheDocument();
     expect(screen.getByText("Does it work for a farm or grower?")).toBeInTheDocument();
-    expect(screen.getByText(/More › Help & support, for step-by-step guides/)).toBeInTheDocument();
+    expect(screen.getByText(/More › Help & support, for step by step guides/)).toBeInTheDocument();
     expect(screen.getByText("Can I buy in the app?")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Get in touch" })).toHaveAttribute("href", "/contact/");
     const ld = [...container.querySelectorAll('script[type="application/ld+json"]')].map((s) => JSON.parse(s.innerHTML));
@@ -125,7 +125,7 @@ describe("programme pages", () => {
     expect(screen.getByText("Early Childhood Centre (ECE) / Kōhanga Reo")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Get JamPacked" })).toHaveAttribute("href", "/store/");
     expect(screen.getByRole("heading", { name: "What NP2 costs" })).toBeInTheDocument();
-    expect(screen.getByText(/^\$50 a month or \$500 a year per business, incl\. GST, with a 30-day money-back guarantee\./)).toBeInTheDocument();
+    expect(screen.getByText(/^\$50 a month or \$500 a year per business, incl\. GST, with a 30 day money back guarantee\./)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "National Programme 1" })).toHaveAttribute("href", "/programmes/np1/");
     expect(screen.queryByRole("link", { name: "National Programme 2" })).not.toBeInTheDocument();
     const meta = await generateMetadata(props("np2"));
@@ -197,7 +197,7 @@ describe("legal pages", () => {
     expect(screen.getByText(/Once anyone else joins an NP1 business, it needs the NP2 plan/)).toBeInTheDocument();
     expect(screen.getByText(/its plan changes to match from the next billing period/)).toBeInTheDocument();
     expect(screen.getByText(/at least 30 days beforehand/)).toBeInTheDocument();
-    expect(screen.getByText(/Money-back guarantee: if you ask within 30 days of the first payment/)).toBeInTheDocument();
+    expect(screen.getByText(/Money back guarantee: if you ask within 30 days of the first payment/)).toBeInTheDocument();
     expect(screen.getByText(/once per business, to the first payment only/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Production, allergens and product details/ })).toBeInTheDocument();
     expect(screen.getByText(/These are aids, not checks/)).toBeInTheDocument();

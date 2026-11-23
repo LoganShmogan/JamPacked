@@ -52,7 +52,7 @@ export default function Features() {
           {Object.values(shots).map((s) => <Phone key={s.src} shot={s} />)}
         </div>
         <p className="mt-6 text-muted">
-          Want to know how something works? <Link href="/help/" className="font-semibold text-jam hover:underline">See the step-by-step guides</Link>.
+          Want to know how something works? <Link href="/help/" className="font-semibold text-jam hover:underline">See the step by step guides</Link>.
         </p>
       </section>
 
@@ -63,7 +63,7 @@ export default function Features() {
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link href="/programmes/" className="rounded-lg border border-ink/20 px-5 py-3 text-center font-semibold hover:bg-surface">Programmes</Link>
-          <Link href="/store/" className="rounded-lg bg-jam px-5 py-3 text-center font-semibold text-on-jam hover:bg-jam-dark">Get JamPacked</Link>
+          <Link href="/store/" className="rounded-full bg-jam-dark px-5 py-3 text-center font-semibold text-on-jam hover:opacity-90">Get JamPacked</Link>
         </div>
       </div>
     </div>

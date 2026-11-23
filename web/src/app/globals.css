@@ -1,32 +1,21 @@
 @import "tailwindcss";
 
-/* Colours from the JamPacked logo, matching the app (app/lib/theme.dart). */
+/* Colours from the JamPacked brand files. An off-white page with burgundy text; the pink is an accent. Always light. */
 :root {
-  --bg: #fffaf4;
+  color-scheme: light;
+  --bg: #fffaf8;
   --surface: #ffffff;
-  --cream: #fde5cd;
-  --ink: #2b2b2b;
-  --muted: #6b6b6b;
-  --border: #ede6e1;
-  --jam: #c94a4e;
-  --jam-dark: #a8323a;
+  --cream: #fdf0f1;
+  --ink: #3a0a1f;
+  --muted: #7a5562;
+  --border: #efe3dc;
+  --jam: #972f56;
+  --jam-dark: #540026;
   --mustard: #bf9100;
   --on-jam: #ffffff;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1a1716;
-    --surface: #24201e;
-    --cream: #3a2c22;
-    --ink: #f3ece6;
-    --muted: #b3aaa3;
-    --border: #3a3330;
-    --jam: #e06665;
-    --jam-dark: #f08a88;
-    --mustard: #e0b23a;
-    --on-jam: #1a1716;
-  }
+  --burgundy: #540026;
+  --peach: #f9dbbd;
+  --rose: #fba1a8;
 }
 
 @theme inline {
@@ -40,10 +29,49 @@
   --color-jam-dark: var(--jam-dark);
   --color-mustard: var(--mustard);
   --color-on-jam: var(--on-jam);
+  --color-burgundy: var(--burgundy);
+  --color-peach: var(--peach);
+  --color-rose: var(--rose);
   --font-sans: var(--font-figtree);
 }
 
 body {
   background: var(--bg);
   color: var(--ink);
+}
+
+/* Jars, from the logo, in softer colours so they sit quietly on white. */
+.jar-lid {
+  background: linear-gradient(90deg, var(--peach), var(--rose));
+}
+.jar-fill {
+  background: #f6c4ca;
+}
+.barcode {
+  background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px, var(--ink) 4px 7px, transparent 7px 10px);
+}
+
+/* The hero: the clipboard ticks off, the jar fills, the lid goes on, the stamp lands. */
+@keyframes pack-tick {
+  from { transform: translateX(-0.75rem); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes pack-fill {
+  from { transform: scaleY(0); }
+  to { transform: none; }
+}
+@keyframes pack-lid {
+  from { transform: translateY(-3rem); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes pack-stamp {
+  from { transform: scale(1.6); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.pack-tick { animation: pack-tick 0.35s ease-out both; }
+.pack-fill { transform-origin: bottom; animation: pack-fill 2.6s 0.3s ease-in-out both; }
+.pack-lid { animation: pack-lid 0.5s 2.9s ease-out both; }
+.pack-stamp { animation: pack-stamp 0.35s 3.4s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .pack-tick, .pack-fill, .pack-lid, .pack-stamp { animation: none; }
 }

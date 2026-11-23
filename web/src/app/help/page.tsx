@@ -8,7 +8,7 @@ import { breadcrumbs, pageMetadata } from "@/lib/seo";
 export const metadata = pageMetadata(
   "/help/",
   "Help: how to use JamPacked",
-  "Step-by-step guides for JamPacked: receiving deliveries, stock, making batches, recipes, temperature checks, audits, trace and recall.",
+  "Step by step guides for JamPacked: receiving deliveries, stock, making batches, recipes, temperature checks, audits, trace and recall.",
 );
 
 /** The app's how-to guides, with screenshots, and how to reach a person. */
@@ -18,7 +18,7 @@ export default function Help() {
       <JsonLd data={breadcrumbs([["Home", "/"], ["Help", "/help/"]])} />
       <h1 className="text-3xl font-bold sm:text-4xl">How to use JamPacked</h1>
       <p className="mt-4 max-w-2xl text-lg text-muted">
-        Step-by-step guides for everyday tasks. The same guides are in the app: tap the ? on the home screen, or go to
+        Step by step guides for everyday tasks. The same guides are in the app: tap the ? on the home screen, or go to
         More › Help &amp; support.
       </p>
 

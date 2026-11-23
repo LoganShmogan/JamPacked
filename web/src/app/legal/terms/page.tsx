@@ -45,11 +45,11 @@ export default function Terms() {
             <p key="b">
               The NP1 plan is free for one person running the business with no staff. Once anyone else joins an NP1
               business, it needs the NP2 plan: we&apos;ll ask the business&apos;s admin to buy it, and may limit the business to
-              read-only access until they do. Paid plans include the staff you invite to that business.
+              read only access until they do. Paid plans include the staff you invite to that business.
             </p>,
             <p key="c">
               If you change the programme a business follows, its plan changes to match from the next billing period. Moving to a
-              lower-priced plan doesn&apos;t refund the period you&apos;ve already paid for.
+              lower priced plan doesn&apos;t refund the period you&apos;ve already paid for.
             </p>,
             <p key="d">Licences are sold on this website, monthly or yearly, and renew automatically until cancelled. Prices are in New Zealand dollars and include GST.</p>,
             <p key="e">We may change prices, or what the free plan includes, by telling licence holders by email at least 30 days beforehand. A price change applies from your next renewal.</p>,
@@ -59,18 +59,18 @@ export default function Terms() {
           heading: "Payment and renewal",
           body: [
             <p key="a">Payments are processed by Stripe. We never see or store your full card details.</p>,
-            <p key="b">If a renewal payment fails, we&apos;ll let you know and may limit the business to read-only access until it&apos;s paid.</p>,
+            <p key="b">If a renewal payment fails, we&apos;ll let you know and may limit the business to read only access until it&apos;s paid.</p>,
           ],
         },
         {
           heading: "Cancelling and refunds",
           body: [
             <p key="m">
-              Money-back guarantee: if you ask within {pricing.moneyBackDays} days of the first payment for a business&apos;s licence,
+              Money back guarantee: if you ask within {pricing.moneyBackDays} days of the first payment for a business&apos;s licence,
               we&apos;ll refund that payment in full and end the licence. It applies once per business, to the first payment only.
             </p>,
             <p key="a">After that you can still cancel at any time. Your licence runs to the end of the period you&apos;ve paid for and isn&apos;t refunded for the unused part, unless the law requires it.</p>,
-            <p key="b">When a licence ends, the business becomes read-only. Your records are not deleted: you can still view and export them, so you can meet your record-keeping obligations.</p>,
+            <p key="b">When a licence ends, the business becomes read only. Your records are not deleted: you can still view and export them, so you can meet your record keeping obligations.</p>,
           ],
         },
         {
@@ -78,7 +78,7 @@ export default function Terms() {
           body: [
             <p key="a">
               When you make a batch, JamPacked lists the allergens recorded on everything that went into it, and can fill in its
-              use-by date from the shelf life you set on its recipe. Product details found by barcode may come from Open Food
+              use by date from the shelf life you set on its recipe. Product details found by barcode may come from Open Food
               Facts, a public database that we don&apos;t control.
             </p>,
             <p key="b">
@@ -98,7 +98,7 @@ export default function Terms() {
         {
           heading: "Your responsibilities",
           body: [
-            <p key="a">Keep your sign-in details safe, make sure the people you invite use JamPacked properly, and enter records accurately. Don&apos;t misuse the service, try to get into other businesses&apos; data, or interfere with how it runs.</p>,
+            <p key="a">Keep your sign in details safe, make sure the people you invite use JamPacked properly, and enter records accurately. Don&apos;t misuse the service, try to get into other businesses&apos; data, or interfere with how it runs.</p>,
             <p key="b">
               If you record information about other people, such as the customers you dispatch stock to or your suppliers&apos;
               contacts, you&apos;re responsible for being allowed to under the privacy law that applies to you. See our{" "}

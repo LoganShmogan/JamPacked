@@ -28,7 +28,7 @@ export default function Cookies() {
         {
           heading: "The JamPacked app",
           body: [
-            <p key="a">When you sign in, the app keeps a sign-in token on your device so you stay signed in, and remembers which business you last worked in. It doesn&apos;t keep copies of your business records, products, recipes or customers on the device. Signing out removes the token.</p>,
+            <p key="a">When you sign in, the app keeps a sign in token on your device so you stay signed in, and remembers which business you last worked in. It doesn&apos;t keep copies of your business records, products, recipes or customers on the device. Signing out removes the token.</p>,
           ],
         },
         {

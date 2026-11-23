@@ -7,9 +7,9 @@
       "title": "Getting started",
       "icon": "start",
       "summary": "Create your account and business, pick your programme and bring your team in.",
-      "where": "Sign-in screen",
+      "where": "Sign in screen",
       "steps": [
-        "On the sign-in screen, choose to create an account and enter your name, email and a password.",
+        "On the sign in screen, choose to create an account and enter your name, email and a password.",
         "Next, name your main business, say what you do (kitchen, manufacturer, farm, retail or mixed / other), pick where it is, and choose the programme it follows: NP1, NP2, NP3 or a custom programme. You're its admin.",
         "Tick the business types that apply (for example ECE or bread) so you're only asked for the checks you need.",
         "Invite your staff from More › Members. They sign up with the email you invited and tick \"I've been invited\"."
@@ -26,11 +26,11 @@
       "steps": [
         "Choose the supplier (or add a new one), then enter the invoice or docket number and check the delivery vehicle.",
         "Add each item: tap Scan to read its barcode, tap Add item, or tap one of the products this supplier usually brings.",
-        "For each item, record the probe temperature, batch code and use-by or best-before date, and check the packaging, label and allergens.",
+        "For each item, record the probe temperature, batch code and use by or best before date, and check the packaging, label and allergens.",
         "Accept or Reject it. A rejected item needs a reason. Accepted items can be put away to a location.",
         "Answer your programme's receiving checks, then save. Accepted goods go into stock, and any problems become corrective actions."
       ],
-      "tip": "JamPacked warns you when a temperature is out of range or a use-by date has passed, before you accept it.",
+      "tip": "JamPacked warns you when a temperature is out of range or a use by date has passed, before you accept it.",
       "screenshot": "receive"
     },
     {
@@ -51,15 +51,15 @@
       "id": "stock",
       "title": "Use, sell, dispatch or waste stock",
       "icon": "stock",
-      "summary": "Everything in stock, first-expiring first, and what you can do with it.",
+      "summary": "Everything in stock, first expiring first, and what you can do with it.",
       "where": "Stock tab",
       "steps": [
-        "On hand lists every lot, oldest use-by first. Filter by location at the top.",
+        "On hand lists every lot, oldest use by first. Filter by location at the top.",
         "Tap a lot to Use, Sell, Dispatch (say who it went to), Waste (say why) or Move it.",
         "Put suspect stock on Hold so nobody uses it. Managers can Release it or Adjust the quantity.",
         "Low stock shows products below their reorder level. Set reorder levels in More › Products."
       ],
-      "tip": "DISCARD means past its use-by and PAST BB means past best-before. Held or out-of-date stock can only be wasted.",
+      "tip": "DISCARD means past its use by and PAST BB means past best before. Held or out of date stock can only be wasted.",
       "screenshot": "stock"
     },
     {
@@ -71,9 +71,9 @@
       "steps": [
         "Tap What are you making? and pick the product, or type a new name.",
         "If it has a recipe, enter how much you made. The ingredients are filled in from stock, first expiring first, and anything you're short of is flagged. Tap Work out ingredients for this after changing the amount.",
-        "Without a recipe it's a one-off: tap Add from stock for each thing you used and enter how much.",
+        "Without a recipe it's a one off: tap Add from stock for each thing you used and enter how much.",
         "Under Checks, tap any your programme asks for (cooking, cooling, allergen and label...) and fill them in. Checks the recipe needs are already open.",
-        "Check the batch code and use-by date (both are filled in for you), choose where it's put away, and tap Save batch."
+        "Check the batch code and use by date (both are filled in for you), choose where it's put away, and tap Save batch."
       ],
       "tip": "The batch carries every allergen in what went into it, and traces back to each supplier batch. A check outside its limits raises a corrective action.",
       "screenshot": "production"
@@ -143,7 +143,7 @@
         "Tap Record.",
         "Tap one of your units, or type a new one and choose its type.",
         "Enter the temperature. If it's out of range, say what you did about it.",
-        "Tap Save reading. An out-of-range reading raises a corrective action."
+        "Tap Save reading. An out of range reading raises a corrective action."
       ]
     },
     {
@@ -163,7 +163,7 @@
       "id": "audits",
       "title": "Run an audit",
       "icon": "audit",
-      "summary": "Self-checks that fill themselves in from your records.",
+      "summary": "Self checks that fill themselves in from your records.",
       "where": "Checks tab › Start new",
       "steps": [
         "Choose a checklist. Questions JamPacked can answer from your deliveries, temperatures and records are filled in, with the evidence.",
@@ -179,7 +179,7 @@
       "summary": "Problems and how they were fixed.",
       "where": "More › Corrective actions, or Open actions on Home",
       "steps": [
-        "Corrective actions are raised automatically, for example for rejected goods, out-of-range temperatures and failed checks.",
+        "Corrective actions are raised automatically, for example for rejected goods, out of range temperatures and failed checks.",
         "Open one from the Open tab, then tap Close out and say what you did.",
         "To record a problem yourself, tap Raise."
       ]

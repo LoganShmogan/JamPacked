@@ -15,7 +15,7 @@ export const shots = {
   },
   stock: {
     src: "/screenshots/stock.png",
-    alt: "Stock on hand, first expiring first, with use-by dates, locations and a lot on hold",
+    alt: "Stock on hand, first expiring first, with use by dates, locations and a lot on hold",
     caption: "Stock, first expiring first",
   },
   production: {
@@ -35,7 +35,7 @@ export const shots = {
   },
   help: {
     src: "/screenshots/help.png",
-    alt: "Help and support in the app: step-by-step guides for every task",
+    alt: "Help and support in the app: step by step guides for every task",
     caption: "Help, right in the app",
   },
 } satisfies Record<string, Shot>;

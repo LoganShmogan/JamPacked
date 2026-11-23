@@ -23,7 +23,7 @@ services:
       start_period: 10s
 
   web:
-    image: nginx:1.27-alpine
+    image: nginx:1.30-alpine # stable branch: a pull picks up its security patches
     container_name: foodsafe
     restart: unless-stopped
     depends_on: [convex]

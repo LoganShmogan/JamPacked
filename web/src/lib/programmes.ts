@@ -22,16 +22,16 @@ export const programmes: ProgrammePage[] = [
       "Extract or pack honey",
       "Grow or pack fruit, vegetables or other horticultural products",
       "Make sugar, molasses, syrups or related products",
-      "Sell tea, coffee, hot chocolate and packaged shelf-stable food only",
+      "Sell tea, coffee, hot chocolate and packaged shelf stable food only",
       "Sell packaged ice creams, ice blocks or similar items only",
       "Store or transport food only",
     ],
-    businessTypes: ["Honey", "Horticulture", "Sugar", "Packaged ice-creams", "Hot drinks", "Transport and distribution"],
+    businessTypes: ["Honey", "Horticulture", "Sugar", "Packaged ice creams", "Hot drinks", "Transport and distribution"],
     records: [
-      "Goods inwards with supplier, batch, use-by and probe temperature",
+      "Goods inwards with supplier, batch, use by and probe temperature",
       "Transport temperatures and tutin tests for honey, where they apply",
       "Pest checks, thermometer checks, maintenance and staff training",
-      "Monthly NP1 self-check and a yearly mock recall, on your Due list",
+      "Monthly NP1 self check and a yearly mock recall, on your Due list",
     ],
   },
   {
@@ -54,10 +54,10 @@ export const programmes: ProgrammePage[] = [
       "Retailer of chilled and frozen food", "Nuts and seeds", "Early Childhood Centre (ECE) / Kōhanga Reo",
     ],
     records: [
-      "Goods inwards and stock by location, first-expiring first",
+      "Goods inwards and stock by location, first expiring first",
       "Daily chiller and freezer checks; cooking, cooling and reheating temperatures",
       "Water activity and pH tests, pest checks, thermometer checks and staff training",
-      "Monthly NP2 self-check and a yearly mock recall, on your Due list",
+      "Monthly NP2 self check and a yearly mock recall, on your Due list",
     ],
   },
   {
@@ -68,7 +68,7 @@ export const programmes: ProgrammePage[] = [
     summary: "For brewing and beverages, oils and fats, food additives, grain, herbs and spices, dry mixes, and retailers that handle food.",
     whoFor: [
       "Brew, distil, or make vinegar, malt extract or alcoholic beverages",
-      "Manufacture non-alcoholic beverages",
+      "Manufacture non alcoholic beverages",
       "Manufacture oils or fats (other than butter)",
       "Manufacture food additives or dietary supplements",
       "Process grain, herbs or spices (including loose tea)",
@@ -76,14 +76,14 @@ export const programmes: ProgrammePage[] = [
       "Manufacture dry mix products (cake mixes, powdered desserts, drinks, soups)",
     ],
     businessTypes: [
-      "Brewery, vinegar and malt", "Non-alcoholic beverages", "Oils or fats", "Food additives", "Grain",
+      "Brewery, vinegar and malt", "Non alcoholic beverages", "Oils or fats", "Food additives", "Grain",
       "Retailer that handles food", "Herbs or spices", "Dry mix products", "Grape wine", "Alcoholic beverages",
     ],
     records: [
-      "Goods inwards, batch tracing and one-tap holds and recalls",
+      "Goods inwards, batch tracing and one tap holds and recalls",
       "Cooking, cooling and reheating temperatures, with corrective actions when they fail",
       "Staff sickness, transport temperatures, water activity and pH tests",
-      "Monthly NP3 self-check and a yearly mock recall, on your Due list",
+      "Monthly NP3 self check and a yearly mock recall, on your Due list",
     ],
   },
   {

@@ -29,10 +29,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fffaf4" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1716" },
-  ],
+  themeColor: "#fffaf8",
 };
 
 const nav = [
@@ -55,30 +52,30 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en-NZ" className={`${figtree.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
-        <header className="sticky top-0 z-10 border-b border-border bg-surface/95 backdrop-blur">
+        <header className="sticky top-0 z-10 border-b border-border bg-bg/95 backdrop-blur">
           <nav aria-label="Main" className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-            <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-              <Image src="/logo.jpg" alt="" width={36} height={36} className="rounded-lg" />
-              JamPacked
+            <Link href="/">
+              {/* The burgundy wordmark, for the light page. */}
+              <Image src="/logo-light.svg" alt="JamPacked" width={668} height={138} priority className="h-9 w-auto" />
             </Link>
             <div className="hidden items-center gap-5 text-sm lg:flex">
               {nav.map(([label, href]) => (
                 <Link key={href} href={href} className="text-muted hover:text-ink">{label}</Link>
               ))}
-              <Link href="/store/" className="rounded-lg bg-jam px-4 py-2 font-semibold text-on-jam hover:bg-jam-dark">
+              <Link href="/store/" className="rounded-full bg-jam-dark px-4 py-2 font-semibold text-on-jam hover:opacity-90">
                 Get JamPacked
               </Link>
             </div>
             {/* Phones: a plain disclosure menu, so it works before (and without) any JavaScript. */}
             <details className="relative lg:hidden">
-              <summary aria-label="Menu" className="list-none rounded-lg border border-border px-3 py-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+              <summary aria-label="Menu" className="list-none rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
                 Menu
               </summary>
-              <div className="absolute right-0 mt-2 flex w-48 flex-col rounded-xl border border-border bg-surface p-2 shadow-lg">
+              <div className="absolute right-0 mt-2 flex w-48 flex-col rounded-xl border border-border bg-surface p-2 text-ink shadow-lg">
                 {nav.map(([label, href]) => (
                   <Link key={href} href={href} className="rounded-lg px-3 py-3 hover:bg-cream">{label}</Link>
                 ))}
-                <Link href="/store/" className="mt-1 rounded-lg bg-jam px-3 py-3 text-center font-semibold text-on-jam">
+                <Link href="/store/" className="mt-1 rounded-lg bg-jam-dark px-3 py-3 text-center font-semibold text-on-jam">
                   Get JamPacked
                 </Link>
               </div>
