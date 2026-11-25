@@ -154,7 +154,7 @@ for (const [file, n] of Object.entries(appFiles).sort((a, b) => b[1] - a[1]).sli
 const regions = async (tries = 3) => {
   const t = performance.now();
   try {
-    await (await fetch("https://app.jampacked.co.nz/api/query", {
+    await (await fetch("https://adjoining-alligator-324.ap-southeast-2.convex.cloud/api/query", {
     method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ path: "businesses:regions", args: {}, format: "json" }),
     })).json();

@@ -20,6 +20,8 @@ GitHub release notes ([DOCUMENTATION.md §17](docs/DOCUMENTATION.md#17-ci-versio
 - A payment made with a promotion code now unlocks the right plan (the plan comes from the price, not from
   the amount paid).
 - Both sites send security headers (HTTPS only, no framing by other sites).
+- JamPacked moves off Save Point's own server: the data is kept by Convex in Sydney, and the website and
+  web app are served by Cloudflare, so the app stays up if one machine fails.
 - Signing up and setting up (suppliers, products you make, opening stock, custom programmes) are timed for
   the owner dashboard.
 

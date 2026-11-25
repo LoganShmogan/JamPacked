@@ -8,8 +8,8 @@ visitors what JamPacked is. Decision: a separate **Next.js** site, sharing the C
 Clerk sign-in.
 
 **Done so far:** `web/` has the landing page (how it works, features, programmes, FAQ) and the owner
-dashboard (`/admin`). It's a static export (`web/out/`), so for now `deploy/deploy.sh` serves it from the
-loganserver nginx on `jampacked.co.nz` and `www`; the same build moves to Cloudflare Pages unchanged.
+dashboard (`/admin`). It's a static export (`web/out/`), so `deploy/deploy.sh` uploads it to Cloudflare Pages
+(`jampacked-site`) for `jampacked.co.nz`; `www` redirects there.
 
 ## Design
 - New folder `web/` in this repo (Next.js App Router, TypeScript), deployed to Cloudflare Pages from `web/` (static export).
@@ -56,7 +56,7 @@ Pages:
 - [ ] A proper 1200×630 Open Graph image and a Google Search Console property
 - [x] Serve the site on `jampacked.co.nz` / `www` from loganserver (`deploy/`, DOCUMENTATION.md §14)
 - [x] Put it live with `./deploy/deploy.sh` (27 Oct 2026): `jampacked.co.nz` and `www` now serve the site
-- [ ] Cloudflare Pages project, domains, preview deployments per branch (when moving off loganserver, see
+- [ ] Cloudflare Pages project, domains (deploy script done, see DOCUMENTATION.md §14), preview deployments per branch (when moving off loganserver, see
   [hosting-and-backups.md](hosting-and-backups.md))
 - [x] Flutter web build on `app.<domain>`
 

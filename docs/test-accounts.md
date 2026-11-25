@@ -2,7 +2,7 @@
 
 The accounts `backend/convex/seed.ts` builds on a deployment that isn't live yet. Use them to try the app,
 take screenshots, demo it, and test each kind of business and each role. How to run the seed:
-[DOCUMENTATION.md §14](DOCUMENTATION.md#14-deployment-loganserver).
+[DOCUMENTATION.md §14](DOCUMENTATION.md#14-deployment).
 
 - **Password for every account:** `jampacked-test` (`SEED_PASSWORD` in `seed.ts`).
 - **Sign in at:** the web app or phone apps, on a deployment the seed has been run on.

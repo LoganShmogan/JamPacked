@@ -54,8 +54,8 @@ The website reads these from `web/src/lib/site.ts` (`pricing.plans`, one Stripe 
 - [x] Products & prices in Stripe, with a live Payment Link per plan and period (`checkoutUrls` in `web/src/lib/site.ts`)
 - [ ] Tie a payment to a business: Payment Links don't carry `metadata.businessId`, so either move the website to Checkout Sessions (as designed above) or match payments to businesses by hand until then
 - [x] `subscriptions` table + webhook in `http.ts` / `billing.ts` (signature check, upserts in any order), tested
-- [ ] Register the webhook in Stripe → Developers → Webhooks: `https://app.jampacked.co.nz/http/stripe/webhook`
-  (after the next `./deploy/deploy.sh`, which adds nginx's `/http/` route), events `checkout.session.completed`
+- [ ] Register the webhook in Stripe → Developers → Webhooks: `https://adjoining-alligator-324.ap-southeast-2.convex.site/stripe/webhook`
+  (production on Convex Cloud), events `checkout.session.completed`
   and `customer.subscription.created/updated/deleted`; then `npx convex env set STRIPE_WEBHOOK_SECRET whsec_...`.
   On Convex Cloud the URL becomes `https://<deployment>.convex.site/stripe/webhook`
 - [ ] Add a "Business name in JamPacked" text field to each Payment Link, for matching payments by hand

@@ -56,7 +56,7 @@ JamPacked/
 ├── web/                    # jampacked.co.nz: landing, pricing, help, legal, owner dashboard (Next.js)
 │   ├── src/                # app/ routes, lib/site.ts (prices, contact details)
 │   ├── public/  scripts/  tests/
-├── deploy/                 # loganserver deploy: deploy.sh, docker-compose.yml, nginx.conf
+├── deploy/                 # deploy.sh: Convex Cloud + Cloudflare Pages
 ├── scripts/                # prepare-release.sh, backend-timings.mjs, live-timings.mjs
 ├── docs/
 │   ├── DOCUMENTATION.md    # Full technical and user documentation
@@ -95,8 +95,7 @@ follows (NP1 / NP2 / NP3 / custom). You're its admin. Add more businesses from t
 **More**, and invite staff under **More → Members** (they sign up with the invited email and tick
 "I've been invited").
 
-**Upgrading an existing install?** Run `migrations:toMultiBusiness` once after deploying; see
-[`docs/DOCUMENTATION.md` §14](docs/DOCUMENTATION.md#14-deployment-loganserver). Production (recipes, made
+Production (recipes, made
 products, production runs) needs no migration: its fields are optional and existing products count as supplies.
 
 ## Tests

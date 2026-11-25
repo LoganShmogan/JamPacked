@@ -3,8 +3,8 @@
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
 
-// Production goes through app.jampacked.co.nz, whose nginx forwards /api to Convex.
-export const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? "https://app.jampacked.co.nz";
+// Production: Convex Cloud (docs/DOCUMENTATION.md §14).
+export const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? "https://adjoining-alligator-324.ap-southeast-2.convex.cloud";
 export const convex = new ConvexHttpClient(convexUrl);
 
 type Week = { weekStart: number; count: number };

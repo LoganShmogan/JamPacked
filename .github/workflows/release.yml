@@ -1,7 +1,7 @@
 # Pushing a version tag (v1.2.3) releases it: CI runs again on the tagged commit, the tag is checked against
 # the version in the code, and a GitHub release is published with that version's CHANGELOG.md section.
 # Then, if deploys are switched on (repository variable DEPLOY_ENABLED = true), it deploys to production
-# with deploy/deploy.sh. How to cut a release and set up deploys: docs/DOCUMENTATION.md §17.
+# (Convex Cloud + Cloudflare Pages) with deploy/deploy.sh. How to cut a release and set up deploys: docs/DOCUMENTATION.md §17.
 name: Release
 
 on:
@@ -61,23 +61,9 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-      # loganserver is only reachable over the tailnet. The OAuth client may only create tag:ci devices,
-      # and the tailnet policy lets tag:ci reach loganserver's SSH and nothing else.
-      - uses: tailscale/github-action@v4
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
-      - name: SSH key for the server
-        env:
-          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-        run: |
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
       - name: Deploy
         env:
-          HOST: ${{ secrets.DEPLOY_HOST }}
-        run: ./deploy/deploy.sh "$HOST"
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: ./deploy/deploy.sh

@@ -43,7 +43,7 @@ describe("convex", () => {
   test("production by default", async () => {
     vi.stubEnv("NEXT_PUBLIC_CONVEX_URL", undefined);
     const { convexUrl } = await import("@/lib/convex");
-    expect(convexUrl).toBe("https://app.jampacked.co.nz");
+    expect(convexUrl).toBe("https://adjoining-alligator-324.ap-southeast-2.convex.cloud");
   });
 
   test("NEXT_PUBLIC_CONVEX_URL points it at another deployment", async () => {
