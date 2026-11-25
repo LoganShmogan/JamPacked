@@ -13,8 +13,8 @@ a chat assistant on the website and in the app that answers from our own guides,
 ### Where it runs
 - **One Convex action** (`backend/convex/support.ts`, `"use node"`) calls Claude with the official TypeScript
   SDK (`@anthropic-ai/sdk`). The website and the app both call it; neither ever sees the API key.
-- **API key:** `ANTHROPIC_API_KEY` as a Convex environment variable (`npx convex env set ...` on loganserver,
-  later Convex Cloud). Unset = the chat is switched off and both front ends show the email address instead,
+- **API key:** `ANTHROPIC_API_KEY` as a Convex environment variable (`npx convex env set --prod ...`).
+  Unset = the chat is switched off and both front ends show the email address instead,
   so nothing is charged until we turn it on.
 - **App:** a "Ask a question" box at the top of Help & support (signed in, so we know the person and business).
 - **Website:** a chat panel on `/help/` (and later a button on every page). Visitors aren't signed in, so it

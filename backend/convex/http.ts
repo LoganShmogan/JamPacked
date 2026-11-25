@@ -19,8 +19,8 @@ export async function verifyStripe(body: string, header: string | null, secret: 
   return sigs.some((s) => s.length === expected.length && [...s].reduce((d, c, i) => d | (c.charCodeAt(0) ^ expected.charCodeAt(i)), 0) === 0);
 }
 
-// Stripe → Convex. Live at https://app.jampacked.co.nz/http/stripe/webhook (nginx sends /http/ to Convex's
-// HTTP actions); add that URL in Stripe → Developers → Webhooks and set STRIPE_WEBHOOK_SECRET.
+// Stripe → Convex. Live at https://adjoining-alligator-324.ap-southeast-2.convex.site/stripe/webhook;
+// add that URL in Stripe → Developers → Webhooks and set STRIPE_WEBHOOK_SECRET.
 http.route({
   path: "/stripe/webhook",
   method: "POST",

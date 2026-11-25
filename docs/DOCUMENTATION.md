@@ -28,7 +28,7 @@ Live: https://app.jampacked.co.nz
 11. [Flutter app reference](#11-flutter-app-reference)
 12. [Screens: user guide](#12-screens-user-guide)
 13. [Local development](#13-local-development)
-14. [Deployment (loganserver)](#14-deployment-loganserver)
+14. [Deployment](#14-deployment)
 15. [Migrating to Clerk](#15-migrating-to-clerk)
 16. [Known limitations & roadmap](#16-known-limitations--roadmap)
 17. [CI, versions & releases](#17-ci-versions--releases)
@@ -198,7 +198,7 @@ JamPacked/
 │       │   └── audit_history.dart
 │       └── screens/             One file per screen (see §11)
 ├── web/                         Website: jampacked.co.nz (Next.js, static export to web/out/)
-│   ├── next.config.ts           output: "export", so nginx (or Cloudflare Pages) serves plain files
+│   ├── next.config.ts           output: "export", so Cloudflare Pages serves plain files
 │   ├── .env.example             Convex URL, PostHog and (later) Clerk keys
 │   └── src/
 │       ├── app/page.tsx         Landing page: how it works, enter-it-once, programmes, pricing teaser
@@ -217,10 +217,7 @@ JamPacked/
 │       ├── lib/convex.ts        Convex client + the backend functions the site calls
 │       └── components/Analytics.tsx  PostHog page views (off unless a key is set)
 └── deploy/
-    ├── docker-compose.yml       Self-hosted Convex + nginx
-    ├── nginx.conf               Serves the website and the web app by hostname, proxies /api to Convex
-    ├── security-headers.conf    The security headers nginx.conf sends with every response
-    └── deploy.sh                One-command build & deploy
+    └── deploy.sh                One-command deploy: Convex Cloud + Cloudflare Pages (§14)
 ```
 
 ## 4. Data model
@@ -397,7 +394,7 @@ vehicle (low) → one audit-log entry.
 
 **`POST /stripe/webhook`** (`http.ts`): checks the `Stripe-Signature` header (HMAC-SHA256 with
 `STRIPE_WEBHOOK_SECRET`, within 5 minutes) and passes the event to `billing:applyEvent`. 503 until the secret
-is set, 400 for a bad signature. Live at `https://app.jampacked.co.nz/http/stripe/webhook` (§14).
+is set, 400 for a bad signature. Production URL: `https://adjoining-alligator-324.ap-southeast-2.convex.site/stripe/webhook` (§14).
 
 **Read-only when unlicensed.** With `BILLING_ENFORCED=true` on the deployment, `requireMember` refuses every
 mutation on a business whose licence doesn't cover what it needs, with a message saying so. Queries
@@ -868,73 +865,61 @@ flutter run -d <iphone>     --dart-define=CONVEX_URL=http://<your-LAN-ip>:3210
 
 ---
 
-## 14. Deployment (loganserver)
+## 14. Deployment
 
 **Topology:**
 ```
-Internet → Cloudflare → cloudflared tunnel (loganserver) → Caddy (127.0.0.1:80, ~/caddy)
-   → http://app.jampacked.co.nz { reverse_proxy foodsafe:80 }   (Docker network "web")
-     http://jampacked.co.nz, www { reverse_proxy foodsafe:80 }
-   → foodsafe (nginx), by hostname:
-       jampacked.co.nz → the website (web/out, in ~/foodsafe/site); www → 301 to jampacked.co.nz
-       anything else        → the Flutter web build; /api/* → foodsafe-convex:3210 (network "internal");
-                              /http/* → foodsafe-convex:3211, Convex HTTP actions (the Stripe webhook)
-   → foodsafe-convex: self-hosted Convex backend, data in volume foodsafe_convex-data
+jampacked.co.nz        → Cloudflare Pages project jampacked-site (web/out)
+www.jampacked.co.nz    → 301 to jampacked.co.nz (a Cloudflare redirect rule)
+app.jampacked.co.nz    → Cloudflare Pages project jampacked-app (the Flutter web build)
+Both call Convex Cloud directly:
+  production   adjoining-alligator-324, Sydney (aws-ap-southeast-2)
+               https://adjoining-alligator-324.ap-southeast-2.convex.cloud   functions
+               https://adjoining-alligator-324.ap-southeast-2.convex.site    HTTP actions (the Stripe webhook)
+  development  insightful-dodo-192 (what `npx convex dev` in backend/ talks to)
 ```
+Convex team `logan-young`, project `jampackedapp`; dashboard at https://dashboard.convex.dev. Response
+headers (security headers, and `noindex` on the app) are in each build's `_headers` file:
+`app/web/_headers` and `web/public/_headers`.
 
-- Files on server: `~/foodsafe/` (`docker-compose.yml`, `nginx.conf`, `security-headers.conf`, `web/` (app), `site/` (website),
-  `.admin_key`).
-- Convex is published only on `127.0.0.1:3210` on the server; deploys reach it through an SSH tunnel.
-- Caddy routes are added to `~/caddy/Caddyfile` by the deploy (a timestamped backup is taken first).
-- Each hostname also needs a **Public Hostname** on the Cloudflare tunnel (Zero Trust → Networks →
-  Tunnels), pointing at the same service as the other loganserver sites. The tunnel runs from a token, so
-  this is done in the Cloudflare dashboard, not on the server.
-
-**Deploy / update** (from this repo, on a machine with Flutter, Node and SSH access):
+**Deploy / update** (from this repo, with Flutter and Node):
 ```bash
-./deploy/deploy.sh            # default host: loganserver
+read -s CONVEX_DEPLOY_KEY && export CONVEX_DEPLOY_KEY          # paste, Enter (kept out of shell history)
+read -s CLOUDFLARE_API_TOKEN && export CLOUDFLARE_API_TOKEN
+export CLOUDFLARE_ACCOUNT_ID=<account id>
+./deploy/deploy.sh
 ```
-Releases can also deploy themselves from GitHub Actions, running this same script (§17). Deploy from a
-tagged commit, so what's live is a version in [CHANGELOG.md](../CHANGELOG.md); the script prints the
-version it ships.
+It pushes the Convex functions to production, builds the web app and the website against production and
+uploads both to Pages. Re-running is safe. Releases deploy themselves from GitHub Actions with the same
+script (§17); deploy from a tagged commit, so what's live is a version in [CHANGELOG.md](../CHANGELOG.md).
+Pages makes a deploy live at once and browsers recheck every file on load, so nothing needs purging.
+Close the terminal afterwards: with `CONVEX_DEPLOY_KEY` set, `npx convex` commands go to production.
 
-**The Convex image has moved** to `ghcr.io/convex/convex-backend`; `docker-compose.yml` still names the
-old `ghcr.io/get-convex/convex-backend`, which can't be pulled any more. The server runs its cached copy,
-so deploys work, but see [issues/hosting-and-backups.md](issues/hosting-and-backups.md) before rebuilding
-the server or upgrading Convex. The dashboard is now `ghcr.io/convex/convex-dashboard`.
-It builds the web app with `CONVEX_URL=https://app.jampacked.co.nz` and the website with the same
-`NEXT_PUBLIC_CONVEX_URL`, rsyncs both builds and the configs, runs `docker compose up -d`, generates the Convex admin key on first run, adds the Caddy routes if
-missing (and switches servers that still redirect jampacked.co.nz to the app over to the website), then pushes Convex functions via `npx convex deploy` over an SSH tunnel (local port 3299).
-Re-running is safe.
+**One-off setup** (all done 26 Nov 2026; kept for rebuilding it or rotating keys):
+1. **Convex:** the production deployment (`npx convex deployment create production --type prod --region
+   aws-ap-southeast-2`) and a production deploy key with only `deployment:deploy` (deployment → Settings →
+   Deploy keys).
+2. **Cloudflare API token:** My Profile → API Tokens → Create Token → Custom token, permission
+   Account → Cloudflare Pages → Edit, for the JamPacked account. The account ID is on the Workers & Pages
+   overview.
+3. **Pages projects** (once, with the token in the environment):
+   `npx wrangler@4.168.0 pages project create jampacked-app --production-branch main`, and the same for
+   `jampacked-site`. Then run `./deploy/deploy.sh`.
+4. **Domains:** remove the `jampacked.co.nz`, `www` and `app` public hostnames from the old loganserver
+   tunnel (Zero Trust → Networks → Tunnels), and delete their DNS records if they're left behind. Then
+   Workers & Pages → each project → Custom domains: `jampacked.co.nz` and `www.jampacked.co.nz` on
+   `jampacked-site`, `app.jampacked.co.nz` on `jampacked-app`.
+5. **www redirect:** Rules → Redirect Rules → hostname equals `www.jampacked.co.nz` → dynamic
+   `concat("https://jampacked.co.nz", http.request.uri.path)`, 301, keep the query string.
 
-`main.dart.js` and `flutter_bootstrap.js` are renamed with a content hash on each deploy, and nginx sends
-`no-cache` for everything else. Otherwise Cloudflare caches the app's files at its edge and phones keep
-running the old build for hours. Icons and `manifest.json` get a `?v=<hash>` the same way. If a deploy still looks stale, purge the Cloudflare
-cache for `jampacked.co.nz` (Caching → Configuration → Purge Everything).
+**Environment variables** go on the deployment, not in the repo: `npx convex env set NAME value` (add
+`--prod` for production). Which ones: `backend/.env.example`.
 
-**Upgrading the live server to multi-business (one-off).** Data saved before this change has no
-`businessId`: until it is migrated, existing users sign in to an empty business list. So run this
-**straight after** `./deploy/deploy.sh`, choosing the programme (and sectors) the existing business follows:
+**Test accounts (dev, or production before launch only).** `backend/convex/seed.ts` wipes every table and
+builds the test accounts through the app's own mutations, a simulated day at a time, so they have history.
+It refuses to run unless the deployment has `SEED_ALLOWED=true`; **remove that variable before launch**.
 ```bash
-ssh -fN -L 3299:127.0.0.1:3210 loganserver          # tunnel to the server's Convex
-cd backend && CONVEX_DEPLOYMENT= CONVEX_SELF_HOSTED_URL=http://127.0.0.1:3299 \
-  CONVEX_SELF_HOSTED_ADMIN_KEY="$(ssh loganserver cat ~/foodsafe/.admin_key)" \
-  npx convex run migrations:toMultiBusiness '{"programme":"NP2","sectors":["retail_chilled_frozen"]}'
-```
-It turns the old settings row into the first business (owned by the earliest admin), each user's role into
-a membership, and stamps every existing record. It only touches data from before the upgrade (users with
-no membership, records with no business), so accounts created in the meantime are left alone, and
-re-running does nothing once that data is migrated. Try it on a
-copy first (restore a backup into a local deployment). Once it has run, `businessId` can be made required
-in `schema.ts` and the legacy `settings` table and `users.role` field removed.
-
-**Test accounts (before launch only).** `backend/convex/seed.ts` wipes every table and builds the test
-accounts through the app's own mutations, a simulated day at a time, so they have history. It refuses to run
-unless the deployment has `SEED_ALLOWED=true`; **remove that variable before launch**.
-```bash
-ssh -fN -L 3299:127.0.0.1:3210 loganserver
-cd backend && export CONVEX_DEPLOYMENT= CONVEX_SELF_HOSTED_URL=http://127.0.0.1:3299 \
-  CONVEX_SELF_HOSTED_ADMIN_KEY="$(ssh loganserver cat foodsafe/.admin_key)"
+cd backend
 npx convex env set SEED_ALLOWED true
 npx convex run seed:run '{"confirm":"wipe everything"}'
 ```
@@ -952,17 +937,8 @@ Every account's password is `jampacked-test`. Who each account is and what to te
 | `ece@jampacked.test` | Smaller: Little Kiwis ECE (kitchen, NP2 ECE, 10 days). |
 | `new@jampacked.test` | A new business with nothing in it. |
 
-**Operations:**
-```bash
-ssh loganserver
-cd ~/foodsafe
-docker compose ps                 # status
-docker compose logs -f convex     # backend logs
-docker compose restart            # restart both containers
-docker run --rm -v foodsafe_convex-data:/d -v $PWD:/b alpine tar czf /b/convex-backup-$(date +%F).tgz -C /d .   # backup
-```
-Convex dashboard (self-hosted): `docker run --rm -p 6791:6791 -e NEXT_PUBLIC_DEPLOYMENT_URL=http://127.0.0.1:3210 ghcr.io/convex/convex-dashboard`
-on the server, then SSH-forward port 6791 and log in with the admin key.
+**Operations:** logs with `npx convex logs` (`--prod` for production) or the dashboard's Logs page; data,
+functions, backups and env vars are in the dashboard too.
 
 ---
 
@@ -1039,25 +1015,11 @@ The tag starts `.github/workflows/release.yml`:
 Nothing is released if any step fails. To redo a release, fix it, delete the tag and the GitHub release,
 and tag again. To roll back, deploy an older tag: `git checkout v0.1.0 && ./deploy/deploy.sh`.
 
-**Switching on deploys from GitHub** (one-off). loganserver is only reachable over Tailscale, so the
-release job joins the tailnet, then deploys over SSH:
-1. **Tailscale** (admin console): in the access controls, add `"tag:ci"` to `tagOwners` (owned by
-   `autogroup:admin`) and a rule letting `tag:ci` reach loganserver on port 22 only. Then Settings → OAuth
-   clients → generate one with the `auth_keys` (write) scope and the `tag:ci` tag.
-2. **A deploy key:** `ssh-keygen -t ed25519 -f jampacked-deploy -C github-actions -N ""`, and add
-   `jampacked-deploy.pub` to `~/.ssh/authorized_keys` on loganserver. Record the server's host key from a
-   machine you trust: `ssh-keyscan loganserver`.
-3. **GitHub** (Settings → Environments → New environment `production`; under "Deployment branches and
-   tags" allow only tags `v*`; add yourself as a required reviewer if you want to approve each deploy).
-   Environment secrets: `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_SECRET`, `DEPLOY_SSH_KEY` (the private key file),
-   `DEPLOY_KNOWN_HOSTS` (the `ssh-keyscan` output) and `DEPLOY_HOST` (e.g. `loganyoung@loganserver`, or
-   the server's tailnet address). Then Settings → Variables → Actions → `DEPLOY_ENABLED` = `true`.
-4. Delete the local copy of the private key. If any of these leak: [SECURITY.md](../SECURITY.md).
-
-The deploy key can do anything the server account can (including Docker), so keep it only in that
-environment. When production moves to Convex Cloud and Cloudflare Pages
-([issues/hosting-and-backups.md](issues/hosting-and-backups.md)), the deploy job becomes
-`npx convex deploy` with a deploy key and a Cloudflare Pages upload, and no server access.
+**Switching on deploys from GitHub** (one-off): Settings → Environments → New environment `production`;
+under "Deployment branches and tags" allow only tags `v*` (add yourself as a required reviewer if you want
+to approve each deploy). Environment secrets: `CONVEX_DEPLOY_KEY`, `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID` (§14). Then Settings → Variables → Actions → `DEPLOY_ENABLED` = `true`. If any of
+these leak: [SECURITY.md](../SECURITY.md).
 
 **Not in releases yet:** the Android and iOS builds. Add them to `release.yml` as release files once
 signing is set up ([issues/app-store-release.md](issues/app-store-release.md)); they'll take the version
