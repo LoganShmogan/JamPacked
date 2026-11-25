@@ -895,10 +895,10 @@ script (§17); deploy from a tagged commit, so what's live is a version in [CHAN
 Pages makes a deploy live at once and browsers recheck every file on load, so nothing needs purging.
 Close the terminal afterwards: with `CONVEX_DEPLOY_KEY` set, `npx convex` commands go to production.
 
-**One-off setup:**
+**One-off setup** (all done 26 Nov 2026; kept for rebuilding it or rotating keys):
 1. **Convex:** the production deployment (`npx convex deployment create production --type prod --region
    aws-ap-southeast-2`) and a production deploy key with only `deployment:deploy` (deployment → Settings →
-   Deploy keys). Done 26 Nov 2026.
+   Deploy keys).
 2. **Cloudflare API token:** My Profile → API Tokens → Create Token → Custom token, permission
    Account → Cloudflare Pages → Edit, for the JamPacked account. The account ID is on the Workers & Pages
    overview.

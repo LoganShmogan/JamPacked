@@ -54,10 +54,14 @@ The website reads these from `web/src/lib/site.ts` (`pricing.plans`, one Stripe 
 - [x] Products & prices in Stripe, with a live Payment Link per plan and period (`checkoutUrls` in `web/src/lib/site.ts`)
 - [ ] Tie a payment to a business: Payment Links don't carry `metadata.businessId`, so either move the website to Checkout Sessions (as designed above) or match payments to businesses by hand until then
 - [x] `subscriptions` table + webhook in `http.ts` / `billing.ts` (signature check, upserts in any order), tested
-- [ ] Register the webhook in Stripe → Developers → Webhooks: `https://adjoining-alligator-324.ap-southeast-2.convex.site/stripe/webhook`
-  (production on Convex Cloud), events `checkout.session.completed`
-  and `customer.subscription.created/updated/deleted`; then `npx convex env set STRIPE_WEBHOOK_SECRET whsec_...`.
-  On Convex Cloud the URL becomes `https://<deployment>.convex.site/stripe/webhook`
+- [ ] **Next (picked up 26 Nov 2026):** register the webhook in Stripe, **live mode**, Developers (or
+  Workbench) → Webhooks → Add destination: snapshot payload, events `checkout.session.completed` and
+  `customer.subscription.created/updated/deleted`, webhook endpoint
+  `https://adjoining-alligator-324.ap-southeast-2.convex.site/stripe/webhook`, description "JamPacked
+  production". Keep the `whsec_` signing secret in the password manager.
+- [ ] Then set it on production: Convex dashboard → production → Settings → Environment Variables →
+  `STRIPE_WEBHOOK_SECRET`. Check: the endpoint answers 503 "Webhook not configured" until it's set (it did on
+  26 Nov), 400 for a bad signature after; then a real payment shows up in the `subscriptions` table
 - [ ] Add a "Business name in JamPacked" text field to each Payment Link, for matching payments by hand
 - [ ] Convex action to create Checkout Sessions and Customer Portal sessions (called from the website)
 - [x] Entitlement check in `requireMember`, read-only mode for lapsed businesses, tests for every status
